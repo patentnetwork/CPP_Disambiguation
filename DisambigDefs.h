@@ -186,7 +186,10 @@ public:
 	virtual int exact_compare( const cAttribute & rhs ) const { return -1; } // -1 means no exact_compare. 0 = not the same 1= exact same
 	virtual const string * add_string( const string & str ) const = 0;
 
+	virtual bool operator < ( const cAttribute & rhs ) const { return this->data < rhs.data;}
+
 };
+
 
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute {
@@ -205,17 +208,30 @@ private:
 	static bool bool_comparator_activated;
 	static const string attrib_group;	//attribute group used for ratios purpose;
 	static set < string > data_pool;
+
+	static set < Derived > attrib_pool;
 protected:
 
 public:
+
 	cAttribute_Intermediary(const char * source )
 		:	cAttribute(source) {
 		if (! is_enabled() ) 
 			throw cException_Attribute_Disabled(class_name.c_str()); 
 		//get_interactive_vector().resize(num_of_interactive_columns);
 	}
+	static const Derived * static_add_attrib( const Derived & d ) {
+		register typename set< Derived >::iterator p = attrib_pool.find( d );
+		if ( p == attrib_pool.end() )
+			p = attrib_pool.insert(d).first;
+		return &(*p);
+	}
+
     const cAttribute* clone() const {
-        return new Derived(dynamic_cast< const Derived & >(*this) );
+    	const Derived & alias = dynamic_cast< const Derived & > (*this);
+    	return static_add_attrib(alias);
+
+        //return new Derived(dynamic_cast< const Derived & >(*this) );
     }
     const string & get_class_name() const { return class_name;}
     static const string & static_get_class_name() {return class_name;}
@@ -248,17 +264,17 @@ public:
 	static void activate_comparator() {bool_comparator_activated = true; std::cout << static_get_class_name() << " comparison is active now." << std::endl;}
 	static void deactivate_comparator() {bool_comparator_activated = false;std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;}
 	void print( std::ostream & os ) const {
-		static const char lineend = '\n';
+		//static const char lineend = '\n';
 		vector < const string * >::const_iterator p = this->get_data().begin();
 		os << class_name << ": ";
 		if ( p == this->get_data().end() ) {
-			os << "Empty attribute." << lineend;
+			os << "Empty attribute." << std::endl;
 			return;
 		}
 		os << "raw data = " << **p << ", Derivatives = ";
 		for ( ++p; p != this->get_data().end(); ++p )
 			os << **p << " | ";
-		os << lineend;
+		os << std::endl;
 	}
 	static const string & static_get_attrib_group() { return attrib_group; };
 	const string & get_attrib_group() const { return attrib_group;}
@@ -278,6 +294,16 @@ public:
 		return static_add_string ( str );
 	}
 
+	static const cAttribute * static_clone_by_data( const vector < string > & str ) {
+		Derived d;
+		vector < const string *> & alias = d.get_data_modifiable();
+		alias.clear();
+		for ( vector < string > ::const_iterator p = str.begin(); p !=str.end(); ++p ) {
+			const string * q = static_add_string(*p);
+			alias.push_back(q);
+		}
+		return static_add_attrib(d);
+	}
 
 };
 
@@ -347,7 +373,7 @@ public:
 		: cAttribute_Intermediary<cLatitude>(source){}
 	unsigned int compare(const cAttribute & rhs) const;
 	const vector <const cAttribute *> & get_interactive_vector() const {return vec_pinteractive;};
-	void reset_interactive (const vector <const cAttribute *> &inputvec ) { vec_pinteractive = inputvec;};
+	virtual void reset_interactive (const vector <const cAttribute *> &inputvec ) { vec_pinteractive = inputvec;};
 	unsigned int get_attrib_max_value() const {
 		if ( ! is_comparator_activated() )
 			cAttribute::get_attrib_max_value();
@@ -485,6 +511,7 @@ template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_interact
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_is_enabled = false;
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_comparator_activated = false;
 template <typename Derived> set < string > cAttribute_Intermediary<Derived>:: data_pool;
+template <typename Derived> set < Derived > cAttribute_Intermediary<Derived>:: attrib_pool;
 
 //declaration ( not definition ) of specialized template
 template <> const string cAttribute_Intermediary<cFirstname>::attrib_group;

@@ -120,7 +120,8 @@ bool cAttribute::split_string(const char* recdata) {
 	}
 	const char * r = std::find(p, q, secondary_delim);
 	const string tp ( p, r);
-	data.push_back( this->add_string(tp));
+	const string * ptr = this->add_string(tp);
+	data.push_back( ptr );
 	if ( r != q ) {
 		count_length = q - r - 1;
 		memcpy(string_count_cache, r + 1, count_length *sizeof(char) );
@@ -360,12 +361,14 @@ unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 
 
 bool cCoauthor::split_string(const char* inputdata) {
+	/*
 	try {
 		cAttribute::split_string(inputdata);
 	}
 	catch ( const cException_Vector_Data & except) {
 		//std::cout << "cCoauthor allows vector data. This info should be disabled in the real run." << std::endl;
 	}
+	*/
 	//set_coauthors.insert(get_data().begin(),get_data().end());
 	//this->get_data_modifiable().clear();
 	return true;

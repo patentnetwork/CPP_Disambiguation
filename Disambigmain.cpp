@@ -1313,7 +1313,7 @@ int fullrun_iterative_v4() {
 							matchfile, string("Invnum"), string("Invnum_N") );
 
 
-	clear_records(all_records);
+	//clear_records(all_records);
 	return 0;
 }
 

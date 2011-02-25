@@ -333,7 +333,7 @@ string cBlocking_Operation_By_Coauthors::extract_blocking_info(const cRecord * p
 
 void cReconfigurator_AsianNames::reconfigure( const cRecord * p ) const {
 	bool need_reconfigure = false;
-	const string & country = * p->get_attrib_pointer_by_index(country_index)->get_data().at(0);
+	const string & country = *  p->get_attrib_pointer_by_index(country_index)->get_data().at(0) ;
 	for ( register vector<string>::const_iterator ci = east_asian.begin(); ci != east_asian.end(); ++ci )
 		if ( country == *ci ) {
 			need_reconfigure = true;
@@ -343,19 +343,20 @@ void cReconfigurator_AsianNames::reconfigure( const cRecord * p ) const {
 	if ( need_reconfigure == false )
 		return;
 
-	const vector < const string* > & fn = p->get_attrib_pointer_by_index(firstname_index)->get_data();
-	const string & lnstr = * p->get_attrib_pointer_by_index(lastname_index)->get_data().at(0);
-	vector < const string * > & fnc = const_cast< vector< const string* > & > (fn);
-	//std::cout << "Before:" << static_cast<const void*> ( fnc.at(0).c_str() ) << "," << static_cast<const void*> ( fnc.at(1).c_str() ) << " | " << fn.at(0) << "," << fn.at(1)<< std::endl;
-	fnc.at(1) =  fn.at(0) ;
-	//std::cout << "After:" << static_cast<const void*> ( fnc.at(0).c_str() ) << "," << static_cast<const void*> ( fnc.at(1).c_str() ) << " | " << fn.at(0) << "," << fn.at(1)<< std::endl;
+	// do not change original attributes. add new ones.
+	const string & fn_alias = * p->get_attrib_pointer_by_index(firstname_index)->get_data().at(0);
+	const vector <string> fn ( 2, fn_alias );
+	const cAttribute * paf = cFirstname::static_clone_by_data(fn);
 
-	const vector < const string* > & mn = p->get_attrib_pointer_by_index(middlename_index)->get_data();
-	const string mnstr( *fn.at(0) + "." + lnstr);
-	vector <const string* > & mnc = const_cast < vector <const string* > & > (mn);
-	mnc.clear();
-	mnc.push_back(cMiddlename::static_add_string( mnstr ) );
-	mnc.push_back(cMiddlename::static_add_string( mnstr ) );
+	const string & lnstr = * p->get_attrib_pointer_by_index(lastname_index)->get_data().at(0);
+	const string mnstr ( fn_alias + "." + lnstr);
+	const vector < string > mn(2, mnstr);
+	const cAttribute * pam = cMiddlename ::static_clone_by_data(mn);
+
+	cRecord * q = const_cast < cRecord * > (p);
+	q->set_attrib_pointer_by_index(paf, firstname_index);
+	q->set_attrib_pointer_by_index(pam, middlename_index);
+
 
 #if 0
 	const string & fullname = mn.at(0);
@@ -381,8 +382,9 @@ void cReconfigurator_Latitude_Interactives::reconfigure ( const cRecord * p ) co
 	interact.push_back(p->get_attrib_pointer_by_index(this->longitude_index));
 	interact.push_back(p->get_attrib_pointer_by_index(this->street_index));
 	interact.push_back(p->get_attrib_pointer_by_index(this->country_index));
-	cAttribute * tp = const_cast<cAttribute *> (p->get_attrib_pointer_by_index(this->latitude_index));
-	tp->reset_interactive(interact);
+	const cAttribute * tp = p->get_attrib_pointer_by_index(this->latitude_index);
+	cAttribute * lp = const_cast<cAttribute *> (tp);
+	lp->reset_interactive(interact);
 }
 
 
@@ -1415,7 +1417,11 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 			}
 
 			pointer_array[i]->reset_data(string_cache[i].c_str());
+			//std::cout << pointer_array[i]->get_class_name() << std::endl;
+			//std::cout << pointer_array[i]->get_data().at(0)->c_str() << std::endl;
+			//pointer_array[i]->print(std::cout);
 			pAttrib = pointer_array[i]->clone();	//HERE CREATED NEW CLASS INSTANCES.
+			//pAttrib->print(std::cout);
 			temp_vec_attrib.push_back(pAttrib);
 		}
 
