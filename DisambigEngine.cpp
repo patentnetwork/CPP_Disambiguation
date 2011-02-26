@@ -43,8 +43,7 @@ unsigned int cRecord::informative_attributes() const {
 	unsigned int cnt = 0;
 	for ( vector <const cAttribute *>::const_iterator p = vector_pdata.begin(); p != vector_pdata.end(); ++p  ) {
 		if ( (*p)->is_comparator_activated() ) {
-			const string & info = * (*p)->get_data().at(0);
-			if (! info.empty() )
+			if ( (*p)->is_informative() )
 				++cnt;
 		}
 	}
@@ -114,6 +113,7 @@ unsigned int cRecord::exact_compare(const cRecord & rhs ) const {
 	return result;
 }
 
+void cRecord::print() const { this->print(std::cout);}
 
 unsigned int cRecord::get_index_by_name(const string & inputstr) {
 	for ( unsigned int i = 0 ; i < column_names.size(); ++i )

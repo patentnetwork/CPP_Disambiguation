@@ -31,6 +31,7 @@ private:
 	static const map < const cRecord *, cGroup_Value, cSort_by_attrib > * reference_pointer;
 	static const cString_Extract_FirstWord firstname_extracter;
 	static const cString_Remove_Space lastname_extracter;
+	cCluster & operator = ( const cCluster &);
 public:
 	cCluster(const cCluster_Head & info, const cGroup_Value & fellows);
 	~cCluster();

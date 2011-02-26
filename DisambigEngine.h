@@ -46,6 +46,7 @@ public:
 	const cAttribute * get_attrib_pointer_by_index(const unsigned int i) const {return vector_pdata.at(i);}
 	const vector < const cAttribute*> & get_attrib_vector () const { return vector_pdata;}
 	void print( std::ostream & os ) const;
+	void print() const; //{ this->print(std::cout);}
 	static const vector < string > & get_column_names() { return column_names;}
 	void reset_coauthors( const cBlocking_Operation_By_Coauthors &, const unsigned int topN) const;
 	unsigned int informative_attributes() const;

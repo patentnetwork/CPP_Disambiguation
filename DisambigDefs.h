@@ -180,6 +180,7 @@ public:
 	virtual const cAttribute* clone() const = 0; // Polymorphic copy constructor
 	virtual bool has_checked_interactive_consistency() const = 0;
 	virtual void print( std::ostream & ) const = 0;
+	void print() const { this->print(std::cout); }
 	virtual const string & get_attrib_group() const = 0;
 	virtual void check_interactive_consistency(const vector <string> & query_columns) = 0;
 	virtual unsigned int get_attrib_max_value() const { throw cException_Invalid_Function(get_class_name().c_str());};
@@ -187,6 +188,11 @@ public:
 	virtual const string * add_string( const string & str ) const = 0;
 
 	virtual bool operator < ( const cAttribute & rhs ) const { return this->data < rhs.data;}
+	virtual bool is_informative() const {
+		if (  data.empty() || data.at(0)->empty() )
+			return false;
+		return true;
+	}
 
 };
 
@@ -425,6 +431,7 @@ public:
 
 class cCoauthor : public cAttribute_Intermediary<cCoauthor> {
 private:
+	static list < cCoauthor > attrib_pool;
 	static const set < const string * > empty_set_coauthors;
 	const set < const string * > * pset;
 public:
@@ -438,9 +445,36 @@ public:
 			cAttribute::get_attrib_max_value();
 		return max_value;
 	}
-	void reset_pointer(const set < const string *> & s) { pset = &s;}
+	cAttribute* clone() const {
+		attrib_pool.push_back(*this);
+		return & attrib_pool.back();
+	}
+
+	void reset_pointer(const set < const string *> & s) {	pset = &s ;}
 	const set < const string *> * get_set_pointer() const {return pset;}
 	bool operator == ( const cCoauthor & rhs) const { return *pset == * rhs.pset;}
+	void print( std::ostream & os ) const {
+		set < const string * >::const_iterator p = pset->begin();
+		os << this->get_class_name() << ": ";
+		if ( p == pset->end() ) {
+			os << "Empty attribute." << std::endl;
+			return;
+		}
+		os << "No raw data. " << ", Derivatives = ";
+		for ( ; p != pset->end(); ++p )
+			os << **p << " | ";
+		os << std::endl;
+	}
+	bool operator < ( const cAttribute & rhs ) const {
+		throw cException_Other(" operator less than of class cCoauthor should be invalid.");
+		const cCoauthor & r = dynamic_cast< const cCoauthor & > (rhs);
+		return this->pset < r.pset;
+	}
+	bool is_informative () const  {
+		if ( pset->empty())
+			return false;
+		return true;
+	}
 };
 
 class cAssignee : public cAttribute_Intermediary<cAssignee> {

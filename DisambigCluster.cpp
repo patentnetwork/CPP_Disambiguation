@@ -15,7 +15,6 @@ extern "C" {
 }
 
 
-
 const char * cCluster_Info::primary_delim = "###";
 const char * cCluster_Info::secondary_delim = ",";
 
@@ -49,6 +48,7 @@ unsigned int cCluster_Info::current_size() const {
 
 
 void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file) {
+	//bool debug = false;
 	try {
 		std::ifstream::sync_with_stdio(false);
 		std::ifstream infile(past_comparision_file);
@@ -101,6 +101,9 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				while ( ( pos = filedata.find(secondary_delim, prev_pos) )!= string::npos){
 					string valuestring = filedata.substr( prev_pos, pos - prev_pos);
 					const cRecord * value = retrieve_record_pointer_by_unique_id( valuestring, *uid2record_pointer);
+
+					//if ( valuestring == string ("04325803-2"))
+						//debug = true;
 					//pm->second.insert(value);
 					//pm->second.push_back(value);
 					tempv.push_back(value);
@@ -111,6 +114,9 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				//cGroup_Key tempk(key);
 				cCluster_Head th(key, val);
 				cCluster tempc(th, tempv);
+				//std::cout << "************" << std::endl;
+				//tempc.get_cluster_head().m_delegate->print();
+
 				if ( prim_iter != cluster_by_block.end()) {
 					//pm = prim_iter->second.insert(std::pair<cGroup_Key, cGroup_Value >(tempk, empty_set)).first;
 					//prim_iter->second.push_back( std::pair<cGroup_Key, cGroup_Value >(tempk, empty_set));
@@ -124,15 +130,23 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 					cRecGroup one_elem(1, tempc);
 					//one_elem.push_back(std::pair<cGroup_Key, cGroup_Value>(tempk, empty_set));
 					//prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
-					cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem));
+					prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					//pm = prim_iter->second.begin();
 				}
-
 
 				++count;
 				if ( count % base == 0 )
 					std::cout << count << " records have been loaded from the cluster file. " << std::endl;
 			}
+
+			//std::cout << "Self correcting ...";
+			//for ( prim_iter = cluster_by_block.begin(); prim_iter != cluster_by_block.end(); ++ prim_iter ) {
+			//	for ( cRecGroup::iterator p = prim_iter->second.begin(); p != prim_iter->second.end(); ++p ) {
+			//		p->self_repair();
+			//	}
+			//}
+			//std::cout << "Done." << std::endl;
+
 			std::cout << past_comparision_file << " has been read into memory as "
 						<<  ( is_matching ? "MATCHING" : "NON-MATCHING" ) << " reference." << std::endl;
 		}
@@ -155,6 +169,8 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 	total_num = 0;
 	useless = blocker.get_useless_string();
 	retrieve_last_comparision_info(blocker, past_comparision_file);
+
+
 	config_prior();
 
 
@@ -169,6 +185,7 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocker, const list < const cRecord *> & all_rec_list) {
 	std::cout << "Preliminary consolidation ... ..." << std::endl;
 	total_num = 0;
+	cluster_by_block.clear();
 	useless = blocker.get_useless_string();
 	map < string, cRecGroup >::iterator mi;
 	const cGroup_Value empty_fellows;
@@ -186,6 +203,10 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 	for ( mi = cluster_by_block.begin(); mi != cluster_by_block.end(); ++mi ) {
 		cCluster & alias = mi->second.front();
 		alias.self_repair();
+		//std::cout << "**************" << std::endl;
+		//for ( cGroup_Value::const_iterator p = alias.get_fellows().begin(); p != alias.get_fellows().end(); ++ p)
+		//	(*p)->print();
+
 	}
 	std::cout << "Preliminary consolidation done." << std::endl;
 	config_prior();
@@ -194,6 +215,7 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 			//total_num += cp->second.size();
 			total_num += cp->get_fellows().size();
 	}
+
 }
 
 
@@ -569,10 +591,11 @@ void cWorker_For_Disambiguation::run() {
 		std::cout << "Caught user defined error: " << ex.what() << " . --Reported by thread " << getThreadID() << std::endl;
 		throw;
 	}
-	catch ( ... ) {
-		std::cout << "Caught UNKNOWN error (USUALLY CRITICAL). Need to handle this! "<< " . --Reported by thread " << getThreadID()  << std::endl;
-		throw;
-	}
+
+	//catch ( ... ) {
+	//	std::cout << "Caught UNKNOWN error (USUALLY CRITICAL). Need to handle this! "<< " . --Reported by thread " << getThreadID()  << std::endl;
+	//	throw;
+	//}
 }
 
 

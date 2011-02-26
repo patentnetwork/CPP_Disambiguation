@@ -29,7 +29,6 @@ int main() {
 }
 
 
-
 bool make_changable_training_sets_by_names(const list <const cRecord*> & record_pointers, const vector<string >& blocking_column_names,
 						const vector < const cString_Manipulator *> & pstring_oper, const unsigned int limit, const vector <string> & training_filenames) {
 

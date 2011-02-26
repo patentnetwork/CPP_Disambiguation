@@ -116,8 +116,10 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 			break;
 
 		for ( unsigned int i = 0; i < equal_indice.size(); ++i) {
-			if ( pmanipulators_equal[i]->manipulate( * (*outercursor)->get_data_by_index(equal_indice[i]).at(0) )
-					!= pmanipulators_equal[i]->manipulate ( * (*innercursor)->get_data_by_index(equal_indice[i]).at(0) ) ) {
+			const string & outerstring = * (*outercursor)->get_data_by_index(equal_indice[i]).at(0);
+			const string & innerstring = * (*innercursor)->get_data_by_index(equal_indice[i]).at(0);
+			if ( pmanipulators_equal[i]->manipulate( outerstring )
+					!= pmanipulators_equal[i]->manipulate ( innerstring ) ) {
 				should_continue = true;
 				break;
 			}
@@ -129,8 +131,10 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 		}
 
 		for ( unsigned int i = 0; i < nonequal_indice.size(); ++i) {
-			if ( pmanipulators_nonequal[i]->manipulate( * (*outercursor)->get_data_by_index(nonequal_indice[i]).at(0) )
-					== pmanipulators_nonequal[i]->manipulate( * (*innercursor)->get_data_by_index(nonequal_indice[i]).at(0) ) ) {
+			const string & outerstring = * (*outercursor)->get_data_by_index(nonequal_indice[i]).at(0);
+			const string & innerstring = * (*innercursor)->get_data_by_index(nonequal_indice[i]).at(0);
+			if ( pmanipulators_nonequal[i]->manipulate( outerstring )
+					== pmanipulators_nonequal[i]->manipulate( innerstring) ) {
 				should_continue = true;
 				break;
 			}
@@ -144,6 +148,10 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 		}
 		//other criteria apply here.
 
+		//std::cout << "===========" << std::endl;
+		//(*outercursor)->print(std::cout);
+		//(*innercursor)->print(std::cout);
+		//std::cout << "===========" << std::endl;
 
 
 		const cAttribute * pcouter = ( (*outercursor)->get_attrib_pointer_by_index(coauthors_index));

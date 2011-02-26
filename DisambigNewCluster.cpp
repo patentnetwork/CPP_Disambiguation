@@ -58,7 +58,7 @@ cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m
 	if ( rhs.m_mergeable == false )
 		throw cException_Other("cCluster Copy Constructor error.");
 	//rhs.m_mergeable = false;
-	reset_cCoauthor_pointer(this->coauthor_list);
+	this->reset_cCoauthor_pointer(this->coauthor_list);
 }
 
 

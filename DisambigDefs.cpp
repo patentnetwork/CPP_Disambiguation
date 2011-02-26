@@ -71,6 +71,9 @@ template <> const string cAttribute_Intermediary<cCity>::class_name = "City";
 
 template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent";
 
+
+list < cCoauthor > cCoauthor::attrib_pool;
+
 //================
 
 
