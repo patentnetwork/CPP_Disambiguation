@@ -22,12 +22,12 @@ extern "C" {
 using std::list;
 
 //this function is to get the incontinuous longest common subsequence of two vectors.
-//for example, the mid name comparision uses the function.
+//for example, the mid name comparision uses the function | or the following continuous function.
 template <typename Tp, typename Functor>
-vector <Tp> Longest_Common_Subsequence(const vector <Tp> & s1, const vector <Tp> &s2, const Functor & func)
+vector <Tp> Longest_Common_Subsequence_Incontinuous(const vector <Tp> & s1, const vector <Tp> &s2, const Functor & func)
 {
     
-	vector < Tp > emptyresult;
+	static const vector < Tp > emptyresult;
     if(s1.empty()||s2.empty())
         return emptyresult;
     const int m=s1.size()+1;
@@ -83,6 +83,58 @@ vector <Tp> Longest_Common_Subsequence(const vector <Tp> & s1, const vector <Tp>
     vector < Tp > ans (ss.begin(), ss.end());
     return ans;
 }
+
+template <typename Tp, typename Functor>
+vector <Tp> Longest_Common_Subsequence_Continuous(const vector <Tp> & s1, const vector <Tp> &s2, const Functor & func) {
+	static const vector < Tp > emptyresult;
+    if (s1.empty() || s2.empty() )
+        return emptyresult;
+
+    const int m = s1.size();
+    const int n = s2.size();
+
+    vector < int > c(m, 0);
+    int max, maxj,i,j;
+    maxj = 0 ;
+    max = 0;
+    for( i = 0; i < n ; ++i )   {
+		  for( j = m - 1 ; j >= 0 ; --j )   {
+			  if( func (s2[i], s1[j] ) )   {
+				  if ( i == 0 || j == 0 )
+					  c[j] = 1;
+				  else
+					  c[j] = c[j-1] + 1;
+			  }
+			  else
+				  c[j]=0;
+			  if( c[j] > max )   {
+				  max = c[j];
+				  maxj = j;
+			  }
+		  }
+    }
+
+    if( max == 0 )
+    	return emptyresult;
+    vector <Tp> ss ( emptyresult);
+	for( j = maxj - max + 1; j <= maxj ; ++j )
+		ss.push_back( s1[j] );
+	return ss;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 inline bool cSentence_JWComparator:: operator()(const string * ps1, const string * ps2) const {
@@ -241,7 +293,7 @@ int midnamecmp(const string & str1, const string & str2 ){
 		return 1;
 	
 	int score;
-	const int matches = Longest_Common_Subsequence<char, std::equal_to<char> >(vec1, vec2, char_compare).size();
+	const int matches = Longest_Common_Subsequence_Continuous<char, std::equal_to<char> >(vec1, vec2, char_compare).size();
 	if ( matches == min_val<int>(str1.size(), str2.size() ) )
 		score = 3;
 	else
@@ -485,7 +537,7 @@ int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 		for ( ++q2; q2 != asg2.end(); ++q2 )
 			vec_asg2.push_back(&(*q2));
 		
-		score = Longest_Common_Subsequence<const string *, cSentence_JWComparator>(vec_asg1, vec_asg2, sjw).size();
+		score = Longest_Common_Subsequence_Incontinuous <const string *, cSentence_JWComparator>(vec_asg1, vec_asg2, sjw).size();
 	}
 	return score;
 }

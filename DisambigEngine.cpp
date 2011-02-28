@@ -30,7 +30,6 @@ pthread_mutex_t cWorker_For_Disambiguation::iter_lock = PTHREAD_MUTEX_INITIALIZE
 const string cBlocking_Operation::delim = "##";
 
 
-
 void clear_records(const list <cRecord> & source) {
 	for (list<cRecord>::const_iterator p = source.begin(); p != source.end(); ++p) {
 		for (vector <const cAttribute * >::const_iterator q = p->vector_pdata.begin(); q != p->vector_pdata.end(); ++q )
@@ -40,13 +39,30 @@ void clear_records(const list <cRecord> & source) {
 
 
 unsigned int cRecord::informative_attributes() const {
+
+	static const unsigned int firstname_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
+	static const unsigned int middlename_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
+	static const unsigned int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
+	static const unsigned int assignee_index = cRecord::get_index_by_name(cAssignee::static_get_class_name());
+	static const unsigned int class_index = cRecord::get_index_by_name(cClass::static_get_class_name());
+
+
 	unsigned int cnt = 0;
+
+	this->vector_pdata.at(firstname_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(middlename_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(lastname_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(assignee_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(class_index)->is_informative() && (++cnt);
+
+#if 0
 	for ( vector <const cAttribute *>::const_iterator p = vector_pdata.begin(); p != vector_pdata.end(); ++p  ) {
 		if ( (*p)->is_comparator_activated() ) {
 			if ( (*p)->is_informative() )
 				++cnt;
 		}
 	}
+#endif
 	return cnt;
 }
 
@@ -716,17 +732,17 @@ double fetch_ratio(const vector < unsigned int > & ratio_to_calc, const vector< 
 
 
 
-std::pair<const cRecord *, double> disambiguate_by_set (
+std::pair<const cRecord *, double> disambiguate_by_set_old (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
-									 const double prior, 
+									 const double prior,
 									 const cRatios & ratio,  const double mutual_threshold ) {
 	const double minimum_threshold = 0.8;
 	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
 	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
 	const unsigned int size_minimum = 50;
 	double r_value = 0;
-	
+
 	if ( match1.size() > size_minimum && match2.size() > size_minimum ) {
 		vector< unsigned int > sp = key1->record_compare(*key2);
 		//if ( power == 0 )
@@ -743,7 +759,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		const double probability = 1 / ( 1 + ( 1 - prior )/prior / r_value );
 		if ( probability < threshold )
 			return std::pair<const cRecord *, double> (NULL, probability);
-		else 
+		else
 			return std::pair<const cRecord *, double> ( ( ( match1.size() > match2.size() ) ? key1 : key2 ), probability );
 	}
 	else {
@@ -764,7 +780,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		}
 
 		//const bool should_adjust = ( merged.size() > size_minimum );
-		
+
 		double max_sum = 0;
 		double matrix_sum = 0;
 		unsigned int chosen_i = 0;
@@ -828,7 +844,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 		vector<bool> shall_use(max_history.size(), true);
 
-		const double probability = matrix_sum / size / (size - 1 ); 
+		const double probability = matrix_sum / size / (size - 1 );
 		if ( probability > 1 )
 			throw cException_Invalid_Probability("Cohesion value error.");
 		if ( probability > threshold ) {
@@ -884,6 +900,168 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			return std::pair<const cRecord *, double> (NULL, probability);
 	}
 }
+
+
+
+//==================================================================================================
+
+std::pair<const cRecord *, double> disambiguate_by_set (
+									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
+									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
+									 const double prior, 
+									 const cRatios & ratio,  const double mutual_threshold ) {
+	const double minimum_threshold = 0.8;
+	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
+	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
+	const unsigned int size_minimum = 50;
+	double r_value = 0;
+
+	if ( match1.size() > size_minimum && match2.size() > size_minimum ) {
+		vector< unsigned int > sp = key1->record_compare(*key2);
+		//if ( power == 0 )
+			r_value = fetch_ratio(sp, ratio.get_ratios_map());
+		//else
+		//	throw cException_Other("Error in disambiguate_by_set: invalid input parameter.");
+			//r_value = fetch_ratio(sp, ratio.get_coefficients_vector(), power);
+
+		if ( 0 == r_value ) {
+			std::cout << " OK. Disabled now but should be enabled in the real run." << std::endl;
+			return std::pair<const cRecord *, double> (NULL, 0);
+			//throw except;
+		}
+		const double probability = 1 / ( 1 + ( 1 - prior )/prior / r_value );
+		if ( probability < threshold )
+			return std::pair<const cRecord *, double> (NULL, probability);
+		else 
+			return std::pair<const cRecord *, double> ( ( ( match1.size() > match2.size() ) ? key1 : key2 ), probability );
+	}
+	else {
+		vector < const cRecord *> merged;
+		cGroup_Value::const_iterator q = match1.begin();
+		if ( key1 != NULL)
+			merged.push_back(key1);
+		for ( unsigned int i = 0; i < size_minimum && i < match1.size(); ++i ) {
+			if (*q != key1 )
+				merged.push_back(*q++);
+		}
+		q = match2.begin();
+		if ( key2 != NULL )
+			merged.push_back(key2);
+		for ( unsigned int i = 0; i < size_minimum && i < match2.size(); ++i ) {
+			if (*q != key2)
+				merged.push_back(*q++);
+		}
+
+		//const bool should_adjust = ( merged.size() > size_minimum );
+		
+		double max_sum = 0;
+		double matrix_sum = 0;
+		unsigned int chosen_i = 0;
+		//unsigned int crude_chosen_i = 0;
+		const unsigned int size = merged.size();
+		unsigned int num_useful_columns = 0;
+		vector < unsigned int > qualified_index;
+		for (unsigned int i = 0; i < size; ++i ) {
+			unsigned int informative_columns = merged[i]->informative_attributes();
+			if ( informative_columns > num_useful_columns ) {
+				num_useful_columns = informative_columns;
+				qualified_index.clear();
+			}
+			if ( informative_columns == num_useful_columns )
+				qualified_index.push_back(i);
+		}
+
+		vector < double > max_history( qualified_index.size(), 0);
+		//bool is_updated = false;
+
+
+		vector < unsigned int > :: iterator cvi = qualified_index.begin();
+		unsigned int location = 0;
+		for (unsigned int i = 0; i < size; ++i ) {
+		//for ( vector < unsigned int >:: const_iterator cvi = qualified_index.begin(); cvi != qualified_index.end(); ++cvi ) {
+			//const unsigned int i = *cvi;
+			double temp_sum = 0;
+			//unsigned int informative_columns = merged[i]->informative_attributes();
+
+			for (unsigned int j = 0; j < size; ++j ) {
+				if ( i == j )
+					continue;
+
+				vector< unsigned int > tempsp = merged[i]->record_compare(* merged[j]);
+				r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+				if ( r_value == 0 ) {
+					temp_sum += 0;
+				}
+				else {
+					temp_sum +=  1 / ( 1 + ( 1 - prior )/prior / r_value );
+				}
+			}
+
+			if ( temp_sum > max_sum  ) {
+				//cvi = find ( qualified_index.begin(), qualified_index.end(), i );
+				if ( *cvi == i  ) {
+					//qualified_index.erase( cvi );
+					max_sum = temp_sum;
+					max_history.at(location++) = max_sum;
+					++cvi;
+				}
+			}
+
+			//if ( temp_sum == max_sum ) {
+			//	max_history.push_back(i);
+			//}
+
+			matrix_sum += temp_sum;
+		}
+
+		vector<bool> shall_use(max_history.size(), true);
+
+		const double probability = matrix_sum / size / (size - 1 ); 
+		if ( probability > 1 )
+			throw cException_Invalid_Probability("Cohesion value error.");
+		if ( probability < threshold )
+			return std::pair<const cRecord *, double> (NULL, probability);
+		else {
+			//double check chosen_i;
+			location = 0;
+			vector < unsigned int > selected;
+			for ( unsigned int k = 0; k != max_history.size(); ++k ) {
+				if ( max_history.at(k) == max_sum )
+					selected.push_back(qualified_index.at(k));
+			}
+			unsigned int max_exact_count = 0;
+			for ( unsigned int k = 0; k != selected.size(); ++k ) {
+				unsigned int temp_c = 0;
+				for ( vector < const cRecord *>::const_iterator p = merged.begin(); p != merged.end(); ++p ) {
+					int ex_comp = merged.at( max_history.at(k) )->exact_compare( **p );
+					if ( ex_comp == 1 )
+						temp_c += 1;
+				}
+				if ( temp_c > max_exact_count ) {
+					max_exact_count = temp_c;
+					chosen_i = k;
+				}
+			}
+
+			const unsigned int ok = selected.at(chosen_i);
+			return std::pair<const cRecord *, double>( merged.at(ok), probability );
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if 0
 template < typename container >

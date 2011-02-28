@@ -1308,8 +1308,8 @@ int fullrun_iterative_v4() {
 
 	}
 
-	dump_match ( string( working_dir + string ( "/mini_to_dump.sqlite3")  ).c_str(), "invpat",
-							matchfile, string("Invnum"), string("Invnum_N") );
+	//dump_match ( string( working_dir + string ( "/mini_to_dump.sqlite3")  ).c_str(), "invpat",
+	//						matchfile, string("Invnum"), string("Invnum_N") );
 
 
 	//clear_records(all_records);
