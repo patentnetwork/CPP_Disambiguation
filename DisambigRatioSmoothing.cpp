@@ -328,7 +328,7 @@ void smoothing(map < cSimilarity_Profile, double,  cSimilarity_Compare  >& ratio
 
 
 	if ( is_ooqp_success ) {
-
+		std::cout << "1st Attempt: Raw data ..." << std::endl;
 		//==========================
 		///USING OOQP NOW.
 
@@ -509,7 +509,203 @@ void smoothing(map < cSimilarity_Profile, double,  cSimilarity_Compare  >& ratio
 
 	}
 
+	//round 2
+	if ( ! is_ooqp_success ) {
+		double (*pfunc)(double);
+		pfunc = log;
+		double (*qfunc)(double);
+		qfunc = exp;
+
+		std::cout << "2nd Attempt: Taking the logarithm ..." << std::endl;
+		is_ooqp_success = true;
+		//==========================
+		///USING OOQP NOW.
+
+		const bool show_ooqp_process = true;
+
+		const int nx = sz;
+		double * const c = new double [nx];
+		double * const xlow = new double [nx];
+		char * const ixlow = new char[nx];
+		double * const xupp = new double [nx];
+		char * const ixupp = new char[nx];
+
+		const int nnzQ = nx;
+		int * const irowQ = new int [nnzQ];
+		int * const jcolQ = new int [nnzQ];
+		double * const dQ = new double [nnzQ];
+
+		const int my = 0; // equality constraints.
+		double * const b     = 0;
+		const int nnzA       = 0;
+		int * const irowA    = 0;
+		int * const jcolA    = 0;
+		double * const dA    = 0;
+
+		const int mz = m - min_sp.size(); //number of inequality
+		double * const clow = new double [mz];
+		char * const iclow = new char [mz];
+		double * const cupp = new double [ mz ];
+		char * const icupp = new char [mz];
+
+		const int nnzC = mz * 2;
+		int * const irowC = new int [nnzC];
+		int * const jcolC = new int [nnzC];
+		double * const dC = new double [nnzC];
+
+		std::cout << "---------MATRIX SIZE = " << mz <<" x " << nx << " -----------" << std::endl;
+
+		pratio = ratio_map.begin();
+
+
+
+		for ( unsigned int i = 0; i < sz ; ++i ) {
+			const vector < unsigned int > & sp = pratio->first;
+			unsigned int wt = x_counts.find(sp)->second + m_counts.find(sp)->second ;
+			dQ[i] = 2.0 * wt;
+			c[i] = (-2.0) * wt * pfunc ( pratio->second ) ;	// in the same r's sequence
+
+			xlow[i] = log(delta);
+			ixlow[i] = 1;
+
+
+			xupp[i] = too_big;
+			ixupp[i] = 0;
+			if ( midname_range_check && pratio->first.at(midname_location) == 0 ) {
+				if ( xupp[i] > pfunc (midname_upper) )
+					xupp[i] = pfunc (midname_upper);
+				ixupp[i] = 1;
+			}
+			if ( lastname_range_check && pratio->first.at(lastname_location) == 0 ) {
+				if ( xupp[i] > pfunc(lastname_upper) )
+					xupp[i] = pfunc(lastname_upper);
+				ixupp[i] = 1;
+			}
+			if ( firstname_range_check && pratio->first.at(firstname_location) == 0 ) {
+				if ( xupp[i] > pfunc(firstname_upper) )
+					xupp[i] = pfunc(firstname_upper);
+				ixupp[i] = 1;
+			}
+			if ( xupp[i] == too_big ){
+				xupp[i] = 0;
+				//ixupp[i] = 0;
+			}
+
+			irowQ[i] = i;
+			jcolQ[i] = i;
+
+			++pratio;
+		}
+
+		count = 0;
+		for ( cpsimmap = similarity_map.begin(); cpsimmap != similarity_map.end(); ++ cpsimmap ) {
+			const monotonic_set & set_alias = cpsimmap->second;
+			monotonic_set::const_iterator pset = set_alias.begin();
+			//ci0[count] = -delta;
+			//unsigned int seq1 = similarity_sequence.find( *pset )->second;
+			//CI[seq1][count] = 1;
+			//++count;
+			monotonic_set::const_iterator qset = pset;
+			for ( ++qset; qset != set_alias.end(); ++qset ) {
+				if ( count >= mz )
+					throw cException_Other("OOQP error.");
+				clow[count] = 0;
+				iclow[count] = 1;
+				cupp[count] = 0;
+				icupp[count] = 0;
+				unsigned int seq1 = similarity_sequence.find( *pset )->second;
+				unsigned int seq2 = similarity_sequence.find( *qset )->second;
+				irowC[2 * count] = count;
+				jcolC[2 * count] = seq1;
+				dC[ 2 * count ] = -1;
+				irowC[2 * count + 1 ] = count;
+				jcolC[2 * count + 1 ] = seq2;
+				dC[ 2 * count + 1 ] = 1;
+
+				++pset;
+				++count;
+			}
+		}
+
+
+		QpGenSparseMa27 * qp = new QpGenSparseMa27( nx, my, mz, nnzQ, nnzA, nnzC );
+
+		QpGenData      * prob = (QpGenData * ) qp->copyDataFromSparseTriple(
+			c,      irowQ,  nnzQ,   jcolQ,  dQ,
+			xlow,   ixlow,  xupp,   ixupp,
+			irowA,  nnzA,   jcolA,  dA,     b,
+			irowC,  nnzC,   jcolC,  dC,
+			clow,   iclow,  cupp,   icupp );
+
+		QpGenVars      * vars
+			  = (QpGenVars *) qp->makeVariables( prob );
+
+		QpGenResiduals * resid
+			= (QpGenResiduals *) qp->makeResiduals( prob );
+
+		GondzioSolver  * s     = new GondzioSolver( qp, prob );
+
+		if ( show_ooqp_process )
+			  s->monitorSelf();
+
+		int ierr = s->solve(prob,vars, resid);
+
+		std::stringstream ss;
+		if( ierr == 0 ) {
+			//cout.precision(4);
+			//cout << "Solution: \n";
+			//vars->x->writefToStream( cout, "x[%{index}] = %{value}" );
+			vars->x->writeToStream(ss);
+
+			const string ooqp_result ( ss.str() );
+
+			map < cSimilarity_Profile, double,  cSimilarity_Compare  >::iterator prm = ratio_map.begin();
+
+			string num_str;
+			while ( getline(ss, num_str) ) {
+				double r = atof(num_str.c_str());
+				prm->second = qfunc(r) ;
+				++prm;
+			}
+		}
+		else {
+			//throw cException_Other( "OOQP: Could not solve the problem.\n" );
+			is_ooqp_success = false;
+		}
+
+
+		delete s;
+		delete vars;
+		delete prob;
+		delete resid;
+		delete qp;
+
+		delete [] dC;
+		delete [] irowC;
+		delete [] jcolC;
+		delete [] cupp;
+		delete [] icupp;
+		delete [] clow;
+		delete [] iclow;
+		delete [] dQ;
+		delete [] jcolQ;
+		delete [] irowQ;
+		delete [] c;
+		delete [] xlow;
+		delete [] ixlow;
+		delete [] xupp;
+		delete [] ixupp;
+
+	}
+
+
+
+
+	//round 3
+
+
 	if ( ! is_ooqp_success )  {
+		std::cout << "3rd Attempt: Using QuadProg++ ..." << std::endl;
 		std::cout << "---------MATRIX SIZE = " << m <<" x " << sz << " -----------" << std::endl;
 
 		QuadProgPP::Matrix<double> G(0.0, sz, sz);
