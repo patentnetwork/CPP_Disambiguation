@@ -732,7 +732,7 @@ double fetch_ratio(const vector < unsigned int > & ratio_to_calc, const vector< 
 
 
 
-std::pair<const cRecord *, double> disambiguate_by_set_old (
+std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior,
@@ -904,8 +904,8 @@ std::pair<const cRecord *, double> disambiguate_by_set_old (
 
 
 //==================================================================================================
-
-std::pair<const cRecord *, double> disambiguate_by_set (
+//There are probably some bugs in this function. Use old one as an expediency.
+std::pair<const cRecord *, double> disambiguate_by_set_test (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior, 
