@@ -161,6 +161,7 @@ public:
 	const string & get_useless_string () const { return infoless;}
 	static const string delim;
 	virtual string extract_blocking_info(const cRecord *) const = 0;
+	virtual string extract_column_info ( const cRecord *, int flag ) const { throw cException_Other ("Function not defined yet.");}
 	virtual ~cBlocking_Operation() {};
 };
 
@@ -221,6 +222,11 @@ public:
 		}
 		return temp;
 	};
+
+	string extract_column_info ( const cRecord * p, int flag ) const {
+		return vsm[flag]->manipulate( * p->get_data_by_index(indice[flag]).at(0) );
+	}
+
 };
 
 

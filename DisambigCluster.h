@@ -26,7 +26,7 @@ class cBlocking;
 class cBlocking_Operation;
 class cRatios;
 
-double get_prior_value( const list <cCluster> & rg );
+
 
 class cCluster_Info {
 	friend class cBlocking_For_Disambiguation;
@@ -68,8 +68,13 @@ private:
 
 	map < string, cRecGroup > cluster_by_block;
 	//map < const string *, map < const cRecord *, double > > cohesion_map_by_block;
+	map < string, unsigned int > firstname_stat;
+	map < string, unsigned int > lastname_stat;
+	map < unsigned int, unsigned int > firstname_dist;
+	map < unsigned int, unsigned int > lastname_dist;
 	map < const string *, double > prior_data;
 	map < const string *, bool > debug_activity;
+	vector < unsigned int > max_occurrence;
 
 	string useless;
 	const bool autoupdate_prior_mode;
@@ -109,6 +114,7 @@ public:
 	const string & get_useless_string() const {return useless;}
 	~cCluster_Info() {}
 
+	double get_prior_value( const string & block_identifier, const list <cCluster> & rg );
 	const map < string, cRecGroup> & get_cluster_map () const {return cluster_by_block;}
 	const map < const string *, double > & get_prior_map() const {return prior_data;}
 	map < const string*, double > & get_prior_map() {return prior_data;};

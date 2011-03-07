@@ -13,6 +13,7 @@
 extern "C" {
 #include "strcmp95.h"
 }
+#include <cmath>
 
 
 const char * cCluster_Info::primary_delim = "###";
@@ -30,8 +31,8 @@ bool cCluster_Info::is_consistent() const {
 	}
 	if ( temp_total != total_num )
 		return false;
-	if ( cluster_by_block.size() != prior_data.size() )
-		return false;
+	//if ( cluster_by_block.size() != prior_data.size() )
+	//	return false;
 	return true;
 }
 
@@ -50,6 +51,9 @@ unsigned int cCluster_Info::current_size() const {
 void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file) {
 	//bool debug = false;
 	try {
+		const int firstname_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
+		const int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
+
 		std::ifstream::sync_with_stdio(false);
 		std::ifstream infile(past_comparision_file);
 		const unsigned int primary_delim_size = strlen(primary_delim);
@@ -61,6 +65,9 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 		unsigned int count = 0;
 		const unsigned int base = 100000;
 		cluster_by_block.clear();
+		this->firstname_stat.clear();
+		this->lastname_stat.clear();
+		this->max_occurrence.clear();
 		//cohesion_map_by_block.clear();
 		if (infile.good()) {
 			string filedata;
@@ -73,6 +80,10 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				const cRecord * key = retrieve_record_pointer_by_unique_id( keystring, *uid2record_pointer);
 				//const string * mk = ref.record2blockingstring.find(key)->second;
 				const string b_id = blocker.extract_blocking_info(key);
+				const string firstname_part = blocker.extract_column_info(key, firstname_index);
+				const string lastname_part = blocker.extract_column_info(key, lastname_index);
+
+
 				prim_iter = cluster_by_block.find(b_id);
 
 				prev_pos = pos + primary_delim_size;
@@ -132,6 +143,9 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 					//prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					//pm = prim_iter->second.begin();
+					++ (this->firstname_stat[firstname_part]);
+					++ (this->lastname_stat[lastname_part]);
+
 				}
 
 				++count;
@@ -146,6 +160,43 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 			//	}
 			//}
 			//std::cout << "Done." << std::endl;
+			std::cout << "Obtained " << firstname_stat.size() << " unique firstname part and " << lastname_stat.size() << " unique lastname part." << std::endl;
+			this->firstname_dist.clear();
+			this->lastname_dist.clear();
+			for ( map<string, unsigned int >::const_iterator p = firstname_stat.begin(); p != firstname_stat.end(); ++p )
+				++ ( firstname_dist[p->second]);
+			for ( map<string, unsigned int >::const_iterator p = lastname_stat.begin(); p != lastname_stat.end(); ++p )
+				++ ( lastname_dist[p->second]);
+
+			unsigned int stat_cnt = 0;
+			for ( map < unsigned int , unsigned int >::const_iterator p = firstname_dist.begin(); p != firstname_dist.end(); ++p )
+				if ( p->first > stat_cnt )	{
+					stat_cnt = p->first;
+				}
+			for ( map<string, unsigned int >::const_iterator p = firstname_stat.begin(); p != firstname_stat.end(); ++p )
+				if ( p->second == stat_cnt )
+					std::cout << "Most common firstname part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
+			max_occurrence.push_back(stat_cnt);
+
+			stat_cnt = 0;
+			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
+				if ( p->first > stat_cnt )	{
+					stat_cnt = p->first;
+				}
+			for ( map<string, unsigned int >::const_iterator p = lastname_stat.begin(); p != lastname_stat.end(); ++p )
+				if ( p->second == stat_cnt )
+					std::cout << "Most common lastname part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
+			max_occurrence.push_back(stat_cnt);
+
+
+
+			std::ofstream ff("firstname_dist.txt");
+			std::ofstream lf ( "lastname_dist.txt");
+			const char * temp_delim = ",";
+			for ( map < unsigned int , unsigned int >::const_iterator p = firstname_dist.begin(); p != firstname_dist.end(); ++p )
+				ff << p->first << temp_delim << p->second << '\n';
+			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
+				lf << p->first << temp_delim << p->second << '\n';
 
 			std::cout << past_comparision_file << " has been read into memory as "
 						<<  ( is_matching ? "MATCHING" : "NON-MATCHING" ) << " reference." << std::endl;
@@ -209,7 +260,7 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 
 	}
 	std::cout << "Preliminary consolidation done." << std::endl;
-	config_prior();
+	//config_prior();
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
 			//total_num += cp->second.size();
@@ -431,7 +482,7 @@ void cCluster_Info::config_prior()  {
 #endif
 
 	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
-		double prior = get_prior_value(cpm->second);
+		double prior = get_prior_value(cpm->first, cpm->second);
 
 		prior_data.insert(std::pair<const string*, double> (& (cpm->first), prior));
 
@@ -440,7 +491,7 @@ void cCluster_Info::config_prior()  {
 	std::cout << "Prior values map created." << std::endl;
 }
 
-double get_prior_value( const list <cCluster> & rg ) {
+double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.9;
 	static const double prior_default = 1e-6;
 
@@ -455,6 +506,20 @@ double get_prior_value( const list <cCluster> & rg ) {
 	if ( denominator == 0 )
 		denominator = 1e10;
 	double prior = numerator / denominator ;
+
+	//decompose the block_identifier string so as to get the frequency of each piece
+	size_t pos = 0, prev_pos = 0;
+	pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
+	string fn_piece = block_identifier.substr( prev_pos, pos - prev_pos );
+	prev_pos += pos + cBlocking_Operation::delim.size();
+	pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
+	string ln_piece = block_identifier.substr( prev_pos, pos - prev_pos );
+
+	const double first_factor = 1.0 + log ( 1.0 * max_occurrence.at(0) / this->firstname_stat[fn_piece]);
+	const double last_factor = 1.0 + log ( 1.0 * max_occurrence.at(1) / this->lastname_stat[ln_piece]);
+
+	prior *= first_factor * last_factor;
+
 	if ( prior > prior_max )
 		prior = prior_max;
 	else if ( prior == 0 )
@@ -747,9 +812,9 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 		// now merge the two.
 
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
-	const double new_prior = get_prior_value(to_be_disambiged_group);
-	if ( autoupdate_prior_mode )
-		prior_value = new_prior;
+	//const double new_prior = get_prior_value( * bid, to_be_disambiged_group);
+	//if ( autoupdate_prior_mode )
+	//	prior_value = new_prior;
 
 	return to_be_disambiged_group.size();
 
