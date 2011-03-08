@@ -51,8 +51,9 @@ unsigned int cCluster_Info::current_size() const {
 void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file) {
 	//bool debug = false;
 	try {
-		const int firstname_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
-		const int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
+	  //const int firstname_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
+	  //	const int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
+	        const unsigned int num_columns = blocker.num_involved_columns();
 
 		std::ifstream::sync_with_stdio(false);
 		std::ifstream infile(past_comparision_file);
@@ -65,9 +66,12 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 		unsigned int count = 0;
 		const unsigned int base = 100000;
 		cluster_by_block.clear();
-		this->firstname_stat.clear();
-		this->lastname_stat.clear();
+		this->column_stat.clear();
+		this->column_stat.resize(num_columns);
+		//this->firstname_stat.clear();
+		//this->lastname_stat.clear();
 		this->max_occurrence.clear();
+		this->max_occurrence.resize(num_columns);
 		//cohesion_map_by_block.clear();
 		if (infile.good()) {
 			string filedata;
@@ -80,8 +84,13 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				const cRecord * key = retrieve_record_pointer_by_unique_id( keystring, *uid2record_pointer);
 				//const string * mk = ref.record2blockingstring.find(key)->second;
 				const string b_id = blocker.extract_blocking_info(key);
-				const string firstname_part = blocker.extract_column_info(key, firstname_index);
-				const string lastname_part = blocker.extract_column_info(key, lastname_index);
+				vector < string > column_part (num_columns) ;
+				for ( unsigned int i = 0; i < num_columns; ++i ) {
+				    const string temp = blocker.extract_column_info ( key, i );
+				    column_part.at(i) = temp;
+				}
+				//const string firstname_part = blocker.extract_column_info(key, firstname_index);
+				//const string lastname_part = blocker.extract_column_info(key, lastname_index);
 
 
 				prim_iter = cluster_by_block.find(b_id);
@@ -143,8 +152,11 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 					//prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					//pm = prim_iter->second.begin();
-					++ (this->firstname_stat[firstname_part]);
-					++ (this->lastname_stat[lastname_part]);
+					for ( unsigned int i = 0; i < num_columns; ++i ) {
+					    this->column_stat.at(i)[column_part.at(i)] += 1;
+					}
+					//++ (this->firstname_stat[firstname_part]);
+					//++ (this->lastname_stat[lastname_part]);
 
 				}
 
@@ -160,24 +172,33 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 			//	}
 			//}
 			//std::cout << "Done." << std::endl;
-			std::cout << "Obtained " << firstname_stat.size() << " unique firstname part and " << lastname_stat.size() << " unique lastname part." << std::endl;
+			std::cout << "Obtained ";
+			for ( unsigned int i = 0; i < num_columns; ++i )
+			    std::cout << column_stat.at(i).size() << " / ";
+			std::cout << " unique column data." << std::endl;
+			/*
 			this->firstname_dist.clear();
 			this->lastname_dist.clear();
 			for ( map<string, unsigned int >::const_iterator p = firstname_stat.begin(); p != firstname_stat.end(); ++p )
 				++ ( firstname_dist[p->second]);
 			for ( map<string, unsigned int >::const_iterator p = lastname_stat.begin(); p != lastname_stat.end(); ++p )
 				++ ( lastname_dist[p->second]);
-
+			*/
 			unsigned int stat_cnt = 0;
-			for ( map < unsigned int , unsigned int >::const_iterator p = firstname_dist.begin(); p != firstname_dist.end(); ++p )
-				if ( p->first > stat_cnt )	{
-					stat_cnt = p->first;
-				}
-			for ( map<string, unsigned int >::const_iterator p = firstname_stat.begin(); p != firstname_stat.end(); ++p )
-				if ( p->second == stat_cnt )
-					std::cout << "Most common firstname part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
-			max_occurrence.push_back(stat_cnt);
-
+			for ( unsigned int i = 0; i < num_columns; ++i ) {
+			    stat_cnt = 0;
+			    for ( map<string, unsigned int >::const_iterator p = column_stat.at(i).begin(); p != column_stat.at(i).end(); ++p )
+			        if ( p->second > stat_cnt && ! p->first.empty() )
+				    stat_cnt = p->second;
+			    for ( map < string, unsigned int > ::iterator p = column_stat.at(i).begin(); p != column_stat.at(i).end(); ++p ) {
+			        if ( p->second == stat_cnt )
+				    std::cout << "Most common " << i << "th column part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
+				if ( p->second > stat_cnt )
+				    p->second = stat_cnt;
+			    }
+			    max_occurrence.at(i) = stat_cnt;
+			}
+			/*
 			stat_cnt = 0;
 			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
 				if ( p->first > stat_cnt )	{
@@ -189,7 +210,7 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 			max_occurrence.push_back(stat_cnt);
 
 
-
+			
 			std::ofstream ff("firstname_dist.txt");
 			std::ofstream lf ( "lastname_dist.txt");
 			const char * temp_delim = ",";
@@ -197,7 +218,7 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				ff << p->first << temp_delim << p->second << '\n';
 			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
 				lf << p->first << temp_delim << p->second << '\n';
-
+			*/
 			std::cout << past_comparision_file << " has been read into memory as "
 						<<  ( is_matching ? "MATCHING" : "NON-MATCHING" ) << " reference." << std::endl;
 		}
@@ -507,23 +528,34 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 		denominator = 1e10;
 	double prior = numerator / denominator ;
 
+	if ( prior == 0 )
+		prior = prior_default;
 	//decompose the block_identifier string so as to get the frequency of each piece
 	size_t pos = 0, prev_pos = 0;
-	pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
-	string fn_piece = block_identifier.substr( prev_pos, pos - prev_pos );
-	prev_pos += pos + cBlocking_Operation::delim.size();
-	pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
-	string ln_piece = block_identifier.substr( prev_pos, pos - prev_pos );
+	unsigned int seq = 0;
+	while ( true ) {
+	    pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
+	    if ( pos == string::npos )
+	        break;
+	  
+	    string piece = block_identifier.substr( prev_pos, pos - prev_pos );
+	    prev_pos += pos + cBlocking_Operation::delim.size();
 
-	const double first_factor = 1.0 + log ( 1.0 * max_occurrence.at(0) / this->firstname_stat[fn_piece]);
-	const double last_factor = 1.0 + log ( 1.0 * max_occurrence.at(1) / this->lastname_stat[ln_piece]);
+	    double factor = 1.0;
+	    if ( max_occurrence.at(seq) != 0 )
+	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
+	    prior *= factor;
+	    ++seq;
+	}
 
-	prior *= first_factor * last_factor;
+	//const double first_factor = 1.0 + log ( 1.0 * max_occurrence.at(0) / this->firstname_stat[fn_piece]);
+	//const double last_factor = 1.0 + log ( 1.0 * max_occurrence.at(1) / this->lastname_stat[ln_piece]);
+
+	//prior *= first_factor * last_factor;
 
 	if ( prior > prior_max )
 		prior = prior_max;
-	else if ( prior == 0 )
-		prior = prior_default;
+
 
 	return prior;
 }

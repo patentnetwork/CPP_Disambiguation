@@ -146,9 +146,10 @@ inline string cString_Truncate::manipulate( const string & inputstring ) const {
 		if ( is_forward )
 			return inputstring;
 		else {
-			string output = inputstring;
-			std::reverse(output.begin(), output.end());
-			return output;
+			return string("");
+			//string output = inputstring;
+			//std::reverse(output.begin(), output.end());
+			//return output;
 		}
 	}
 

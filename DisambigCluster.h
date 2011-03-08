@@ -68,10 +68,11 @@ private:
 
 	map < string, cRecGroup > cluster_by_block;
 	//map < const string *, map < const cRecord *, double > > cohesion_map_by_block;
-	map < string, unsigned int > firstname_stat;
-	map < string, unsigned int > lastname_stat;
-	map < unsigned int, unsigned int > firstname_dist;
-	map < unsigned int, unsigned int > lastname_dist;
+	//map < string, unsigned int > firstname_stat;
+	//map < string, unsigned int > lastname_stat;
+	//map < unsigned int, unsigned int > firstname_dist;
+	//map < unsigned int, unsigned int > lastname_dist;
+	vector < map < string, unsigned int > > column_stat;
 	map < const string *, double > prior_data;
 	map < const string *, bool > debug_activity;
 	vector < unsigned int > max_occurrence;

@@ -161,8 +161,9 @@ public:
 	const string & get_useless_string () const { return infoless;}
 	static const string delim;
 	virtual string extract_blocking_info(const cRecord *) const = 0;
-	virtual string extract_column_info ( const cRecord *, int flag ) const { throw cException_Other ("Function not defined yet.");}
+	virtual string extract_column_info ( const cRecord *, unsigned int flag ) const { throw cException_Other ("Function not defined yet.");}
 	virtual ~cBlocking_Operation() {};
+	virtual unsigned int num_involved_columns() const { return 1;}
 };
 
 #if 0
@@ -195,37 +196,44 @@ class cBlocking_Operation_Multiple_Column_Manipulate : public cBlocking_Operatio
 private:
 	vector < const cString_Manipulator * > vsm;
 	vector < unsigned int > indice;
+	vector < const unsigned int * > pdata_indice;
 public:
-	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames )
+	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di )
 		:vsm(inputvsm) {
 		if ( inputvsm.size() != columnnames.size() )
 			throw cException_Other("Critical Error in cBlocking_Operation_Multiple_Column_Manipulate: size of string manipulaters is different from size of columns");
-		for ( vector<string>::const_iterator p = columnnames.begin(); p != columnnames.end(); ++p ) {
-			indice.push_back(cRecord::get_index_by_name(*p));
+		for ( unsigned int i = 0; i < columnnames.size(); ++i ) {
+			indice.push_back(cRecord::get_index_by_name( columnnames.at(i)));
 			infoless += delim;
+			pdata_indice.push_back(& di.at(i));
 		}
 	}
 
-	cBlocking_Operation_Multiple_Column_Manipulate (const cString_Manipulator * const* pinputvsm, const string * pcolumnnames, const unsigned int num_col ) {
+	cBlocking_Operation_Multiple_Column_Manipulate (const cString_Manipulator * const* pinputvsm, const string * pcolumnnames, const unsigned int  * pdi, const unsigned int num_col ) {
 		for ( unsigned int i = 0; i < num_col; ++i ) {
 			vsm.push_back(*pinputvsm++);
 			indice.push_back(cRecord::get_index_by_name(*pcolumnnames++));
 			infoless += delim;
+			pdata_indice.push_back(pdi ++);
 		}
 	}
 
 	string extract_blocking_info(const cRecord * p) const {
 		string temp;
 		for ( unsigned int i = 0; i < vsm.size(); ++i ) {
-			temp += vsm[i]->manipulate(* p->get_data_by_index(indice[i]).at(0));
+			temp += vsm[i]->manipulate(* p->get_data_by_index(indice[i]).at( * pdata_indice.at(i)));
 			temp += delim;
 		}
 		return temp;
 	};
 
-	string extract_column_info ( const cRecord * p, int flag ) const {
-		return vsm[flag]->manipulate( * p->get_data_by_index(indice[flag]).at(0) );
+	string extract_column_info ( const cRecord * p, unsigned int flag ) const {
+		if ( flag >= indice.size() )
+			throw cException_Other("Flag index error.");
+		return vsm[flag]->manipulate( * p->get_data_by_index(indice[flag]).at( *pdata_indice.at(flag)) );
 	}
+
+	unsigned int num_involved_columns() const { return vsm.size();}
 
 };
 

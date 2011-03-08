@@ -1116,6 +1116,7 @@ int fullrun_iterative_v4() {
 	cString_Remove_Space operator_no_space;
 	cString_NoSpace_Truncate operator_truncate_firstname;
 	cString_NoSpace_Truncate operator_truncate_lastname;
+	cString_NoSpace_Truncate operator_truncate_middlename;
 	cString_Remain_Same operator_no_change;
 
 
@@ -1161,11 +1162,14 @@ int fullrun_iterative_v4() {
 
 	vector <const cString_Manipulator*> pstring_oper;
 	pstring_oper.push_back(& operator_truncate_firstname);
+	pstring_oper.push_back(& operator_truncate_middlename);
 	pstring_oper.push_back(& operator_truncate_lastname);
 
-	const string blocking_names[] = {cFirstname::static_get_class_name(), cLastname::static_get_class_name()};
+	const string blocking_names[] = {cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name()};
 	vector < string > blocking_column_names(blocking_names, blocking_names + sizeof(blocking_names)/sizeof(string) );
-	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names);
+	vector < unsigned int > blocking_column_data_indice ( blocking_column_names.size(), 0 );
+	blocking_column_data_indice.at(0) = 1;
+	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names, blocking_column_data_indice);
 
 
 
@@ -1206,13 +1210,15 @@ int fullrun_iterative_v4() {
 			//presort_columns.push_back(cClass::static_get_class_name());
 
 			const vector < const cString_Manipulator *> presort_strman( presort_columns.size(), &operator_no_change);
+			const vector < unsigned int > presort_data_indice( presort_columns.size(), 0);
 
-			const cBlocking_Operation_Multiple_Column_Manipulate presort_blocker(presort_strman, presort_columns);
+			const cBlocking_Operation_Multiple_Column_Manipulate presort_blocker(presort_strman, presort_columns, presort_data_indice);
 			match.preliminary_consolidation(presort_blocker, all_rec_pointers);
 			match.output_current_comparision_info(oldmatchfile);
 		}
 
 			operator_truncate_firstname.set_truncater(0, 0, true);
+			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			if ( ! use_available_ratios )
@@ -1222,6 +1228,7 @@ int fullrun_iterative_v4() {
 			break;
 		case 2:
 			operator_truncate_firstname.set_truncater(0, 5, true);
+			operator_truncate_middlename.set_truncater(0, 1, true);
 			operator_truncate_lastname.set_truncater(0, 8, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			if ( ! use_available_ratios )
@@ -1231,6 +1238,7 @@ int fullrun_iterative_v4() {
 			break;
 		case 3:
 			operator_truncate_firstname.set_truncater(0, 3, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			if ( ! use_available_ratios )
@@ -1246,6 +1254,7 @@ int fullrun_iterative_v4() {
 			cAssignee::deactivate_comparator();
 
 			operator_truncate_firstname.set_truncater(0, 3, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );

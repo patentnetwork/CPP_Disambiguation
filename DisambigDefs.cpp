@@ -221,15 +221,24 @@ unsigned int cLastname::compare(const cAttribute & right_hand_side) const {
 bool cMiddlename::split_string(const char *inputdata) {
 	cAttribute::split_string(inputdata);
 	const string & source = * get_data().at(0);
-	char initials[50];
-	extract_initials(initials, source.c_str());
-	const char * start;
-	if ( initials[0] == '\0' )
-		start = initials;
+	size_t pos = source.find(' ');
+	string midpart;
+	if ( pos == string::npos )
+		midpart = "";
 	else
-		start = initials + 1;
+		midpart = source.substr( pos + 1 );
+
+	char initials[50];
+	extract_initials(initials, midpart.c_str());
+	const char * start = initials;
+	//if ( initials[0] == '\0' )
+	//	start = initials;
+	//else
+	//	start = initials + 1;
 	vector < const string * > & data_alias = get_data_modifiable();
 	string temp(start);
+	data_alias.clear();
+	data_alias.push_back(this->add_string( midpart) );
 	data_alias.push_back(this->add_string( temp ) );
 	return true;
 }
