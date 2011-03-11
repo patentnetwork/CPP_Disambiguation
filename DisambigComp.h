@@ -105,6 +105,7 @@ inline const Tp& min_val(const Tp& arg1, const Tp &arg2) {
 template <typename Tp, typename Functor>
 vector <Tp> Longest_Common_Subsequence(const vector <Tp> & s1, const vector <Tp> &s2, const Functor & func);
 
+
 char * extract_initials(char * dest, const char * source) ;
 int nospacecmp(const char* str1, const char* str2);
 int jwcmp(const string & str1, const string& str2);
@@ -127,5 +128,28 @@ public:
 	explicit cSentence_JWComparator(const double inputthreshold): threshold(inputthreshold){};
 };
 
+
+template < typename Iter1, typename Iter2 >
+unsigned int num_common_elements ( Iter1 p1b, Iter1 p1e , Iter2 p2b, Iter2 p2e, const unsigned int max) {// containers must be sorted before use.
+	// it has to be a sorted version container, like set, or sorted vector or list
+	unsigned int cnt = 0;
+	while ( p1b != p1e && p2b != p2e ) {
+		if ( *p1b < *p2b ) {
+			++p1b;
+		}
+		else if ( *p2b  < *p1b  ) {
+			++p2b;
+		}
+		else {
+			++cnt;
+			++p1b;
+			++p2b;
+		}
+
+		if ( cnt == max && max != 0 )
+			break;
+	}
+	return cnt;
+}
 
 #endif /* DISAMBIGCOMP_H_ */

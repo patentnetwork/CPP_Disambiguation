@@ -17,6 +17,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <pthread.h>
 #define DEBUG
 
 
@@ -152,14 +153,17 @@ class cAttribute {
 private:
 	vector <const string *> data;
 	//vector <unsigned int> data_count;
+	friend void attrib_merge ( list < const cAttribute **> & l1, list < const cAttribute **> & l2 );
 protected:
 	static const vector <const cAttribute *> empty_interactive;
 	vector < const string * > & get_data_modifiable() {return data;}
+	virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const { return NULL;};
+
 public:
 	virtual unsigned int compare(const cAttribute & rhs) const = 0 ;
 	virtual bool split_string(const char* );	//can be overridden if necessary.
 	cAttribute (const char * inputstring ) {
-		(NULL != inputstring ) && split_string(inputstring);
+		//(NULL != inputstring ) && split_string(inputstring);
 		/*
 		for ( vector<string>::iterator ps = data.begin(); ps != data.end(); ++ps )
 			string(*ps).swap(*ps);
@@ -193,6 +197,10 @@ public:
 			return false;
 		return true;
 	}
+	virtual int clean_attrib_pool() const = 0;
+	virtual void reduce_attrib(unsigned int n) const = 0;
+	virtual void add_attrib( unsigned int n ) const = 0  ;
+
 
 };
 
@@ -215,7 +223,10 @@ private:
 	static const string attrib_group;	//attribute group used for ratios purpose;
 	static set < string > data_pool;
 
-	static set < Derived > attrib_pool;
+	static map < Derived, int > attrib_pool;
+
+	static pthread_rwlock_t attrib_pool_lock;
+
 protected:
 
 public:
@@ -226,16 +237,51 @@ public:
 			throw cException_Attribute_Disabled(class_name.c_str()); 
 		//get_interactive_vector().resize(num_of_interactive_columns);
 	}
-	static const Derived * static_add_attrib( const Derived & d ) {
-		register typename set< Derived >::iterator p = attrib_pool.find( d );
-		if ( p == attrib_pool.end() )
-			p = attrib_pool.insert(d).first;
-		return &(*p);
+	static const Derived * static_add_attrib( const Derived & d , const unsigned int n ) {
+		pthread_rwlock_wrlock(& attrib_pool_lock);
+		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
+		if ( p == attrib_pool.end() ) {
+			p = attrib_pool.insert(std::pair<Derived, int>(d, n) ).first;
+		}
+		else
+			p->second += n;
+		pthread_rwlock_unlock( & attrib_pool_lock);
+		return &(p->first);
+	}
+
+	static const Derived * static_find_attrib ( const Derived & d) {
+		pthread_rwlock_rdlock(& attrib_pool_lock);
+		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
+		if ( p == attrib_pool.end() ) {
+			pthread_rwlock_unlock( & attrib_pool_lock);
+			return NULL;
+		}
+		pthread_rwlock_unlock( & attrib_pool_lock);
+		return &(p->first);
+	}
+
+	static const Derived * static_reduce_attrib( const Derived & d , const unsigned int n) {
+		pthread_rwlock_wrlock(& attrib_pool_lock);
+		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
+		if ( p == attrib_pool.end() ) {
+			throw cException_Other("Error: attrib not exist!");
+		}
+		else
+			p->second -= n;
+		if ( p->second <= 0 ) {
+			//std::cout << p->second << " : ";
+			//d.print(std::cout);
+			//attrib_pool.erase(p);
+			pthread_rwlock_unlock( & attrib_pool_lock);
+			return NULL;
+		}
+		pthread_rwlock_unlock( & attrib_pool_lock);
+		return &(p->first);
 	}
 
     const cAttribute* clone() const {
     	const Derived & alias = dynamic_cast< const Derived & > (*this);
-    	return static_add_attrib(alias);
+    	return static_add_attrib(alias, 1);
 
         //return new Derived(dynamic_cast< const Derived & >(*this) );
     }
@@ -308,9 +354,33 @@ public:
 			const string * q = static_add_string(*p);
 			alias.push_back(q);
 		}
-		return static_add_attrib(d);
+		return static_add_attrib(d, 1);
 	}
 
+	static int static_clean_attrib_pool() {
+		int cnt = 0;
+		for ( typename map < Derived, int> :: iterator p = attrib_pool.begin(); p != attrib_pool.end() ; ) {
+			if ( p-> second == 0 ) {
+				attrib_pool.erase(p++);
+				++cnt;
+			}
+			else if ( p->second < 0) {
+				throw cException_Other("Error in cleaning attrib pool.");
+			}
+			else
+				++p;
+		}
+		return cnt;
+	}
+
+	int clean_attrib_pool() const { return static_clean_attrib_pool(); }
+
+	void reduce_attrib(unsigned int n) const {
+		static_reduce_attrib( dynamic_cast< const Derived &> (*this), n);
+	}
+	void add_attrib( unsigned int n ) const {
+		static_add_attrib( dynamic_cast< const Derived &> (*this), n);
+	}
 };
 
 
@@ -415,7 +485,10 @@ public:
 
 class cClass : public cAttribute_Intermediary<cClass> {
 private:
-	static unsigned int const max_value = 2;
+	static unsigned int const max_value = 6;
+	//static const set < const string * > empty_set_classes;
+	set < const string * > set_class;
+	const cClass * attrib_merge ( const cAttribute & rhs) const;
 public:
 	cClass(const char * source = NULL )
 		: cAttribute_Intermediary<cClass>(source){}
@@ -425,6 +498,19 @@ public:
 		if ( ! is_comparator_activated() )
 			cAttribute::get_attrib_max_value();
 		return max_value;
+	}
+	bool operator < ( const cAttribute & rhs ) const { return this->set_class < dynamic_cast< const cClass & >(rhs).set_class;}
+	void print( std::ostream & os ) const {
+		set < const string * >::const_iterator p = set_class.begin();
+		os << this->get_class_name() << ": ";
+		if ( p == set_class.end() ) {
+			os << "Empty attribute." << std::endl;
+			return;
+		}
+		os << "No raw data. " << ", Derivatives = ";
+		for ( ; p != set_class.end(); ++p )
+			os << **p << " | ";
+		os << std::endl;
 	}
 };
 
@@ -545,7 +631,8 @@ template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_interact
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_is_enabled = false;
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_comparator_activated = false;
 template <typename Derived> set < string > cAttribute_Intermediary<Derived>:: data_pool;
-template <typename Derived> set < Derived > cAttribute_Intermediary<Derived>:: attrib_pool;
+template <typename Derived> map < Derived, int > cAttribute_Intermediary<Derived>:: attrib_pool;
+template <typename Derived> pthread_rwlock_t cAttribute_Intermediary<Derived>:: attrib_pool_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 //declaration ( not definition ) of specialized template
 template <> const string cAttribute_Intermediary<cFirstname>::attrib_group;

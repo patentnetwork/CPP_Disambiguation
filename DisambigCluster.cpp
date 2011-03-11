@@ -272,6 +272,8 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 		}
 		mi->second.front().insert_elem(*p);
 	}
+
+
 	for ( mi = cluster_by_block.begin(); mi != cluster_by_block.end(); ++mi ) {
 		cCluster & alias = mi->second.front();
 		alias.self_repair();
@@ -280,6 +282,7 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 		//	(*p)->print();
 
 	}
+
 	std::cout << "Preliminary consolidation done." << std::endl;
 	//config_prior();
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
@@ -515,7 +518,7 @@ void cCluster_Info::config_prior()  {
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
-	const unsigned int uninvolved_index = 20; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
+	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
 
 	double numerator = 0;
 	unsigned int tt = 0;
@@ -666,7 +669,7 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 
 
 void cWorker_For_Disambiguation::run() {
-	try {
+	//try {
 		const unsigned int base = 10000;
 		map < string, cCluster_Info::cRecGroup >::iterator pthis;
 		while ( true) {
@@ -688,11 +691,13 @@ void cWorker_For_Disambiguation::run() {
 			}
 			pthread_mutex_unlock(&iter_lock);
 		}
-	}
+	//}
+	/*
 	catch ( const cAbstract_Exception & ex) {
 		std::cout << "Caught user defined error: " << ex.what() << " . --Reported by thread " << getThreadID() << std::endl;
 		throw;
 	}
+	*/
 
 	//catch ( ... ) {
 	//	std::cout << "Caught UNKNOWN error (USUALLY CRITICAL). Need to handle this! "<< " . --Reported by thread " << getThreadID()  << std::endl;
@@ -832,6 +837,8 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 						should_increment_second = false;
 						//first_cohesion = result.m_cohesion;
 					}
+
+
 				}
 				// the two sets should not merge.
 				// simply add information to the nonmatch cluster
@@ -1006,5 +1013,7 @@ void cCluster_Info::disambig_assignee( const char * outputfile) const {
 	std:: cout << "Assignee disambiguation gives " << count << " unique assignees." << std::endl;
 
 }
+
+
 
 

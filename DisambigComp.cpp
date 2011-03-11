@@ -542,4 +542,26 @@ int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 	return score;
 }
 
+/*
+template < typename Iter1, typename Iter2 >
+unsigned int num_common_elements ( Iter1 p1b, Iter1 p1e , Iter2 p2b, Iter2 p2e) {
+	// it has to be a sorted version container, like set, or sorted vector or list
+	unsigned int cnt = 0;
+	while ( p1b != p1e && p2b != p2e ) {
+		if ( *p1b < *p2b ) {
+			++p1b;
+		}
+		else if ( *p2b  < *p1b  ) {
+			++p2b;
+		}
+		else {
+			++cnt;
+			++p1b;
+			++p2b;
+		}
+	}
+	return cnt;
+}
+*/
+
 

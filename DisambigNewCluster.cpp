@@ -31,6 +31,20 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	if ( mergee.m_mergeable == false )
 		throw cException_Empty_Cluster("Merging error: mergEE is empty.");
 
+	const unsigned int rec_size = cRecord::record_size();
+	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
+		list < const cAttribute ** > l1;
+		for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+			l1.push_back( const_cast < const cAttribute ** > ( &(*p)->get_attrib_pointer_by_index(i)  )   );
+		}
+
+		list < const cAttribute ** > l2;
+		for ( cGroup_Value::const_iterator p = mergee.m_fellows.begin(); p != mergee.m_fellows.end(); ++p ) {
+			l2.push_back( const_cast < const cAttribute ** > ( &(*p)->get_attrib_pointer_by_index(i)  )   );
+		}
+		attrib_merge(l1, l2);
+	}
+
 	this->m_info = info;
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
 	this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
@@ -151,6 +165,25 @@ void cCluster::insert_elem( const cRecord * more_elem) {
 void cCluster::self_repair() {
 	reset_coauthor_list(*reference_pointer);
 	reset_cCoauthor_pointer(coauthor_list);
+	const unsigned int rec_size = cRecord::record_size();
+	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
+		list < const cAttribute ** > l1;
+		list < const cAttribute ** > l2;
+		cGroup_Value::const_iterator p1 = this->m_fellows.begin();
+		if ( p1 == this->m_fellows.end() )
+			break;
+		cGroup_Value::const_iterator q2 = p1;
+		++q2;
+		l2.push_back( const_cast < const cAttribute ** > ( &(*p1)->get_attrib_pointer_by_index(i)  )   );
+		while ( q2 != this->m_fellows.end() ) {
+			l1.push_back( const_cast < const cAttribute ** > ( &(*p1)->get_attrib_pointer_by_index(i)  )   );
+			l2.pop_front();
+			l2.push_back( const_cast < const cAttribute ** > ( &(*q2)->get_attrib_pointer_by_index(i)  )   );
+			attrib_merge(l1, l2);
+			++p1;
+			++q2;
+		}
+	}
 	m_usable = true;
 }
 

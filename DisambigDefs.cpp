@@ -340,16 +340,42 @@ bool cClass::split_string(const char* inputdata) {
 		//std::cout << "cClass allows vector data. This info should be disabled in the real run." << std::endl;
 	}
 	const string raw(inputdata);
-	this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
+	this->set_class.clear();
+	this->set_class.insert(this->get_data().begin(), this->get_data().end());
+	this->get_data_modifiable().clear();
+	//this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
 	return true;
+}
+
+const cClass * cClass::attrib_merge ( const cAttribute & right_hand_side) const {
+	try {
+		const cClass & rhs = dynamic_cast< const cClass & > (right_hand_side);
+		set < const string * > temp (this->set_class);
+		temp.insert(rhs.set_class.begin(), rhs.set_class.end());
+		cClass tempclass;
+		tempclass.set_class = temp;
+		const cClass * result = this->static_add_attrib(tempclass, 2);
+		cClass::static_reduce_attrib(*this, 1);
+		cClass::static_reduce_attrib(rhs, 1);
+		return result;
+
+	}
+	catch ( const std::bad_cast & except ) {
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
+		throw;
+	}
+
 }
 
 unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
 	try {
+
 		unsigned int res = 0;
 		const cClass & rhs = dynamic_cast< const cClass & > (right_hand_side);
+		/*
 		vector <const string*>::const_iterator p = this->get_data().begin();
 		for ( ++p ; p != this->get_data().end(); ++p ) {
 			vector < const string*>::const_iterator q = rhs.get_data().begin();
@@ -358,6 +384,12 @@ unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 				res += temp_res;
 			}
 		}
+		*/
+
+		res = num_common_elements (this->set_class.begin(), this->set_class.end(),
+								 	 rhs.set_class.begin(), rhs.set_class.end(),
+								 	 this->max_value);
+
 		if ( res > cCLASSscore::CLASS75PLUS)
 			res = cCLASSscore::CLASS75PLUS;
 		if ( res > max_value )
@@ -399,6 +431,7 @@ unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
 				//res += temp_res;
 			//}
 		//}
+		/*
 		const bool scan_left_tree = this->pset->size() > rhs.pset->size();
 		const set< const string * > * ps, *qs;
 		ps = qs = NULL;
@@ -415,6 +448,11 @@ unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
 			if ( ps->find(*p) != ps->end())
 				++res;
 		}
+		*/
+
+		res = num_common_elements (this->pset->begin(), this->pset->end(),
+									 rhs.pset->begin(), rhs.pset->end(),
+									 this->max_value);
 
 
 		if ( res > cCOAUTHscore::C10)
@@ -470,5 +508,57 @@ bool cCity::split_string(const char* source) {
 	//data_count.push_back(1);
 	return true;
 }
+
+void attrib_merge ( list < const cAttribute * *> & l1, list < const cAttribute * *> & l2 ) {
+	static const string errmsg = "Error: attribute pointers are not pointing to the same object. Attribute Type = ";
+	if ( l1.empty() || l2.empty() )
+		return;
+
+	const cAttribute * new_object_pointer = (*l1.front())->attrib_merge(** l2.front());
+	if ( new_object_pointer == NULL )
+		return;
+
+	for ( list < const cAttribute * * >::const_iterator p = l1.begin(); p != l1.end(); ++p ) {
+		if ( **p != * l1.front() ) {
+			std::cout << "------------" <<std::endl;
+			std::cout << "Front address: " << *l1.front() << " Other address: " << **p << std::endl;
+			(*l1.front())->print();
+			(**p)->print();
+			std::cout << "------------" << std::endl;
+			throw cException_Other ( ( errmsg + (*l1.front())->get_class_name()).c_str() ) ;
+		}
+	}
+
+	for ( list < const cAttribute *  * >::const_iterator p = l2.begin(); p != l2.end(); ++p ) {
+		if ( **p != *l2.front() ) {
+			std::cout << "------------" <<std::endl;
+			std::cout << "Front address: " << *l2.front() << " Other address: " << **p << std::endl;
+			(*l2.front())->print();
+			(**p)->print();
+			std::cout << "------------" << std::endl;
+			throw cException_Other ( ( errmsg + (*l2.front())->get_class_name()).c_str() );
+		}
+	}
+
+
+	const unsigned int l1_size = l1.size();
+	const unsigned int l2_size = l2.size();
+
+	if ( l1_size != 1 )
+		(*l1.front())->reduce_attrib(l1_size - 1);
+	if ( l2_size != 1)
+		(*l2.front())->reduce_attrib(l2_size - 1);
+	if ( l1_size + l2_size != 2 )
+		new_object_pointer->add_attrib( l1_size + l2_size - 2 );
+
+	for ( list < const cAttribute * * >::const_iterator p = l1.begin(); p != l1.end(); ++p )
+		**p = new_object_pointer;
+	for ( list < const cAttribute *  * >::const_iterator p = l2.begin(); p != l2.end(); ++p )
+		**p = new_object_pointer;
+
+}
+
+
+
 
 

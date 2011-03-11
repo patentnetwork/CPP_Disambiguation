@@ -1303,7 +1303,7 @@ int fullrun_iterative_v4() {
 
 		cCluster::set_ratiomap_pointer(*ratio_pointer);
 		// now disambiguate
-
+		all_records.front().clean_member_attrib_pool();
 		match.disambiguate(*ratio_pointer, num_threads, debug_block_file);
 
 		delete ratio_pointer;

@@ -131,6 +131,11 @@ unsigned int cRecord::exact_compare(const cRecord & rhs ) const {
 
 void cRecord::print() const { this->print(std::cout);}
 
+void cRecord::clean_member_attrib_pool() const {
+	for ( vector < const cAttribute *>::const_iterator p = this->vector_pdata.begin(); p != vector_pdata.end(); ++p )
+		(*p)->clean_attrib_pool();
+}
+
 unsigned int cRecord::get_index_by_name(const string & inputstr) {
 	for ( unsigned int i = 0 ; i < column_names.size(); ++i )
 		if ( column_names.at(i) == inputstr )

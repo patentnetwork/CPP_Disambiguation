@@ -188,6 +188,7 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 			continue;
 		}
 
+		/*
 		set < const string * > outer_classes ( (*outercursor)->get_data_by_index(classes_index).begin(), (*outercursor)->get_data_by_index(classes_index).end());
 		for ( vector< const string*>::const_iterator pinner = (*innercursor)->get_data_by_index(classes_index).begin();
 				pinner != (*innercursor)->get_data_by_index(classes_index).end(); ++ pinner) {
@@ -196,6 +197,13 @@ unsigned int cBlocking_For_Training::create_xset01_on_block(const string & block
 				break;
 			}
 		}
+		*/
+
+		pcouter = ( (*outercursor)->get_attrib_pointer_by_index(classes_index));
+		pcinner = ( (*innercursor)->get_attrib_pointer_by_index(classes_index));
+		unsigned int common_classes = pcouter->compare(*pcinner);
+		if ( common_classes > 0 )
+			should_continue = true;
 
 		if ( should_continue ) {
 			move_cursor ( outercursor, innercursor, dataset );

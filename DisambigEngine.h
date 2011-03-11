@@ -43,7 +43,7 @@ public:
 	vector <unsigned int> record_compare_by_attrib_indice (const cRecord &rhs, const vector < unsigned int > & attrib_indice_to_compare) const;
 	static unsigned int get_index_by_name(const string & inputstr);
 	const vector <const string * > & get_data_by_index(const unsigned int i) const {return vector_pdata.at(i)->get_data();};
-	const cAttribute * get_attrib_pointer_by_index(const unsigned int i) const {return vector_pdata.at(i);}
+	const cAttribute * const & get_attrib_pointer_by_index(const unsigned int i) const {return vector_pdata.at(i);} //return a reference is very important, because the content can be changed.
 	const vector < const cAttribute*> & get_attrib_vector () const { return vector_pdata;}
 	void print( std::ostream & os ) const;
 	void print() const; //{ this->print(std::cout);}
@@ -52,6 +52,8 @@ public:
 	unsigned int informative_attributes() const;
 	unsigned int exact_compare(const cRecord & rhs ) const;
 	void set_attrib_pointer_by_index( const cAttribute * pa, const unsigned int i ) { vector_pdata.at(i) = pa;}
+	void clean_member_attrib_pool() const;
+	static unsigned int record_size() { return column_names.size();}
 };
 
 //================================================
