@@ -631,7 +631,7 @@ public:
 
 class cLatitude : public cAttribute_Single_Mode <cLatitude> {
 private:
-	static const unsigned int max_value = 6;
+	static const unsigned int max_value = 2;
 	vector <const cAttribute *> vec_pinteractive;
 public:
 	cLatitude(const char * source = NULL ) {}

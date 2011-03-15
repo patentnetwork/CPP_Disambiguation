@@ -293,7 +293,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		}
 
 
-
+		/*
 		//latitude interacts with		{"Longitude", "Street", "Country"}; the sequence is important.
 		vector <const string* >::const_iterator p, q;
 
@@ -323,6 +323,19 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 			}
 		}
 		res = country_score + street_score + latlon_score;
+		*/
+		const string * p1 = this->get_data().front();
+		const string * q1 = this->get_interactive_vector().at(0)->get_data().front();
+		const string * p2 = rhs.get_data().front();
+		const string * q2 = rhs.get_interactive_vector().at(0)->get_data().front();
+
+		if ( ( ! p1->empty() && !p2->empty() && p1 != p2 ) || ( !q1->empty() && ! q2->empty() && q1 != q2 ) )
+			res = 0;
+		else if ( ( ! p1->empty() && !p2->empty() && p1 == p2 ) || ( !q1->empty() && ! q2->empty() && q1 == q2 ) )
+			res = 2;
+		else
+			res = 1;
+
 		if ( res > max_value )
 			res = max_value;
 		return res;

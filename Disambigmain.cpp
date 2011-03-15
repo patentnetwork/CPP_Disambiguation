@@ -38,9 +38,13 @@ bool make_changable_training_sets_by_names(const list <const cRecord*> & record_
 
 
 	const bool is_coauthor_active = cCoauthor::static_is_comparator_activated();
+	const bool is_class_active = cClass::static_is_comparator_activated();
 
 	if ( ! is_coauthor_active )
 		cCoauthor::activate_comparator();
+
+	if ( ! is_class_active )
+		cClass::activate_comparator();
 
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	cBlocking_For_Training bft (record_pointers, blocking_column_names, pstring_oper, uid_identifier, limit);
@@ -90,6 +94,9 @@ bool make_changable_training_sets_by_names(const list <const cRecord*> & record_
 
 	if ( ! is_coauthor_active )
 		cCoauthor::deactivate_comparator();
+
+	if ( ! is_class_active )
+		cClass::deactivate_comparator();
 
 	return true;
 }
@@ -1051,13 +1058,13 @@ int fullrun_iterative_v4() {
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
-	cFirstname::activate_comparator();
-	cMiddlename::activate_comparator();
-	cLastname::activate_comparator();
+	//cFirstname::activate_comparator();
+	//cMiddlename::activate_comparator();
+	//cLastname::activate_comparator();
 	//cLatitude::activate_comparator();
-	cAssignee::activate_comparator();
-	cClass::activate_comparator();
-	cCoauthor::activate_comparator();
+	//cAssignee::activate_comparator();
+	//cClass::activate_comparator();
+	//cCoauthor::activate_comparator();
 	list <cRecord> all_records;
 	char filename2[buff_size];
 	sprintf(filename2, "%s/invpat.txt", working_dir.c_str());
@@ -1219,6 +1226,13 @@ int fullrun_iterative_v4() {
 			match.output_current_comparision_info(oldmatchfile);
 		}
 
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::activate_comparator();
+			cAssignee::deactivate_comparator();
+			cClass::deactivate_comparator();
+			cCoauthor::deactivate_comparator();
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
@@ -1229,6 +1243,28 @@ int fullrun_iterative_v4() {
 			//					 training_changable_vec.at(1).c_str() );
 			break;
 		case 2:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::activate_comparator();
+			cAssignee::deactivate_comparator();
+			cClass::deactivate_comparator();
+			cCoauthor::deactivate_comparator();
+			operator_truncate_firstname.set_truncater(0, 0, true);
+			operator_truncate_middlename.set_truncater(0, 0, true);
+			operator_truncate_lastname.set_truncater(0, 0, true);
+			match.reset_blocking(blocker, oldmatchfile);
+			if ( ! use_available_ratios )
+				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			break;
+		case 3:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::activate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
 			operator_truncate_firstname.set_truncater(0, 5, true);
 			operator_truncate_middlename.set_truncater(0, 1, true);
 			operator_truncate_lastname.set_truncater(0, 8, true);
@@ -1238,7 +1274,14 @@ int fullrun_iterative_v4() {
 			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
 			//					 training_changable_vec.at(1).c_str() );
 			break;
-		case 3:
+		case 4:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::activate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
 			operator_truncate_firstname.set_truncater(0, 3, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
@@ -1250,10 +1293,14 @@ int fullrun_iterative_v4() {
 			//					 training_changable_vec.at(1).c_str() );
 			break;
 
-		case 4: case 5:
+		case 5: case 6:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
 			cLatitude::deactivate_comparator();
-			cCoauthor::activate_comparator();
 			cAssignee::deactivate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
 
 			operator_truncate_firstname.set_truncater(0, 3, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
