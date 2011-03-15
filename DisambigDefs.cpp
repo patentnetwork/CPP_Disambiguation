@@ -331,7 +331,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 
 		if ( ( ! p1->empty() && !p2->empty() && p1 != p2 ) || ( !q1->empty() && ! q2->empty() && q1 != q2 ) )
 			res = 0;
-		else if ( ( ! p1->empty() && !p2->empty() && p1 == p2 ) || ( !q1->empty() && ! q2->empty() && q1 == q2 ) )
+		else if ( ( ! p1->empty() && !p2->empty() && p1 == p2 ) && ( !q1->empty() && ! q2->empty() && q1 == q2 ) )
 			res = 2;
 		else
 			res = 1;
@@ -386,6 +386,7 @@ const cClass * cClass::attrib_merge ( const cAttribute & right_hand_side) const 
 
 #endif
 
+#if 0
 unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -427,7 +428,7 @@ unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 		throw;
 	}
 }
-
+#endif
 
 
 #if 0

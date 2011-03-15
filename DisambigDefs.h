@@ -709,7 +709,7 @@ public:
 			cAttribute::get_attrib_max_value();
 		return max_value;
 	}
-	unsigned int compare(const cAttribute & rhs) const;
+	//unsigned int compare(const cAttribute & rhs) const;
 };
 
 

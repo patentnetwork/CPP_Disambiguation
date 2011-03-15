@@ -1116,7 +1116,7 @@ int fullrun_iterative_v4() {
 
 
 	//const unsigned int max_round_by_name = 3;
-	const unsigned int max_round_by_coauthor = 5;
+	const unsigned int max_round_by_coauthor = 6;
 
 	cCluster_Info match ( uid_dict, true);
 
@@ -1149,7 +1149,7 @@ int fullrun_iterative_v4() {
 	cReconfigurator_Coauthor corrector_coauthor ( blocker_coauthor.get_patent_tree());
 	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_coauthor);
 	cCluster::set_reference_patent_tree_pointer( blocker_coauthor.get_patent_tree());
-	const unsigned int topNcoauthor = 8;
+	//const unsigned int topNcoauthor = 8;
 
 	/*
 	//======preliminary consolidation. very strict conditions.
@@ -1246,10 +1246,10 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::activate_comparator();
-			cAssignee::deactivate_comparator();
-			cClass::deactivate_comparator();
-			cCoauthor::deactivate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::activate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
