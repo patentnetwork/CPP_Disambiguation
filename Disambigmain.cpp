@@ -1054,10 +1054,10 @@ int fullrun_iterative_v4() {
 	cFirstname::activate_comparator();
 	cMiddlename::activate_comparator();
 	cLastname::activate_comparator();
-	cLatitude::activate_comparator();
+	//cLatitude::activate_comparator();
 	cAssignee::activate_comparator();
 	cClass::activate_comparator();
-	//cCoauthor::activate_comparator();
+	cCoauthor::activate_comparator();
 	list <cRecord> all_records;
 	char filename2[buff_size];
 	sprintf(filename2, "%s/invpat.txt", working_dir.c_str());
@@ -1139,6 +1139,8 @@ int fullrun_iterative_v4() {
 	const unsigned int num_coauthors_to_group = 2;
 	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group );
 
+	cReconfigurator_Coauthor corrector_coauthor ( blocker_coauthor.get_patent_tree());
+	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_coauthor);
 	cCluster::set_reference_patent_tree_pointer( blocker_coauthor.get_patent_tree());
 	const unsigned int topNcoauthor = 8;
 
@@ -1267,9 +1269,9 @@ int fullrun_iterative_v4() {
 				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
 			}
 
-			blocker_coauthor.build_uid2uinv_tree(match);
-			for ( list<const cRecord *>::iterator p = all_rec_pointers.begin(); p != all_rec_pointers.end(); ++p )
-				(*p)->reset_coauthors(blocker_coauthor, topNcoauthor);
+			//blocker_coauthor.build_uid2uinv_tree(match);
+			//for ( list<const cRecord *>::iterator p = all_rec_pointers.begin(); p != all_rec_pointers.end(); ++p )
+			//	(*p)->reset_coauthors(blocker_coauthor, topNcoauthor);
 
 			//match.reset_blocking(blocker_coauthor, oldmatchfile);
 			//match.reset_blocking(blocker, oldmatchfile);

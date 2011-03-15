@@ -23,7 +23,7 @@ using std::string;
 const char cSql3query::nullchar;
 const vector <const cAttribute *> cAttribute::empty_interactive(0);
 const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarity_Compare::default_sp_exception("Error: Different Similarity profile dimensions");
-const set < const string * > cCoauthor::empty_set_coauthors;
+//const set < const string * > cCoauthor::empty_set_coauthors;
 
 
 template <> const string cAttribute_Intermediary<cFirstname>::class_name = "Firstname";
@@ -71,8 +71,7 @@ template <> const string cAttribute_Intermediary<cCity>::class_name = "City";
 
 template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent";
 
-
-list < cCoauthor > cCoauthor::attrib_pool;
+//list < cCoauthor > cCoauthor::attrib_pool;
 
 //================
 
@@ -167,7 +166,7 @@ bool cFirstname::split_string(const char *inputdata) {
 	return true;
 }
 
-
+/*
 unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -192,7 +191,9 @@ unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
 		throw;
 	}
 }
+*/
 
+#if 0
 unsigned int cLastname::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -217,6 +218,7 @@ unsigned int cLastname::compare(const cAttribute & right_hand_side) const {
 		throw;
 	}
 }
+#endif
 
 bool cMiddlename::split_string(const char *inputdata) {
 	cAttribute::split_string(inputdata);
@@ -332,6 +334,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+#if 0
 bool cClass::split_string(const char* inputdata) {
 	try {
 		cAttribute::split_string(inputdata);
@@ -368,6 +371,8 @@ const cClass * cClass::attrib_merge ( const cAttribute & right_hand_side) const 
 
 }
 
+#endif
+
 unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -386,12 +391,19 @@ unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 		}
 		*/
 
-		res = num_common_elements (this->set_class.begin(), this->set_class.end(),
-								 	 rhs.set_class.begin(), rhs.set_class.end(),
-								 	 this->max_value);
+		const unsigned int cnt  = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
+								 	 rhs.attrib_set.begin(), rhs.attrib_set.end(), 0 );
+		const double score = 1.0 * cnt * cnt / this->attrib_set.size() / rhs.attrib_set.size();
 
-		if ( res > cCLASSscore::CLASS75PLUS)
-			res = cCLASSscore::CLASS75PLUS;
+		if ( score > 0.1 )
+			++res;
+		if ( score > 0.2 )
+			++res;
+		if ( score > 0.3 )
+			++res;
+		if ( score > 0.4 )
+			++res;
+
 		if ( res > max_value )
 			res = max_value;
 		return res;
@@ -404,19 +416,29 @@ unsigned int cClass::compare(const cAttribute & right_hand_side) const {
 }
 
 
+
+#if 0
 bool cCoauthor::split_string(const char* inputdata) {
-	/*
+
 	try {
 		cAttribute::split_string(inputdata);
 	}
 	catch ( const cException_Vector_Data & except) {
-		//std::cout << "cCoauthor allows vector data. This info should be disabled in the real run." << std::endl;
+		//std::cout << "cClass allows vector data. This info should be disabled in the real run." << std::endl;
 	}
-	*/
-	//set_coauthors.insert(get_data().begin(),get_data().end());
-	//this->get_data_modifiable().clear();
+	//const string raw(inputdata);
+	this->attrib_set.clear();
+	for ( vector < const string *>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
+		if ( (*p)->empty() )
+			continue;
+		this->attrib_set.insert(*p);
+	}
+	this->get_data_modifiable().clear();
+	//this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
 	return true;
 }
+
+
 
 
 unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
@@ -450,13 +472,12 @@ unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
 		}
 		*/
 
-		res = num_common_elements (this->pset->begin(), this->pset->end(),
-									 rhs.pset->begin(), rhs.pset->end(),
+		res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
+									 rhs.attrib_set.begin(), rhs.attrib_set.end(),
 									 this->max_value);
 
 
-		if ( res > cCOAUTHscore::C10)
-			res = cCOAUTHscore::C10;
+
 		if ( res > max_value )
 			res = max_value;
 		return res;
@@ -468,6 +489,8 @@ unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+#endif
+#if 0
 bool cAssignee::split_string(const char* inputdata) {
 	cAttribute::split_string(inputdata);
 	static const char delim = ' ';
@@ -483,11 +506,15 @@ bool cAssignee::split_string(const char* inputdata) {
 	} while ( pos != pend);
 	return true;
 }
+#endif
 
 unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
 	try {
+		if ( this == & right_hand_side )
+			return max_value;
+
 		const cAssignee & rhs = dynamic_cast< const cAssignee & > (right_hand_side);
 		//unsigned int res = asgcmp(this->get_data(), rhs.get_data(), assignee_tree_pointer);
 		unsigned int res = asgcmp_old ( * this->get_data().at(0), * rhs.get_data().at(0), assignee_tree_pointer);

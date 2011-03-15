@@ -145,8 +145,8 @@ void create_btree_uid2record_pointer(map<string, const cRecord *> & uid_tree, co
 	map <string, const cRecord *>::iterator pm;
 	for ( list<cRecord>::const_iterator p = reclist.begin(); p != reclist.end(); ++p ) {
 		const cAttribute * pattrib = p->get_attrib_pointer_by_index(uid_index);
-		if ( pattrib->get_data().size() != 1 )
-			throw except;
+		//if ( pattrib->get_data().size() != 1 )
+		//	throw except;
 		const string & label = * pattrib->get_data().at(0);
 		pm = uid_tree.find( label );
 		if ( pm != uid_tree.end())

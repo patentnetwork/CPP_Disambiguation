@@ -197,7 +197,7 @@ void smoothing(map < cSimilarity_Profile, double,  cSimilarity_Compare  >& ratio
 		throw cException_Other("Critical Error: the size of similarity profile is not the same as that of the provided data range vector! ");
 
 
-	bool is_ooqp_success = true;
+	bool is_ooqp_success = false; 		// change this to activate/deactivate raw data quadprog
 	//bool is_quadprog_success = true;
 
 	// now building matrix G;

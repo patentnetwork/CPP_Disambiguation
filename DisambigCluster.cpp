@@ -242,6 +242,11 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 	useless = blocker.get_useless_string();
 	retrieve_last_comparision_info(blocker, past_comparision_file);
 
+	for ( map <string, cRecGroup>::iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
+		for ( cRecGroup::iterator cp = p->second.begin(); cp != p->second.end(); ++cp ) {
+			cp->self_repair();
+		}
+	}
 
 	config_prior();
 
@@ -324,8 +329,8 @@ void cCluster_Info::print(std::ostream & os) const {
 			//const cAttribute * key_pattrib = p->first.get_precord()->get_attrib_pointer_by_index(uid_index);
 			//const cAttribute * key_pattrib = p->first->get_attrib_pointer_by_index(uid_index);
 			const cAttribute * key_pattrib = p->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
-			if ( key_pattrib->get_data().size() != 1 )
-				throw except;
+			//if ( key_pattrib->get_data().size() != 1 )
+			//	throw except;
 			os << * key_pattrib->get_data().at(0) << primary_delim;
 
 			double cohesion_value;
@@ -340,8 +345,8 @@ void cCluster_Info::print(std::ostream & os) const {
 
 			for ( cGroup_Value::const_iterator q = p->get_fellows().begin(); q != p->get_fellows().end(); ++q ) {
 				const cAttribute * value_pattrib = (*q)->get_attrib_pointer_by_index(uid_index);
-				if ( value_pattrib->get_data().size() != 1 )
-					throw except;
+				//if ( value_pattrib->get_data().size() != 1 )
+				//	throw except;
 				os << * value_pattrib->get_data().at(0) << secondary_delim;
 			}
 			os << '\n';

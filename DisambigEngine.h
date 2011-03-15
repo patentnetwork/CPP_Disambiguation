@@ -284,6 +284,19 @@ public:
 	void reconfigure( const cRecord * ) const;
 };
 
+class cReconfigurator_Coauthor : public cRecord_Reconfigurator {
+private:
+	const map < const cRecord *, cGroup_Value, cSort_by_attrib > * reference_pointer;
+	const unsigned int coauthor_index;
+public:
+	cReconfigurator_Coauthor ( const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_authors) :
+			reference_pointer ( & patent_authors), coauthor_index ( cRecord::get_index_by_name(cCoauthor::static_get_class_name())) {
+		cCoauthor::clear_data_pool();
+		cCoauthor::clear_attrib_pool();
+	}
+	void reconfigure ( const cRecord * ) const;
+};
+
 
 
 class cCluster_Info;

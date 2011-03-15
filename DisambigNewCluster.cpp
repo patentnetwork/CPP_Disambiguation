@@ -20,8 +20,8 @@ cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		throw cException_Other("Coauthor index is not set properly.");
 	if ( NULL == reference_pointer )
 		throw cException_Other("Critical Error: reference pointer is not set yet.");
-	reset_coauthor_list(*reference_pointer);
-	reset_cCoauthor_pointer(coauthor_list);
+	//reset_coauthor_list(*reference_pointer);
+	//reset_cCoauthor_pointer(coauthor_list);
 }
 
 
@@ -47,10 +47,9 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 
 	this->m_info = info;
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
-	this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
-	mergee.reset_cCoauthor_pointer(this->coauthor_list);
-	//mergee.m_fellows.clear();
-	mergee.coauthor_list.clear();
+	//this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
+	//mergee.reset_cCoauthor_pointer(this->coauthor_list);
+	//mergee.coauthor_list.clear();
 	mergee.m_mergeable = false;
 }
 
@@ -68,11 +67,11 @@ cCluster::~cCluster() {
 	*/
 }
 
-cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true), coauthor_list(rhs.coauthor_list){
-	if ( rhs.m_mergeable == false )
+cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true) //, coauthor_list(rhs.coauthor_list){
+{	if ( rhs.m_mergeable == false )
 		throw cException_Other("cCluster Copy Constructor error.");
 	//rhs.m_mergeable = false;
-	this->reset_cCoauthor_pointer(this->coauthor_list);
+	//this->reset_cCoauthor_pointer(this->coauthor_list);
 }
 
 
@@ -94,6 +93,7 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 
 }
 
+#if 0
 unsigned int cCluster::reset_coauthor_list(const map < const cRecord *, cGroup_Value, cSort_by_attrib > & reference_patent_tree) {
 	this->coauthor_list.clear();
 	static const string dot = ".";
@@ -147,6 +147,7 @@ void cCluster::split ( const cBlocking_Operation & blocker, list<cCluster >& clu
 		clusterlist.push_back(tc);
 	}
 }
+#endif
 
 void cCluster::reset_clusterhead(const double prior) {
 	cCluster_Head th( NULL, 1);
@@ -163,8 +164,8 @@ void cCluster::insert_elem( const cRecord * more_elem) {
 }
 
 void cCluster::self_repair() {
-	reset_coauthor_list(*reference_pointer);
-	reset_cCoauthor_pointer(coauthor_list);
+	//reset_coauthor_list(*reference_pointer);
+	//reset_cCoauthor_pointer(coauthor_list);
 	const unsigned int rec_size = cRecord::record_size();
 	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
 		list < const cAttribute ** > l1;

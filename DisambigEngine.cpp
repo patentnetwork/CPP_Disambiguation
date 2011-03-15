@@ -409,7 +409,32 @@ void cReconfigurator_Latitude_Interactives::reconfigure ( const cRecord * p ) co
 	lp->reset_interactive(interact);
 }
 
+void cReconfigurator_Coauthor :: reconfigure ( const cRecord * p ) const {
+	static const string dot = ".";
+	static const unsigned int firstnameindex = cRecord::get_index_by_name(cFirstname::static_get_class_name());
+	static const unsigned int lastnameindex = cRecord::get_index_by_name(cLastname::static_get_class_name());
+	static const cString_Extract_FirstWord firstname_extracter;
+	static const cString_Remove_Space lastname_extracter;
 
+	map < const cRecord *, cGroup_Value, cSort_by_attrib >::const_iterator cpm;
+	cCoauthor temp;
+
+	cpm = reference_pointer->find( p);
+	if ( cpm == reference_pointer->end())
+		throw cException_Other("Missing patent data.");
+	const cGroup_Value & patent_coauthors = cpm->second;
+	for ( cGroup_Value::const_iterator q = patent_coauthors.begin(); q != patent_coauthors.end(); ++q ) {
+		if ( *q == p )
+			continue;
+		string fullname = firstname_extracter.manipulate( * (*q)->get_data_by_index(firstnameindex).at(0) ) + dot
+							+ lastname_extracter.manipulate( * (*q)->get_data_by_index(lastnameindex).at(0) );
+		temp.attrib_set.insert(cCoauthor::static_add_string (fullname) );
+	}
+	const cAttribute * np = cCoauthor::static_add_attrib(temp, 1);
+	const cAttribute ** to_change = const_cast< const cAttribute ** > ( & p->get_attrib_pointer_by_index(coauthor_index));
+	*to_change = np;
+
+}
 
 
 
@@ -418,8 +443,8 @@ void cRecord::reset_coauthors(const cBlocking_Operation_By_Coauthors & bb, const
 	const unsigned int firstname_attrib_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
 	const unsigned int lastname_attrib_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
 	const unsigned int coauthor_attrib_index = cRecord::get_index_by_name(cCoauthor::static_get_class_name());
-	const cAttribute * pAttrib = this->get_attrib_pointer_by_index(coauthor_attrib_index);
-	const cCoauthor * pCoauthorAttrib = dynamic_cast< const cCoauthor *> (pAttrib);
+	const cAttribute * const * ppAttrib = & this->get_attrib_pointer_by_index(coauthor_attrib_index);
+	const cCoauthor * pCoauthorAttrib = dynamic_cast< const cCoauthor *> (*ppAttrib);
 	if ( pCoauthorAttrib == NULL )
 		throw cException_Other("Critical Error: Attribute is not Coauthor !");
 
@@ -431,7 +456,7 @@ void cRecord::reset_coauthors(const cBlocking_Operation_By_Coauthors & bb, const
 		return;
 
 	//now edit cCoauthor.
-	cCoauthor * pCoauthor = const_cast < cCoauthor *> (pCoauthorAttrib);
+	//cCoauthor * pCoauthor = const_cast < cCoauthor *> (pCoauthorAttrib);
 	string coauthor_str;
 	const string primary_delim = "/";
 	const string secondary_delim = ".";
@@ -446,8 +471,13 @@ void cRecord::reset_coauthors(const cBlocking_Operation_By_Coauthors & bb, const
 		coauthor_str += secondary_delim;
 		coauthor_str += * (*p)->get_data_by_index(lastname_attrib_index).at(0);
 	}
-
-	pCoauthor->reset_data(coauthor_str.c_str());
+	cCoauthor tempco ( * pCoauthorAttrib);
+	tempco.reset_data(coauthor_str.c_str());
+	const cAttribute * pt = cCoauthor::static_add_attrib(tempco, 1);
+	pCoauthorAttrib->reduce_attrib(1);
+	//pCoauthor->reset_data(coauthor_str.c_str());
+	const cAttribute ** ppA = const_cast< const cAttribute **> (ppAttrib);
+	*ppA = pt;
 
 }
 
