@@ -1234,7 +1234,7 @@ int fullrun_iterative_v4() {
 			cClass::deactivate_comparator();
 			cCoauthor::deactivate_comparator();
 			operator_truncate_firstname.set_truncater(0, 0, true);
-			operator_truncate_middlename.set_truncater(0, 0, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 0, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			if ( ! use_available_ratios )

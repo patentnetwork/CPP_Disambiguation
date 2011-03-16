@@ -768,7 +768,7 @@ double fetch_ratio(const vector < unsigned int > & ratio_to_calc, const vector< 
 
 
 
-std::pair<const cRecord *, double> disambiguate_by_set (
+std::pair<const cRecord *, double> disambiguate_by_set_old (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior,
@@ -941,7 +941,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 //==================================================================================================
 //There are probably some bugs in this function. Use old one as an expediency.
-std::pair<const cRecord *, double> disambiguate_by_set_test (
+std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior, 
@@ -1012,7 +1012,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_test (
 
 
 		vector < unsigned int > :: iterator cvi = qualified_index.begin();
-		unsigned int location = 0;
+		//unsigned int location = 0;
 		for (unsigned int i = 0; i < size; ++i ) {
 		//for ( vector < unsigned int >:: const_iterator cvi = qualified_index.begin(); cvi != qualified_index.end(); ++cvi ) {
 			//const unsigned int i = *cvi;
@@ -1034,15 +1034,15 @@ std::pair<const cRecord *, double> disambiguate_by_set_test (
 				}
 			}
 
-			if ( temp_sum > max_sum  ) {
-				//cvi = find ( qualified_index.begin(), qualified_index.end(), i );
-				if ( *cvi == i  ) {
-					//qualified_index.erase( cvi );
+			cvi = std::find( qualified_index.begin(), qualified_index.end(), i);
+			if ( cvi != qualified_index.end() ) {
+				unsigned int dist = std::distance( qualified_index.begin(), cvi);
+				max_history.at(dist) = temp_sum;
+				if ( temp_sum > max_sum  ) {
 					max_sum = temp_sum;
-					max_history.at(location++) = max_sum;
-					++cvi;
 				}
 			}
+
 
 			//if ( temp_sum == max_sum ) {
 			//	max_history.push_back(i);
@@ -1060,7 +1060,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_test (
 			return std::pair<const cRecord *, double> (NULL, probability);
 		else {
 			//double check chosen_i;
-			location = 0;
+			//location = 0;
 			vector < unsigned int > selected;
 			for ( unsigned int k = 0; k != max_history.size(); ++k ) {
 				if ( max_history.at(k) == max_sum )
@@ -1076,12 +1076,12 @@ std::pair<const cRecord *, double> disambiguate_by_set_test (
 				}
 				if ( temp_c > max_exact_count ) {
 					max_exact_count = temp_c;
-					chosen_i = k;
+					chosen_i = selected.at(k);
 				}
 			}
 
-			const unsigned int ok = selected.at(chosen_i);
-			return std::pair<const cRecord *, double>( merged.at(ok), probability );
+			return std::pair<const cRecord *, double>( merged.at(chosen_i), probability );
+
 		}
 	}
 }

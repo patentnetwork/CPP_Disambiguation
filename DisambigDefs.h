@@ -523,7 +523,7 @@ public:
 		this->get_data_modifiable().push_back(p);
 		return true;
 	}
-	int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
+
 
 };
 
@@ -558,7 +558,7 @@ public:
 		}
 		return true;
 	}
-	int exact_compare( const cAttribute & rhs ) const { return this->get_data() == rhs.get_data(); }
+
 
 };
 //
@@ -597,6 +597,7 @@ public:
 			cAttribute::get_attrib_max_value();
 		return max_value;
 	}
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 
@@ -612,6 +613,7 @@ public:
 		return max_value;
 	}
 	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 class cMiddlename : public cAttribute_Single_Mode <cMiddlename> {
@@ -627,6 +629,7 @@ public:
 		return max_value;
 	}
 	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 class cLatitude : public cAttribute_Single_Mode <cLatitude> {
@@ -643,6 +646,7 @@ public:
 			cAttribute::get_attrib_max_value();
 		return max_value;
 	}
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 class cLongitude: public cAttribute_Single_Mode <cLongitude> {
@@ -665,6 +669,7 @@ private:
 public:
 	cCountry(const char * source = NULL ) {}
 	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE country IS NOT BEING COMPARED either. IT IS WITH THE LATITUDE COMPARISION.
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 #if 0
@@ -793,6 +798,7 @@ public:
 		return max_value;
 	}
 	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 class cAsgNum : public cAttribute_Single_Mode<cAsgNum> {
@@ -821,6 +827,7 @@ public:
 	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
 	bool split_string(const char*);
 	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
+	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
 class cPatent: public cAttribute_Single_Mode <cPatent> {
