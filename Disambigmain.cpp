@@ -1178,6 +1178,7 @@ int fullrun_iterative_v4() {
 	vector < string > blocking_column_names(blocking_names, blocking_names + sizeof(blocking_names)/sizeof(string) );
 	vector < unsigned int > blocking_column_data_indice ( blocking_column_names.size(), 0 );
 	blocking_column_data_indice.at(0) = 1;
+	blocking_column_data_indice.at(1) = 1;
 	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names, blocking_column_data_indice);
 
 

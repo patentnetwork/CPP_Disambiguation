@@ -44,8 +44,9 @@ unsigned int cRecord::informative_attributes() const {
 	static const unsigned int middlename_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
 	static const unsigned int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
 	static const unsigned int assignee_index = cRecord::get_index_by_name(cAssignee::static_get_class_name());
-	static const unsigned int class_index = cRecord::get_index_by_name(cClass::static_get_class_name());
-
+	//static const unsigned int class_index = cRecord::get_index_by_name(cClass::static_get_class_name());
+	static const unsigned int lat_index = cRecord::get_index_by_name(cLatitude::static_get_class_name());
+	static const unsigned int ctry_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
 
 	unsigned int cnt = 0;
 
@@ -53,7 +54,8 @@ unsigned int cRecord::informative_attributes() const {
 	this->vector_pdata.at(middlename_index)->is_informative() && (++cnt);
 	this->vector_pdata.at(lastname_index)->is_informative() && (++cnt);
 	this->vector_pdata.at(assignee_index)->is_informative() && (++cnt);
-	this->vector_pdata.at(class_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(lat_index)->is_informative() && (++cnt);
+	this->vector_pdata.at(ctry_index)->is_informative() && (++cnt);
 
 #if 0
 	for ( vector <const cAttribute *>::const_iterator p = vector_pdata.begin(); p != vector_pdata.end(); ++p  ) {

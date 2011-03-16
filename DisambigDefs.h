@@ -495,7 +495,7 @@ public:
 		}
 		os << std::endl;
 	}
-
+	bool is_informative() const { return false;}
 };
 
 

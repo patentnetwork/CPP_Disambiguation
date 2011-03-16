@@ -555,7 +555,7 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	    	continue;
 	    }
 	    double factor = 1.0;
-	    if ( max_occurrence.at(seq) != 0 )
+	    if ( frequency_adjust_mode && max_occurrence.at(seq) != 0 )
 	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
 	    prior *= factor;
 	    ++seq;
@@ -785,7 +785,9 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 				if ( debug_mode && result.m_delegate != NULL) {
 					std::cout << "**************************" << std::endl;
 					first_iter->get_cluster_head().m_delegate->print(std::cout);
+					std::cout << "The first cluster has " << first_iter->get_fellows().size() << " members." << std::endl;
 					second_iter->get_cluster_head().m_delegate->print(std::cout);
+					std::cout << "The second cluster has " << second_iter->get_fellows().size() << " members." << std::endl;
 					std::cout << "Prior value = "<< prior_value << " Probability = " << result.m_cohesion << std::endl;
 					std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
 				}
@@ -861,9 +863,6 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 		// now merge the two.
 
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
-	//const double new_prior = get_prior_value( * bid, to_be_disambiged_group);
-	//if ( autoupdate_prior_mode )
-	//	prior_value = new_prior;
 
 	return to_be_disambiged_group.size();
 

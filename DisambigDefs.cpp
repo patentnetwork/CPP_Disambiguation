@@ -257,7 +257,7 @@ unsigned int cMiddlename::compare(const cAttribute & right_hand_side) const {
 				//res = ( res < temp_res ) ? temp_res : res ;
 		//	}
 		//}
-		unsigned int res = midnamecmp(* this->get_data().at(1), * rhs.get_data().at(1));
+		unsigned int res = midnamecmp(* this->get_data().at(0), * rhs.get_data().at(0));
 		if ( res > max_value )
 			res = max_value;
 		return res;

@@ -78,7 +78,7 @@ private:
 	vector < unsigned int > max_occurrence;
 
 	string useless;
-	const bool autoupdate_prior_mode;
+	const bool frequency_adjust_mode;
 	const bool debug_mode;
 
 
@@ -105,9 +105,9 @@ public:
 	void reset_blocking(const cBlocking_Operation & blocker, const char * const past_comparision_file);
 	void preliminary_consolidation(const cBlocking_Operation & blocker, const list < const cRecord *> & all_rec_list);
 	cCluster_Info(const map <string, const cRecord*> & input_uid2record, const bool input_is_matching , const bool aum = false, const bool debug = false )
-			: uid2record_pointer(&input_uid2record), is_matching(input_is_matching), autoupdate_prior_mode(aum), debug_mode(debug) {
+			: uid2record_pointer(&input_uid2record), is_matching(input_is_matching), frequency_adjust_mode(aum), debug_mode(debug) {
 		std::cout << "A cluster information class is set up." << std::endl;
-		std::cout << "AUTO_UPDATE_PRIOR MODE: " << (autoupdate_prior_mode ? "ON" : "OFF")
+		std::cout << "FREQUENCY_ADJUST_PRIOR_MODE: " << (frequency_adjust_mode ? "ON" : "OFF")
 					<< "       DEBUG MODE: " << (debug_mode ? "ON" : "OFF") << std::endl;
 	} ;
 	void disambiguate(const cRatios & ratiosmap, const unsigned int num_threads, const char * const debug_block_file);
