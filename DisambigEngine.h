@@ -50,7 +50,7 @@ public:
 	static const vector < string > & get_column_names() { return column_names;}
 	void reset_coauthors( const cBlocking_Operation_By_Coauthors &, const unsigned int topN) const;
 	unsigned int informative_attributes() const;
-	unsigned int exact_compare(const cRecord & rhs ) const;
+	unsigned int record_exact_compare(const cRecord & rhs ) const;
 	void set_attrib_pointer_by_index( const cAttribute * pa, const unsigned int i ) { vector_pdata.at(i) = pa;}
 	void clean_member_attrib_pool() const;
 	static unsigned int record_size() { return column_names.size();}

@@ -121,7 +121,7 @@ vector <unsigned int> cRecord::record_compare_by_attrib_indice (const cRecord &r
 }
 
 
-unsigned int cRecord::exact_compare(const cRecord & rhs ) const {
+unsigned int cRecord::record_exact_compare(const cRecord & rhs ) const {
 	unsigned int result = 0;
 	for ( unsigned int i = 0; i < this->vector_pdata.size(); ++i ) {
 		int ans = this->vector_pdata.at(i)->exact_compare( * rhs.vector_pdata.at(i));
@@ -922,7 +922,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_old (
 
 					unsigned int temp_c = 0;
 					for ( vector < const cRecord *>::const_iterator p = merged.begin(); p != merged.end(); ++p ) {
-						temp_c += merged.at( max_history.at(i) )->exact_compare( **p );
+						temp_c += merged.at( max_history.at(i) )->record_exact_compare( **p );
 					}
 					if ( temp_c > max_exact_match ) {
 						max_exact_match = temp_c;
@@ -943,7 +943,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_old (
 
 //==================================================================================================
 //There are probably some bugs in this function. Use old one as an expediency.
-std::pair<const cRecord *, double> disambiguate_by_set (
+std::pair<const cRecord *, double> disambiguate_by_set_old2 (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior, 
@@ -1072,9 +1072,8 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			for ( unsigned int k = 0; k != selected.size(); ++k ) {
 				unsigned int temp_c = 0;
 				for ( vector < const cRecord *>::const_iterator p = merged.begin(); p != merged.end(); ++p ) {
-					int ex_comp = merged.at( max_history.at(k) )->exact_compare( **p );
-					if ( ex_comp == 1 )
-						temp_c += 1;
+					unsigned int ex_comp = merged.at( max_history.at(k) )->record_exact_compare( **p );
+					temp_c += ex_comp;
 				}
 				if ( temp_c > max_exact_count ) {
 					max_exact_count = temp_c;
@@ -1090,7 +1089,148 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 
 
+//==================================================================================================
+//This function should be correct.
+std::pair<const cRecord *, double> disambiguate_by_set (
+									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
+									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
+									 const double prior,
+									 const cRatios & ratio,  const double mutual_threshold ) {
+	const double minimum_threshold = 0.8;
+	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
+	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
+	const unsigned int size_minimum = 50;
+	double r_value = 0;
 
+	const unsigned int match1_size = match1.size();
+	const unsigned int match2_size = match2.size();
+	if ( match1_size > size_minimum && match2_size > size_minimum ) {
+		vector< unsigned int > sp = key1->record_compare(*key2);
+		//if ( power == 0 )
+			r_value = fetch_ratio(sp, ratio.get_ratios_map());
+		//else
+		//	throw cException_Other("Error in disambiguate_by_set: invalid input parameter.");
+			//r_value = fetch_ratio(sp, ratio.get_coefficients_vector(), power);
+
+		if ( 0 == r_value ) {
+			std::cout << " OK. Disabled now but should be enabled in the real run." << std::endl;
+			return std::pair<const cRecord *, double> (NULL, 0);
+			//throw except;
+		}
+		const double probability = 1 / ( 1 + ( 1 - prior )/prior / r_value );
+		if ( probability < threshold )
+			return std::pair<const cRecord *, double> (NULL, probability);
+		else
+			return std::pair<const cRecord *, double> ( ( ( match1_size > match2_size ) ? key1 : key2 ), probability );
+	}
+	else {
+		double interactive = 0;
+		for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
+			for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
+				vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+				double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+				if ( r_value == 0 ) {
+					interactive += 0;
+				}
+				else {
+					interactive +=  1 / ( 1 + ( 1 - prior )/prior / r_value );
+				}
+			}
+		}
+
+		const double interactive_average = interactive / match1.size() / match2.size();
+		if ( interactive_average > 1 )
+			throw cException_Invalid_Probability("Cohesion value error.");
+
+		if ( interactive_average < threshold )
+			return std::pair<const cRecord *, double> (NULL, interactive_average);
+
+		vector < const cRecord *> merged;
+		cGroup_Value::const_iterator q = match1.begin();
+
+		if ( key1 != NULL)
+			merged.push_back(key1);
+		for ( unsigned int i = 0; i < size_minimum && i < match1_size; ++i ) {
+			if (*q != key1 )
+				merged.push_back(*q++);
+		}
+		q = match2.begin();
+		if ( key2 != NULL )
+			merged.push_back(key2);
+		for ( unsigned int i = 0; i < size_minimum && i < match2_size; ++i ) {
+			if (*q != key2)
+				merged.push_back(*q++);
+		}
+
+		double max_sum = 0;
+		unsigned int chosen_i = 0;
+		const unsigned int size = merged.size();
+		unsigned int num_useful_columns = 0;
+		vector < unsigned int > qualified_index;
+		for (unsigned int i = 0; i < size; ++i ) {
+			unsigned int informative_columns = merged[i]->informative_attributes();
+			if ( informative_columns > num_useful_columns ) {
+				num_useful_columns = informative_columns;
+				qualified_index.clear();
+			}
+			if ( informative_columns == num_useful_columns )
+				qualified_index.push_back(i);
+		}
+
+		vector < double > max_history( qualified_index.size(), 0);
+
+
+		vector < unsigned int > :: iterator cvi;
+		for (unsigned int i = 0; i < qualified_index.size(); ++i ) {
+			double temp_sum = 0;
+			for (unsigned int j = 0; j < size; ++j ) {
+				if ( qualified_index.at(i) == j )
+					continue;
+
+				vector< unsigned int > tempsp = merged[ qualified_index.at(i) ]->record_compare(* merged[j]);
+				r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+				if ( r_value == 0 ) {
+					temp_sum += 0;
+				}
+				else {
+					temp_sum +=  1 / ( 1 + ( 1 - prior )/prior / r_value );
+				}
+			}
+
+			max_history.at(i) = temp_sum;
+			if ( temp_sum > max_sum  ) {
+				max_sum = temp_sum;
+			}
+		}
+
+		vector < unsigned int > selected;
+		for ( unsigned int k = 0; k != max_history.size(); ++k ) {
+			if ( max_history.at(k) == max_sum )
+				selected.push_back(qualified_index.at(k));
+		}
+		unsigned int max_exact_count = 0;
+		for ( unsigned int k = 0; k != selected.size(); ++k ) {
+			unsigned int temp_c = 0;
+			for ( vector < const cRecord *>::const_iterator p = merged.begin(); p != merged.end(); ++p ) {
+				unsigned int ex_comp = merged.at( max_history.at(k) )->record_exact_compare( **p );
+				temp_c += ex_comp;
+			}
+			if ( temp_c > max_exact_count ) {
+				max_exact_count = temp_c;
+				chosen_i = selected.at(k);
+			}
+		}
+
+		const double probability = cohesion1 * match1_size * ( match1_size - 1 ) / 2
+									+ cohesion2 * match2_size * ( match2_size - 1 ) / 2
+									+ interactive;
+		return std::pair<const cRecord *, double>( merged.at(chosen_i), probability );
+
+
+	}
+}
 
 
 
