@@ -47,6 +47,7 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 
 	this->m_info = info;
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
+	this->find_representative();
 	//this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
 	//mergee.reset_cCoauthor_pointer(this->coauthor_list);
 	//mergee.coauthor_list.clear();
@@ -186,5 +187,52 @@ void cCluster::self_repair() {
 		}
 	}
 	m_usable = true;
+}
+
+void cCluster::find_representative()  {
+	static const string useful_columns[] = { cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name(),
+											cLatitude::static_get_class_name(), cAssignee::static_get_class_name(), cCity::static_get_class_name(), cCountry::static_get_class_name()};
+	static const unsigned int nc = sizeof(useful_columns)/sizeof(string);
+	vector < map < const cAttribute *, unsigned int > > tracer( nc );
+	vector < unsigned int > indice;
+	for ( unsigned int i = 0; i < nc; ++i )
+		indice.push_back ( cRecord::get_index_by_name( useful_columns[i]));
+
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		for ( unsigned int i = 0 ; i < nc; ++i ) {
+			const cAttribute * pA = (*p)->get_attrib_pointer_by_index(indice.at(i));
+			++ tracer.at(i)[pA];
+		}
+	}
+	vector < const cAttribute * > most;
+	for ( unsigned int i = 0; i < nc ; ++i ) {
+		const cAttribute * most_pA = NULL;
+		unsigned int most_cnt = 0;
+		for ( map < const cAttribute *, unsigned int >::const_iterator p = tracer.at(i).begin(); p != tracer.at(i).end(); ++p ) {
+			if ( p->second > most_cnt ) {
+				most_cnt = p->second;
+				most_pA = p->first;
+			}
+		}
+		most.push_back( most_pA );
+	}
+
+	unsigned int m_cnt = 0;
+	const cRecord * mp = NULL;
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		unsigned int c = 0;
+		for ( unsigned int i = 0 ; i < nc; ++i ) {
+			const cAttribute * pA = (*p)->get_attrib_pointer_by_index(indice.at(i));
+			if ( pA == most.at(i) )
+				++c;
+		}
+		if ( c > m_cnt ) {
+			m_cnt = c;
+			mp = *p;
+		}
+	}
+
+	this->m_info.m_delegate = mp;
+
 }
 

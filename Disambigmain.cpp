@@ -1118,7 +1118,7 @@ int fullrun_iterative_v4() {
 	//const unsigned int max_round_by_name = 3;
 	const unsigned int max_round_by_coauthor = 6;
 
-	cCluster_Info match ( uid_dict, true);
+	cCluster_Info match ( uid_dict, true, true, false);
 
 	cString_Remove_Space operator_no_space;
 	cString_NoSpace_Truncate operator_truncate_firstname;

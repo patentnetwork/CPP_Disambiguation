@@ -263,7 +263,7 @@ int midnamecmp_old(const string & str1, const string & str2 ){
 	return (missing + 2*(raw > 0.33) + (raw > 0.67) + (raw > 0.99));
 }
 
-int midnamecmp(const string & str1, const string & str2 ){
+int midnamecmp_old2(const string & str1, const string & str2 ){
 	
 	static std::equal_to<char> char_compare;
 	/*
@@ -294,6 +294,7 @@ int midnamecmp(const string & str1, const string & str2 ){
 	
 	int score;
 	const int matches = Longest_Common_Subsequence_Continuous<char, std::equal_to<char> >(vec1, vec2, char_compare).size();
+
 	if ( matches == min_val<int>(str1.size(), str2.size() ) )
 		score = 3;
 	else
@@ -301,6 +302,24 @@ int midnamecmp(const string & str1, const string & str2 ){
 		
 	return score;
 }
+
+int midnamecmp ( const string & s1, const string & s2) {
+	if ( s1.empty() && s2.empty() )
+		return 2;
+
+	if ( s1.empty() || s2.empty() )
+		return 1;
+
+	const char * p1 = s1.c_str();
+	const char * p2 = s2.c_str();
+
+	while ( *p1 != '\0' && *p2 != '\0') {
+		if ( *p1++ != * p2++)
+			return 0;
+	}
+	return 3;
+}
+
 
 
 int distcmp(const string & inputlat1, const string & inputlon1, const string & inputctry1, const char * inputstreet1,

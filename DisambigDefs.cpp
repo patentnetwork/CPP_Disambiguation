@@ -221,6 +221,7 @@ unsigned int cLastname::compare(const cAttribute & right_hand_side) const {
 #endif
 
 bool cMiddlename::split_string(const char *inputdata) {
+	//static const string impossible_label = "@";
 	cAttribute::split_string(inputdata);
 	const string & source = * get_data().at(0);
 	size_t pos = source.find(' ');
@@ -232,6 +233,8 @@ bool cMiddlename::split_string(const char *inputdata) {
 
 	char initials[50];
 	extract_initials(initials, midpart.c_str());
+	//if ( ! midpart.empty())
+	//	midpart = impossible_label + midpart;
 	const char * start = initials;
 	//if ( initials[0] == '\0' )
 	//	start = initials;

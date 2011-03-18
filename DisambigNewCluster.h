@@ -52,6 +52,7 @@ public:
 	unsigned int connect_by_coauthors( const cCluster & rhs )const;
 	void self_repair();
 	static void set_reference_patent_tree_pointer(const map < const cRecord *, cGroup_Value, cSort_by_attrib > & reference_patent_tree ) { reference_pointer = & reference_patent_tree;}
+	void find_representative();
 };
 
 class cException_Empty_Cluster : public cAbstract_Exception {
