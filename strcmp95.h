@@ -17,7 +17,7 @@
 
 #define NOTNUM(c)	((c>57) || (c<48))
 #define INRANGE(c)      ((c>0)  && (c<91))
-#define MAX_VAR_SIZE 256 
+#define MAX_VAR_SIZE 1024
 #define NULL60 "                                                            "
 
 //double  strcmp95(char *, char *, long, int **);

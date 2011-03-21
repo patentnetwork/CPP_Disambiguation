@@ -30,7 +30,7 @@ double strcmp95_modified (const char *ying, const char *yang)
    The suggested values are all zeros for character strings such as names.    */
 
 static	int	pass=0,	adjwt[91][91];
-static	const char	sp[39][2] =
+static	const unsigned char	sp[39][2] =
  { {'A','E'},  {'A','I'},  {'A','O'},  {'A','U'},  {'B','V'},  {'E','I'},  {'E','O'},  {'E','U'},
 	{'I','O'},  {'I','U'},  {'O','U'},  {'I','Y'},  {'E','Y'},  {'C','G'},  {'E','F'},
 	{'W','U'},  {'W','V'},  {'X','K'},  {'S','Z'},  {'X','S'},  {'Q','C'},  {'U','V'},
@@ -91,12 +91,15 @@ yang_length = i + 1 - j;
 ying_length = strlen(ying) ;
 yang_length = strlen(yang) ;
 
-ying_hold[0]=yang_hold[0]=0;
+//ying_hold[0]=yang_hold[0]=0;
 //memcpy(ying_hold,&ying[yi_st],ying_length);
 //memcpy(yang_hold,&yang[j],yang_length);
 
-memcpy(ying_hold, ying, ying_length);
-memcpy(yang_hold, yang, yang_length);
+//memcpy(ying_hold, ying, ying_length);
+//memcpy(yang_hold, yang, yang_length);
+strcpy(ying_hold, ying);
+strcpy(yang_hold, yang);
+
 
 if (ying_length > yang_length) {
   search_range = ying_length;
@@ -161,8 +164,8 @@ if (minv > Num_com) {
     if (ying_flag[i] == ' ' && INRANGE(ying_hold[i])) { 
       for (j = 0;j < yang_length;j++) {
         if (yang_flag[j] == ' ' && INRANGE(yang_hold[j])) {
-          if (adjwt[ying_hold[i]][yang_hold[j]] > 0) {
-            N_simi += adjwt[ying_hold[i]][yang_hold[j]];
+          if (adjwt[(unsigned char)ying_hold[i]][(unsigned char)yang_hold[j]] > 0) {
+            N_simi += adjwt[(unsigned char)ying_hold[i]][(unsigned char)yang_hold[j]];
             yang_flag[j] = '2';
             break;
 } } } } } }

@@ -80,11 +80,6 @@ template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent"
 
 //==========================================
 
-bool cSimilarity_Compare::operator()(const vector <unsigned int> & s1, const vector < unsigned int> & s2) const {
-	if ( s1.size() != s2.size() )
-		throw cSimilarity_Compare::default_sp_exception;
-	return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end());
-}
 
 
 

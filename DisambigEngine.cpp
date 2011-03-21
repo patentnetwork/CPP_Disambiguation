@@ -1425,7 +1425,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_test (
 
 
 //==================================================================================================
-//This function is the simplified yet good.
+//This function exhausts all the connections. accurate yet time-consuming
 std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
@@ -1469,7 +1469,70 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 }
 
 
+//==================================================================================================
+//This function is the simplified yet good.
+std::pair<const cRecord *, double> disambiguate_by_set_simplified (
+									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
+									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
+									 const double prior,
+									 const cRatios & ratio,  const double mutual_threshold ) {
+	const double minimum_threshold = 0.8;
+	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
+	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
 
+	const unsigned int minimum_size = 200;
+	const unsigned int match1_size = match1.size();
+	const unsigned int match2_size = match2.size();
+
+	const cGroup_Value * pm1, *pm2;
+
+	const cGroup_Value simple1 ( 1, key1 );
+	const cGroup_Value simple2 ( 1, key2 );
+
+	if ( match1_size > minimum_size )
+		pm1 = & simple1;
+	else
+		pm1 = & match1;
+
+	if ( match2_size > minimum_size )
+		pm2 = & simple2;
+	else
+		pm2 = & match2;
+
+	const unsigned int pm1_size = pm1->size();
+	const unsigned int pm2_size = pm2->size();
+
+	double interactive = 0;
+
+	for ( cGroup_Value::const_iterator p = pm1->begin(); p != pm1->end(); ++p ) {
+		for ( cGroup_Value::const_iterator q = pm2->begin(); q != pm2->end(); ++q ) {
+			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+			if ( r_value == 0 ) {
+				interactive += 0;
+			}
+			else {
+				interactive +=  1 / ( 1 + ( 1 - prior )/prior / r_value );
+			}
+		}
+	}
+
+	const double interactive_average = interactive / pm1_size / pm2_size;
+	if ( interactive_average > 1 )
+		throw cException_Invalid_Probability("Cohesion value error.");
+
+	if ( interactive_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, interactive_average);
+
+	const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
+								+ cohesion2 * match2_size * ( match2_size - 1 )
+								+ 2.0 * interactive * match1_size / pm1_size * match2_size / pm2_size )
+								/ ( match1_size + match2_size) / (match1_size + match2_size - 1 );
+	//ATTENSION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
+	return std::pair<const cRecord *, double>( key1, probability );
+
+}
 
 
 

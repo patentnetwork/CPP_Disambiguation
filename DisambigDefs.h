@@ -139,7 +139,11 @@ class cSimilarity_Compare {
 private:
 	static const cException_Different_Similarity_Dimensions default_sp_exception;
 public:
-	bool operator()(const vector <unsigned int> & s1, const vector < unsigned int> & s2) const;
+	bool operator()(const vector <unsigned int> & s1, const vector < unsigned int> & s2) const {
+		if ( s1.size() != s2.size() )
+			throw cSimilarity_Compare::default_sp_exception;
+		return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end());
+	};
 	bool operator() ( const vector < unsigned int> *ps1, const vector < unsigned int > *ps2 ) const { return cSimilarity_Compare()(*ps1, *ps2);}
 };
 

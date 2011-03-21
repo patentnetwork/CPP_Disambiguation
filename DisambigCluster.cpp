@@ -864,6 +864,9 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
 
+	//if ( update_prior )
+	//	prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+
 	return to_be_disambiged_group.size();
 
 }

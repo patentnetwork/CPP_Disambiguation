@@ -1050,11 +1050,11 @@ int fullrun_iterative_v2() {
 //******************************************************************************
 
 int fullrun_iterative_v4() {
-	const bool do_not_train_stable = false;
+	const bool do_not_train_stable = true;
 	const bool use_available_ratios = false;
 	const string working_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
 	const unsigned int buff_size = 500;
-	const unsigned int num_threads = 4;
+	const unsigned int num_threads = 1;
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
@@ -1116,7 +1116,7 @@ int fullrun_iterative_v4() {
 
 
 	//const unsigned int max_round_by_name = 3;
-	const unsigned int max_round_by_coauthor = 6;
+	const unsigned int max_round_by_coauthor = 8;
 
 	cCluster_Info match ( uid_dict, true, true, false);
 
@@ -1326,6 +1326,39 @@ int fullrun_iterative_v4() {
 			//patentinfo.prepare(training_stable_vec.at(0).c_str(),
 			//				   training_stable_vec.at(1).c_str() );
 			break;
+
+
+		case 7:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::activate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
+			operator_truncate_firstname.set_truncater(0, 3, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
+			operator_truncate_lastname.set_truncater(0, 3, true);
+			match.reset_blocking(blocker, oldmatchfile);
+			if ( ! use_available_ratios )
+				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			break;
+		case 8:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::deactivate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
+			operator_truncate_firstname.set_truncater(0, 2, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
+			operator_truncate_lastname.set_truncater(0, 3, true);
+			match.reset_blocking(blocker, oldmatchfile);
+			if ( ! use_available_ratios )
+				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			break;
+
 		default:
 			throw cException_Other("Invalid round.");
 		}
