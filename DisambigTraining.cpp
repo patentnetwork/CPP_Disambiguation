@@ -36,7 +36,7 @@ void cBlocking_For_Training::reset(const unsigned int num_cols) {
 	for ( map<string, cGroup_Value >::const_iterator cpm = blocking_data.begin(); cpm != blocking_data.end(); ++ cpm) {
 		unsigned int quota_for_this = 0;
 		if ( cpm->first != nullstring ) {
-			quota_for_this = static_cast<double> (total_quota) / quota_distributor * cpm->second.size() * ( cpm->second.size() -1 ) ;
+			quota_for_this = 1.0 * total_quota / quota_distributor * cpm->second.size() * ( cpm->second.size() -1 ) ;
 			temp_sum += quota_for_this;
 		}
 		else

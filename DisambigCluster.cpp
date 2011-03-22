@@ -760,7 +760,7 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 
 	cRecGroup::iterator first_iter, second_iter;
 
-	const double threshold_list[] = {	0.95 };
+	const double threshold_list[] = {	0.90 };
 
 	for ( unsigned int round = 0; round < sizeof(threshold_list)/sizeof(double); ++ round) {
 

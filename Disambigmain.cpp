@@ -1054,7 +1054,7 @@ int fullrun_iterative_v4() {
 	const bool use_available_ratios = false;
 	const string working_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
 	const unsigned int buff_size = 500;
-	const unsigned int num_threads = 1;
+	const unsigned int num_threads = 2;
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;

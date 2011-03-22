@@ -19,7 +19,8 @@
 #include <string>
 #include <pthread.h>
 #include <typeinfo>
-#define DEBUG
+
+//#define DEBUG
 
 
 
@@ -176,7 +177,7 @@ public:
 		vector<unsigned int> (data_count).swap(data_count);
 		*/
 	}
-	bool operator == ( const cAttribute & rhs) const { return data == rhs.data;}
+	virtual bool operator == ( const cAttribute & rhs) const { return this == &rhs ;}
 	virtual void reset_subclass_data(const void *) {};
 	void reset_data(const char * inputstring) {data.clear(); /*data_count.clear(); */ split_string(inputstring);}
 	virtual void reset_interactive (const vector <const cAttribute *> &inputvec ) { throw cException_No_Interactives(get_class_name().c_str());};
@@ -207,7 +208,6 @@ public:
 	virtual const cAttribute * add_attrib( unsigned int n ) const = 0  ;
 	virtual const set < const string *> * get_attrib_set_pointer () const { return NULL; }
 
-
 };
 
 
@@ -217,6 +217,8 @@ class cAttribute_Intermediary : public cAttribute {
 								const map<string, std::pair<string, unsigned int> >& assigneetree);
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, std::pair<string, unsigned int> >& asgtree);
 private:
+
+
 	static const string class_name;	// an implementation is required for each class in the cpp file.
 	static unsigned int column_index_in_query;
 	static string column_name_in_query;
@@ -231,8 +233,9 @@ private:
 
 	static map < Derived, int > attrib_pool;
 
-	static pthread_mutex_t attrib_pool_structure_lock;
+	static pthread_rwlock_t attrib_pool_structure_lock;
 	static pthread_mutex_t attrib_pool_count_lock;
+
 
 protected:
 
@@ -247,12 +250,16 @@ public:
 		//get_interactive_vector().resize(num_of_interactive_columns);
 	}
 	static const Derived * static_add_attrib( const Derived & d , const unsigned int n ) {
-		pthread_mutex_lock(& attrib_pool_structure_lock);
+		pthread_rwlock_rdlock(& attrib_pool_structure_lock);
 		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
-		if ( p == attrib_pool.end() ) {
+		const bool is_end = ( p == attrib_pool.end() );
+		pthread_rwlock_unlock(& attrib_pool_structure_lock);
+
+		if ( is_end ) {
+			pthread_rwlock_wrlock(& attrib_pool_structure_lock);
 			p = attrib_pool.insert(std::pair<Derived, int>(d, 0) ).first;
+			pthread_rwlock_unlock(& attrib_pool_structure_lock);
 		}
-		pthread_mutex_unlock ( & attrib_pool_structure_lock);
 
 		pthread_mutex_lock(& attrib_pool_count_lock);
 		p->second += n;
@@ -261,37 +268,39 @@ public:
 	}
 
 	static const Derived * static_find_attrib ( const Derived & d) {
-		pthread_mutex_lock(& attrib_pool_structure_lock);
+		pthread_rwlock_rdlock(& attrib_pool_structure_lock);
 		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
 		if ( p == attrib_pool.end() ) {
-			pthread_mutex_unlock ( & attrib_pool_structure_lock);
+			pthread_rwlock_unlock ( & attrib_pool_structure_lock);
 			return NULL;
 		}
-		pthread_mutex_unlock ( & attrib_pool_structure_lock);
+		pthread_rwlock_unlock ( & attrib_pool_structure_lock);
 		return &(p->first);
 	}
 
 	static const Derived * static_reduce_attrib( const Derived & d , const unsigned int n) {
-		pthread_mutex_lock ( & attrib_pool_structure_lock);
+		pthread_rwlock_rdlock ( & attrib_pool_structure_lock);
 		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
-		if ( p == attrib_pool.end() ) {
+		const bool is_end = ( p == attrib_pool.end() );
+		pthread_rwlock_unlock (& attrib_pool_structure_lock);
+		if ( is_end ) {
 			d.print(std::cout);
 			//const string * t = * ( d.get_attrib_set_pointer()->begin() );
 
 			throw cException_Other("Error: attrib not exist!");
 		}
-		pthread_mutex_unlock ( & attrib_pool_structure_lock);
+
 
 		pthread_mutex_lock ( & attrib_pool_count_lock);
 		p->second -= n;
 		pthread_mutex_unlock ( & attrib_pool_count_lock);
 
 		if ( p->second <= 0 ) {
-			pthread_mutex_lock ( & attrib_pool_structure_lock);
+			pthread_rwlock_wrlock ( & attrib_pool_structure_lock);
 			//std::cout << p->second << " : ";
 			//d.print(std::cout);
 			attrib_pool.erase(p);
-			pthread_mutex_unlock ( & attrib_pool_structure_lock);
+			pthread_rwlock_unlock ( & attrib_pool_structure_lock);
 			return NULL;
 		}
 		return &(p->first);
@@ -408,6 +417,7 @@ public:
 	const cAttribute * add_attrib( unsigned int n ) const {
 		return static_add_attrib( dynamic_cast< const Derived &> (*this), n);
 	}
+
 };
 
 
@@ -853,8 +863,10 @@ template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_is_enabl
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_comparator_activated = false;
 template <typename Derived> set < string > cAttribute_Intermediary<Derived>:: data_pool;
 template <typename Derived> map < Derived, int > cAttribute_Intermediary<Derived>:: attrib_pool;
-template <typename Derived> pthread_mutex_t cAttribute_Intermediary<Derived>:: attrib_pool_structure_lock = PTHREAD_MUTEX_INITIALIZER;
+template <typename Derived> pthread_rwlock_t cAttribute_Intermediary<Derived>:: attrib_pool_structure_lock = PTHREAD_RWLOCK_INITIALIZER;
 template <typename Derived> pthread_mutex_t cAttribute_Intermediary<Derived>:: attrib_pool_count_lock = PTHREAD_MUTEX_INITIALIZER;
+
+
 
 //declaration ( not definition ) of specialized template
 template <> const string cAttribute_Intermediary<cFirstname>::attrib_group;
