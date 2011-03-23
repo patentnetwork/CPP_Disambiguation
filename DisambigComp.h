@@ -16,6 +16,10 @@ using std::string;
 using std::map;
 using std::vector;
 
+const unsigned int Jaro_Wrinkler_Max = 5;
+
+
+
 class cSimilarity_Score {
 private:
 	unsigned int score;

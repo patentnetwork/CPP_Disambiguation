@@ -224,7 +224,9 @@ int jwcmp_old(const string & str1, const string& str2){
 
 int jwcmp(const string & str1, const string& str2) {
 	double cmpres = strcmp95_modified(str1.c_str(), str2.c_str());
-	int score = 0;
+	register int score = 0;
+	if ( cmpres > 0.7 )
+		++score;
 	if ( cmpres > 0.8 )
 		++score;
 	if ( cmpres > 0.9 )
@@ -511,7 +513,7 @@ int asgcmp_old(const string & asg1, const string & asg2, const map<string, std::
 	}
 	int score = 0;
 	if ( p1->second.first == p2->second.first && p1->second.first.size() > 3 ) {
-		score = 4;
+		score = Jaro_Wrinkler_Max;
 		if ( p1->second.second < 100 || p2->second.second < 100)
 			score += 1;
 		//else if ( p1->second.second < 1000 || p2->second.second < 1000 )

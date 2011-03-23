@@ -602,7 +602,7 @@ public:
 
 class cFirstname : public cAttribute_Single_Mode <cFirstname> {
 private:
-	static const unsigned int max_value = 4;
+	static const unsigned int max_value = Jaro_Wrinkler_Max;
 public:
 	cFirstname(const char * source = NULL) {}
 	bool split_string(const char*);
@@ -617,7 +617,7 @@ public:
 
 class cLastname : public cAttribute_Single_Mode <cLastname> {
 private:
-	static const unsigned int max_value = 4;
+	static const unsigned int max_value = Jaro_Wrinkler_Max;
 public:
 	cLastname(const char * source = NULL ) {}
 	//unsigned int compare(const cAttribute & rhs) const ;
@@ -799,7 +799,7 @@ public:
 
 class cAssignee : public cAttribute_Single_Mode <cAssignee> {
 private:
-	static const unsigned int max_value = 5;
+	static const unsigned int max_value = Jaro_Wrinkler_Max + 1;
 	static const map<string, std::pair<string, unsigned int>  > * assignee_tree_pointer;
 public:
 	cAssignee(const char * source = NULL ) {}

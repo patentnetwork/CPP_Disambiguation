@@ -1294,7 +1294,24 @@ int fullrun_iterative_v4() {
 			//					 training_changable_vec.at(1).c_str() );
 			break;
 
-		case 5: case 6:
+
+		case 5:
+			cFirstname::activate_comparator();
+			cMiddlename::activate_comparator();
+			cLastname::activate_comparator();
+			cLatitude::deactivate_comparator();
+			cAssignee::activate_comparator();
+			cClass::activate_comparator();
+			cCoauthor::activate_comparator();
+			operator_truncate_firstname.set_truncater(0, 1, true);
+			operator_truncate_middlename.set_truncater(0, 0, false);
+			operator_truncate_lastname.set_truncater(0, 5, true);
+			match.reset_blocking(blocker, oldmatchfile);
+			if ( ! use_available_ratios )
+				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			break;
+
+		case 6:
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
@@ -1303,7 +1320,7 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 3, true);
+			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			match.reset_blocking(blocker, oldmatchfile);
@@ -1316,15 +1333,6 @@ int fullrun_iterative_v4() {
 			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
 				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
 			}
-
-			//blocker_coauthor.build_uid2uinv_tree(match);
-			//for ( list<const cRecord *>::iterator p = all_rec_pointers.begin(); p != all_rec_pointers.end(); ++p )
-			//	(*p)->reset_coauthors(blocker_coauthor, topNcoauthor);
-
-			//match.reset_blocking(blocker_coauthor, oldmatchfile);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//patentinfo.prepare(training_stable_vec.at(0).c_str(),
-			//				   training_stable_vec.at(1).c_str() );
 			break;
 
 
@@ -1336,13 +1344,14 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
-			operator_truncate_firstname.set_truncater(0, 3, true);
+			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
 			match.reset_blocking(blocker, oldmatchfile);
 			if ( ! use_available_ratios )
 				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			break;
+
 		case 8:
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
@@ -1351,13 +1360,22 @@ int fullrun_iterative_v4() {
 			cAssignee::deactivate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
-			operator_truncate_firstname.set_truncater(0, 2, true);
+
+			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
 			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );
+			sprintf( tset05, "%s/tset05_%d.txt", working_dir.c_str(), round - 1 );
+			prev_train_vec.clear();
+			prev_train_vec.push_back(string(xset01));
+			prev_train_vec.push_back(string(tset05));
+
+			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
+				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
+			}
 			break;
+
 
 		default:
 			throw cException_Other("Invalid round.");

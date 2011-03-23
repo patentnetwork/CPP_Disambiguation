@@ -43,11 +43,11 @@ void cRatioComponent::sp_stats (const list<std::pair<string, string> > & trainpa
 	for ( list< std::pair<string, string> >::const_iterator p = trainpairs.begin(); p != trainpairs.end(); ++p ) {
 		pm = dict.find(p->first);
 		if ( pm == dict.end() )
-			throw cException_Attribute_Not_In_Tree(p->first.c_str());
+			throw cException_Attribute_Not_In_Tree( ( string("\"") + p->first + string ("\"") ).c_str() );
 		const cRecord *plhs = pm->second;
 		pm = dict.find(p->second);
 		if ( pm == dict.end() )
-			throw cException_Attribute_Not_In_Tree(p->second.c_str());
+			throw cException_Attribute_Not_In_Tree( ( string("\"") + p->second + string ("\"") ).c_str() );
 		const cRecord *prhs = pm->second;
 		
 		vector < unsigned int > similarity_profile = plhs->record_compare_by_attrib_indice(*prhs, component_indice_in_record);
