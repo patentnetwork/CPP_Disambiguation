@@ -520,6 +520,7 @@ void cCluster_Info::config_prior()  {
 	std::cout << "Prior values map created." << std::endl;
 }
 
+#if 0
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
@@ -573,6 +574,45 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	return prior;
 }
 
+#endif
+
+double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
+	static const double prior_max = 0.999;
+	static const double prior_min = 1e-6;
+	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
+
+	double prior = 1.0;
+	//decompose the block_identifier string so as to get the frequency of each piece
+	size_t pos = 0, prev_pos = 0;
+	unsigned int seq = 0;
+	while ( true ) {
+	    pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
+	    if ( pos == string::npos )
+	        break;
+
+	    string piece = block_identifier.substr( prev_pos, pos - prev_pos );
+	    prev_pos = pos + cBlocking_Operation::delim.size();
+
+	    if ( seq == uninvolved_index ) {
+	    	++seq;
+	    	continue;
+	    }
+	    double factor = 1.0;
+	    if ( max_occurrence.at(seq) != 0 )
+	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
+	    prior *= factor;
+	    ++seq;
+	}
+
+	double final_prior = ( prior - 1.0 ) / prior;
+
+	if ( final_prior < prior_min )
+		final_prior = prior_min;
+	else if ( final_prior > prior_max )
+		final_prior = prior_max;
+
+	return final_prior;
+}
 
 
 

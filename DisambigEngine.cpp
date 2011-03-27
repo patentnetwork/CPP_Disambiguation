@@ -1436,11 +1436,12 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	if ( prescreening ) {
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
-		if ( screen_r <= 1.0 )
+		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
+		if ( screen_p < 0.3 )
 			return std::pair<const cRecord *, double> (NULL, 0);
 	}
 
-	const double minimum_threshold = 0.8;
+	const double minimum_threshold = 0.7;
 	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
 	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
 
@@ -1457,7 +1458,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 				interactive += 0;
 			}
 			else {
-				interactive +=  1 / ( 1 + ( 1 - prior )/prior / r_value );
+				interactive +=  1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
 			}
 		}
 	}
