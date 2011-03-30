@@ -1432,7 +1432,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 									 const double prior,
 									 const cRatios & ratio,  const double mutual_threshold ) {
 	//prescreening.
-	const bool prescreening = true;
+	const bool prescreening = false;
 	if ( prescreening ) {
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
@@ -1440,6 +1440,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		if ( screen_p < 0.3 )
 			return std::pair<const cRecord *, double> (NULL, 0);
 	}
+	const bool partial_match_mode = false;
 
 	const double minimum_threshold = 0.7;
 	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
@@ -1448,7 +1449,11 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	const unsigned int match1_size = match1.size();
 	const unsigned int match2_size = match2.size();
 
+	const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
+
 	double interactive = 0;
+	double required_interactives = 0;
+	unsigned int required_cnt = 0;
 	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
 		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
 			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
@@ -1458,7 +1463,12 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 				interactive += 0;
 			}
 			else {
-				interactive +=  1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
+				const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
+				interactive +=  temp_prob ;
+				if ( partial_match_mode && temp_prob >= threshold ) {
+					required_interactives += temp_prob;
+					++required_cnt;
+				}
 			}
 		}
 	}
@@ -1467,8 +1477,11 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	if ( interactive_average > 1 )
 		throw cException_Invalid_Probability("Cohesion value error.");
 
-	if ( interactive_average < threshold )
+	if ( partial_match_mode && required_cnt < required_candidates )
 		return std::pair<const cRecord *, double> (NULL, interactive_average);
+	if ( ( ! partial_match_mode ) && interactive_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, interactive_average);
+
 
 	const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
 								+ cohesion2 * match2_size * ( match2_size - 1 )

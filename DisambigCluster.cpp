@@ -72,6 +72,8 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 		//this->lastname_stat.clear();
 		this->max_occurrence.clear();
 		this->max_occurrence.resize(num_columns);
+		this->min_occurrence.clear();
+		this->min_occurrence.resize(num_columns);
 		//cohesion_map_by_block.clear();
 		if (infile.good()) {
 			string filedata;
@@ -185,18 +187,25 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				++ ( lastname_dist[p->second]);
 			*/
 			unsigned int stat_cnt = 0;
+			unsigned int min_stat_cnt = 0;
 			for ( unsigned int i = 0; i < num_columns; ++i ) {
 			    stat_cnt = 0;
 			    for ( map<string, unsigned int >::const_iterator p = column_stat.at(i).begin(); p != column_stat.at(i).end(); ++p )
 			        if ( p->second > stat_cnt && ! p->first.empty() )
-				    stat_cnt = p->second;
+			        	stat_cnt = p->second;
 			    for ( map < string, unsigned int > ::iterator p = column_stat.at(i).begin(); p != column_stat.at(i).end(); ++p ) {
 			        if ( p->second == stat_cnt )
-				    std::cout << "Most common " << i << "th column part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
-				if ( p->second > stat_cnt )
-				    p->second = stat_cnt;
+			        	std::cout << "Most common " << i << "th column part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
+			        if ( p->second > stat_cnt )
+			        	p->second = stat_cnt;
 			    }
 			    max_occurrence.at(i) = stat_cnt;
+
+			    min_stat_cnt = stat_cnt ;
+				for ( map<string, unsigned int >::const_iterator p = column_stat.at(i).begin(); p != column_stat.at(i).end(); ++p )
+					if ( p->second < min_stat_cnt && ! p->first.empty() )
+						min_stat_cnt = p->second;
+				min_occurrence.at(i) = min_stat_cnt;
 			}
 			/*
 			stat_cnt = 0;
@@ -520,7 +529,7 @@ void cCluster_Info::config_prior()  {
 	std::cout << "Prior values map created." << std::endl;
 }
 
-#if 0
+//#if 0
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
@@ -574,14 +583,18 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	return prior;
 }
 
-#endif
-
+//#endif
+#if 0
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
+	static const double pi = 3.1415926;
+	const double x_contraction = 20.0;
 	static const double prior_max = 0.999;
 	static const double prior_min = 1e-6;
 	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
 
 	double prior = 1.0;
+	double max  = 1.0;
+	double final_prior = 0;
 	//decompose the block_identifier string so as to get the frequency of each piece
 	size_t pos = 0, prev_pos = 0;
 	unsigned int seq = 0;
@@ -598,13 +611,33 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	    	continue;
 	    }
 	    double factor = 1.0;
-	    if ( max_occurrence.at(seq) != 0 )
+	    double max_factor = 1.0;
+	    if ( max_occurrence.at(seq) != 0 ) {
 	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
-	    prior *= factor;
+	    	max_factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / min_occurrence.at(seq) );
+	    }
+	    prior = factor - 1.0;
+	    max = max_factor - 1.0;
 	    ++seq;
+
+	    const double half_max = max / 2;
+	    double temp_prior = 0.5 + 1.0/pi * atan( x_contraction * ( prior / half_max - 1.0 ) ) ;
+
+	    if ( temp_prior > final_prior )
+	    	final_prior = temp_prior;
 	}
 
-	double final_prior = ( prior - 1.0 ) / prior;
+	//prior -= 1.0;
+	//max -= 1.0;
+	//const double half_max = max / 2;
+
+	//now prior is in [ 0, max ]
+	//find a function in which dy/dx ~0 when x ->0 and x->max.
+	//use arctan here.
+	// y - 0.5 = 1/pi * atan( x_contraction * (x-half_max)/half_max )
+
+	//const double x_contraction = 20.0;
+	//double final_prior = 0.5 + 1.0/pi * atan( x_contraction * ( prior / half_max - 1.0 ) );
 
 	if ( final_prior < prior_min )
 		final_prior = prior_min;
@@ -614,7 +647,7 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	return final_prior;
 }
 
-
+#endif
 
 void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_threads, const char * const debug_block_file) {
 	if ( is_matching_cluster() != true )

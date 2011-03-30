@@ -1,4 +1,3 @@
-
 /* strcmp95.c   Version 2						      */
 
 #include "strcmp95.h"
@@ -197,3 +196,4 @@ if (weight > 0.7) {
 return(weight);
 
 } /* strcmp95 */
+

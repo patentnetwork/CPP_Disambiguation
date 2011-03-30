@@ -76,6 +76,7 @@ private:
 	map < const string *, double > prior_data;
 	map < const string *, bool > debug_activity;
 	vector < unsigned int > max_occurrence;
+	vector < unsigned int > min_occurrence;
 
 	string useless;
 	const bool frequency_adjust_mode;
