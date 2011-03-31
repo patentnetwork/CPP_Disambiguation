@@ -1432,7 +1432,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 									 const double prior,
 									 const cRatios & ratio,  const double mutual_threshold ) {
 	//prescreening.
-	const bool prescreening = false;
+	const bool prescreening = true;
 	if ( prescreening ) {
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
@@ -1440,7 +1440,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		if ( screen_p < 0.3 )
 			return std::pair<const cRecord *, double> (NULL, 0);
 	}
-	const bool partial_match_mode = false;
+	const bool partial_match_mode = true;
 
 	const double minimum_threshold = 0.7;
 	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
@@ -1473,7 +1473,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		}
 	}
 
-	const double interactive_average = interactive / match1.size() / match2.size();
+	const double interactive_average = interactive / match1_size / match2_size;
 	if ( interactive_average > 1 )
 		throw cException_Invalid_Probability("Cohesion value error.");
 
@@ -1483,9 +1483,15 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 		return std::pair<const cRecord *, double> (NULL, interactive_average);
 
 
+	double inter = 0;
+	if ( partial_match_mode )
+		inter = required_interactives / required_cnt * match1_size * match2_size;
+	else
+		inter = interactive;
+
 	const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
 								+ cohesion2 * match2_size * ( match2_size - 1 )
-								+ 2.0 * interactive ) / ( match1_size + match2_size) / (match1_size + match2_size - 1 );
+								+ 2.0 * inter ) / ( match1_size + match2_size) / (match1_size + match2_size - 1 );
 	//ATTENSION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
 	return std::pair<const cRecord *, double>( key1, probability );
 

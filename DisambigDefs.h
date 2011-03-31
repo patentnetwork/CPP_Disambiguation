@@ -1,9 +1,24 @@
 /*
- * DisambigLib.hpp
+ * DisambigDefs.h
  *
  *  Created on: Dec 7, 2010
- *      Author: ysun
+ *      Author: Ye (Edward) Sun.  sunyedinken2002@hotmail.com
+ *
+ *
+ *  This file contains most of the basic definitions.
+ *
+ *  Base classes:
+ *  -- cAbstract_Exception
+ *	-- cSimilarity_Compare
+ *	--
+ *
  */
+
+
+
+
+
+
 
 #ifndef DISAMBIGLIB_HPP_
 #define DISAMBIGLIB_HPP_
@@ -34,6 +49,31 @@ class cRecord;
 typedef list<const cRecord*> cGroup_Value;
 class cAttribute;
 //======================================================================================
+
+/*
+ *  cAbstract_Exception
+ *  	-- cException_Diff_Attribute
+ *  	-- cException_No_Comparision_Function
+ *  	-- cException_ColumnName_Not_Found
+ *  	-- cException_Insufficient_Interactives
+ *  	-- cException_No_Interactives
+ *  	-- cException_Invalid_Function
+ *  	-- cException_Interactive_Misalignment
+ *  	-- cException_File_Not_Found
+ *  	-- cException_Assignee_Not_In_Tree
+ *  	-- cException_Invalid_Attribute_For_Sort
+ *  	-- cException_Invalid_Probability
+ *  	-- cException_Vector_Data
+ *  	-- cException_Attribute_Not_In_Tree
+ *  	-- cException_Duplicate_Attribute_In_Tree
+ *  	-- cException_Unknown_Similarity_Profile
+ *  	-- cException_Attribute_Disabled
+ *  	-- cException_Other
+ *  	-- cException_Blocking_Disabled
+ *
+ *  To create a new exception class, simply inherit the cAbstract_Exception class, and write a constructor.
+ *
+ */
 
 
 class cAbstract_Exception: public std::exception {
@@ -132,6 +172,8 @@ public:
 };
 
 
+//=============================================
+
 class cSimilarity_Compare {
 	class cException_Different_Similarity_Dimensions : public cAbstract_Exception {
 	public:
@@ -152,7 +194,40 @@ public:
 
 //=============
 
-
+/*
+ * cAttribute
+ * 	- template <> cAttribute_Intermediary
+ * 		-- template <> cAttribute_Set_Mode
+ * 			--- cClass
+ * 			--- cCoauthor
+ * 		-- template <> cAttribute_Vector_Mode
+ * 		-- template <> cAttribute_Single_Mode
+ * 			--- cFirstname
+ * 			--- cMiddlename
+ * 			--- cLastname
+ * 			--- cLatitude
+ * 			--- cLongitude
+ * 			--- cCity
+ * 			--- cCountry
+ * 			--- cAssignee
+ * 			--- cAsgNum
+ * 			--- cUnique_Record_ID
+ * 			--- cPatent
+ * 			--- cApplyYear
+ *			--- cStreet
+ *
+ *	Member Functions:
+ *	Protected:
+ *		1. vector < const string * > & get_data_modifiable(): get the data. should only be used within derived classes
+ *		2. virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const: get the attribute pointer into which the two attributes are supposed to merge
+ *	Public:
+ *		3. virtual unsigned int compare(const cAttribute & rhs) const = 0 ; Comparison function between two attributes to get a similarity score. Should be inplemented by child classes.
+ *		4. virtual bool split_string(const char* ); This function reads external data and stores into the "data". Each template has a default implementation, but should be overidden if necessary.
+ *		5. virtual bool operator == ( const cAttribute & rhs) const: exact comparison between two attributes. Has a default implementation but overidable.
+ *		6. void reset_data(const char * inputstring): reset the attribute based on the inputstring. calls the polymorphic "split_string" function.
+ *		7. virtual void reset_interactive (const vector <const cAttribute *> &inputvec ): handles the attribute with other linked ones. Default implementation is throwing an error. Overide if necessary.
+ *		8.
+ */
 
 //====================================================================
 class cAttribute {
@@ -178,7 +253,6 @@ public:
 		*/
 	}
 	virtual bool operator == ( const cAttribute & rhs) const { return this == &rhs ;}
-	virtual void reset_subclass_data(const void *) {};
 	void reset_data(const char * inputstring) {data.clear(); /*data_count.clear(); */ split_string(inputstring);}
 	virtual void reset_interactive (const vector <const cAttribute *> &inputvec ) { throw cException_No_Interactives(get_class_name().c_str());};
 	const vector <const string*> & get_data() const {return data;}
