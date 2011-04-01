@@ -291,37 +291,51 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		}
 
 
-		/*
+
 		//latitude interacts with		{"Longitude", "Street", "Country"}; the sequence is important.
 		vector <const string* >::const_iterator p, q;
 
 		// Comparing country
 		unsigned int country_score = 0;
+		if ( this->get_interactive_vector().at(2) == rhs.get_interactive_vector().at(2))
+			country_score = 1;
+		/*
 		for ( p = this->get_interactive_vector().at(2)->get_data().begin(); p != this->get_interactive_vector().at(2)->get_data().end(); ++p ) {
 			for ( q = rhs.get_interactive_vector().at(2)->get_data().begin(); q != rhs.get_interactive_vector().at(2)->get_data().end(); ++q ) {
 				unsigned int temp_score = countrycmp(**p, **q);
 				country_score = max_val<unsigned int>(temp_score, country_score);
 			}
 		}
+		*/
 		// Comparing street;
-		unsigned int street_score = 0;
+		//unsigned int street_score = 0;
+		/*
 		for ( p = this->get_interactive_vector().at(1)->get_data().begin(); p != this->get_interactive_vector().at(1)->get_data().end(); ++p ) {
 			for ( q = rhs.get_interactive_vector().at(1)->get_data().begin(); q != rhs.get_interactive_vector().at(1)->get_data().end(); ++q ) {
 				unsigned int temp_score = streetcmp(**p, **q);
 				street_score = max_val<unsigned int>(temp_score, street_score);
 			}
 		}
+		*/
 		// Comparing Latitidue and longitude
 		unsigned int latlon_score = 0;
+		/*
 		for ( unsigned int i = 0; i < this->get_data().size(); ++i ) {
 			for ( unsigned int j = 0; j < rhs.get_data().size(); ++j ) {
 				unsigned int temp_score = latloncmp( * this->get_data().at(i), * this->get_interactive_vector().at(0)->get_data().at(i),
 						* rhs.get_data().at(j), * rhs.get_interactive_vector().at(0)->get_data().at(j) );
 				latlon_score = max_val<unsigned int>(temp_score, latlon_score);
 			}
-		}
-		res = country_score + street_score + latlon_score;
-		*/
+		}*/
+		latlon_score = latloncmp ( * this->get_data().at(0), * this->get_interactive_vector().at(0)->get_data().at(0),
+									* rhs.get_data().at(0), * rhs.get_interactive_vector().at(0)->get_data().at(0) );
+
+		if ( country_score == 0 )
+			res = 0;
+		else
+			res = latlon_score;
+
+		/*
 		const string * p1 = this->get_data().front();
 		const string * q1 = this->get_interactive_vector().at(0)->get_data().front();
 		const string * p2 = rhs.get_data().front();
@@ -333,6 +347,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 			res = 2;
 		else
 			res = 1;
+		*/
 
 		if ( res > max_value )
 			res = max_value;

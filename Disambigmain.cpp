@@ -1247,7 +1247,7 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::deactivate_comparator();
+			cLatitude::activate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
@@ -1262,7 +1262,7 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::deactivate_comparator();
+			cLatitude::activate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();

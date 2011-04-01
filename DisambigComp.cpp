@@ -431,7 +431,9 @@ int latloncmp(const string & inputlat1, const string & inputlon1,
 				const string & inputlat2, const string & inputlon2 ){
 
 	static const double R = 3963.0; //radius of the earth is 6378.1km = 3963 miles
-	static const double DEG2RAD = 5729.58;
+	static const double pi = 3.1415926;
+	//rad = degree * pi / 180
+	static const double DEG2RAD = pi / 180 ;
 
     const double lat1 = atof(inputlat1.c_str());
     const double lon1 = atof(inputlon1.c_str());
@@ -442,10 +444,13 @@ int latloncmp(const string & inputlat1, const string & inputlon1,
     int missing = ( ( fabs(lat1) < missing_val && fabs(lon1) < missing_val ) ||
     				( fabs(lat2) < missing_val && fabs(lon2) < missing_val) ) ? 1 : 0;
 
-    const double radlat1 = lat1/DEG2RAD;
-    const double radlon1 = lon1/DEG2RAD;
-    const double radlat2 = lat2/DEG2RAD;
-    const double radlon2 = lon2/DEG2RAD;
+    if ( missing )
+    	return 1;
+
+    const double radlat1 = lat1 * DEG2RAD;
+    const double radlon1 = lon1 * DEG2RAD;
+    const double radlat2 = lat2 * DEG2RAD;
+    const double radlon2 = lon2 * DEG2RAD;
 
     const double cos_lat1 = cos(radlat1);
     const double cos_lat2 = cos(radlat2);
@@ -453,13 +458,15 @@ int latloncmp(const string & inputlat1, const string & inputlon1,
     const double cos_lon2 = cos(radlon2);
     const double sin_lon1 = sin(radlon1);
     const double sin_lon2 = sin(radlon2);
+    const double sin_lat1 = sin(radlat1);
+    const double sin_lat2 = sin(radlat2);
 
 
     // R=radius, theta = colatitude, phi = longitude
     // Spherical coordinate -> Cartesian coordinate:
-    // x=R*sin(theta)*cos(phi) = R*cos(latitude)*cos(longitude)
-    // y = R*sin(theta)*sin(phi) = R*cos(latitude)*sin(longitude)
-    // z = R*cos(phi) = R * cos(longitude)
+    // x=R*sin(phi)*cos(theta) = R*cos(latitude)*cos(longitude)
+    // y = R*sin(phi)*sin(theta) = R*cos(latitude)*sin(longitude)
+    // z = R*cos(phi) = R * sin(latitude)
     // Cartesion distance = sqrt( ( x1-x2)^2 + (y1-y2)^2 + (z1 - z2)^2 );
     // Spherical distance = arccos( 1 - (Cartesian distance)^2 / (2*R^2) ) * R;
 
@@ -467,14 +474,21 @@ int latloncmp(const string & inputlat1, const string & inputlon1,
     const double x2 = cos_lat2 * cos_lon2;
     const double y1 = cos_lat1 * sin_lon1;
     const double y2 = cos_lat2 * sin_lon2;
-    const double z1 = cos_lon1;
-    const double z2 = cos_lon2;
+    const double z1 = sin_lat1;
+    const double z2 = sin_lat2;
 
-    const double cart_dist = sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2) );
-    const double dist = acos(1 - cart_dist*cart_dist / 2 ) * R;
+    const double cart_dist_sq = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2);
+    const double dist = acos(1 - cart_dist_sq / 2) * R;
 
-    return missing +
-               2*(dist < 100) + (dist < 75) + (dist < 50) + (dist < 10);
+
+    if ( dist < 1.0 )
+    	return 4;
+    else if ( dist < 10 )
+    	return 3;
+    else if ( dist < 50 )
+    	return 2;
+    else
+    	return 1;
 
 }
 
