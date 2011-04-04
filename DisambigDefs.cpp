@@ -52,6 +52,10 @@ template <> const string cAttribute_Intermediary<cCountry>::class_name = "Countr
 template <> const string cAttribute_Intermediary<cClass>::class_name = "Class";
 template <> const string cAttribute_Intermediary<cClass>::attrib_group = "Patent";
 
+template <> const string cAttribute_Intermediary<cClass_M2>::class_name = "Class_Measure2";
+template <> const string cAttribute_Intermediary<cClass_M2>::attrib_group = "Patent";
+
+
 template <> const string cAttribute_Intermediary<cCoauthor>::class_name = "Coauthor";
 template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group = "Patent";
 
@@ -534,6 +538,27 @@ bool cAssignee::split_string(const char* inputdata) {
 	return true;
 }
 #endif
+
+
+unsigned int cClass_M2::compare(const cAttribute & right_hand_side) const {
+	const cClass_M2 & rhs = dynamic_cast< const cClass_M2 & > (right_hand_side);
+	const unsigned int common = this->cAttribute_Set_Mode <cClass_M2>::compare( rhs );
+	const unsigned int this_size = this->attrib_set.size();
+	const unsigned int rhs_size = rhs.attrib_set.size();
+
+	const double factor = 1.0 * common * common / this_size / rhs_size;
+	if ( factor > 0.3 )
+		return 4;
+	else if ( factor > 0.2 )
+		return 3;
+	else if ( factor > 0.1 )
+		return 2;
+	else if ( factor > 0.05 )
+		return 1;
+	else
+		return 0;
+}
+
 
 unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )

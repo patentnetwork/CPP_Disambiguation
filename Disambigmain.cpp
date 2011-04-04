@@ -1234,6 +1234,7 @@ int fullrun_iterative_v4() {
 			cAssignee::deactivate_comparator();
 			cClass::deactivate_comparator();
 			cCoauthor::deactivate_comparator();
+
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 0, true);
@@ -1251,6 +1252,7 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
@@ -1266,6 +1268,7 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
 			operator_truncate_firstname.set_truncater(0, 5, true);
 			operator_truncate_middlename.set_truncater(0, 1, true);
 			operator_truncate_lastname.set_truncater(0, 8, true);
@@ -1283,6 +1286,7 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
 			operator_truncate_firstname.set_truncater(0, 3, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
@@ -1303,6 +1307,8 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
+
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
@@ -1319,6 +1325,7 @@ int fullrun_iterative_v4() {
 			cAssignee::deactivate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
 
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
@@ -1344,6 +1351,7 @@ int fullrun_iterative_v4() {
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
+
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);

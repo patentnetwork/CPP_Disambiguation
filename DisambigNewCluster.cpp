@@ -31,7 +31,8 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	if ( mergee.m_mergeable == false )
 		throw cException_Empty_Cluster("Merging error: mergEE is empty.");
 
-	const unsigned int rec_size = cRecord::record_size();
+	static const unsigned int rec_size = cRecord::record_size();
+
 	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
 		list < const cAttribute ** > l1;
 		for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
@@ -47,6 +48,44 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 
 	this->m_info = info;
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
+	mergee.m_fellows.clear();
+
+	// The folowing step actually changes the raw data. Changes the abbreviated middlename to a longer one if possible.
+	static const unsigned int midname_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
+	static const unsigned int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
+	map < const cAttribute *, const cAttribute *> last2mid;
+	map < const cAttribute *, const cAttribute * >::iterator q;
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		const cAttribute * pl = (*p)->get_attrib_pointer_by_index(lastname_index);
+		const cAttribute * pm = (*p)->get_attrib_pointer_by_index(midname_index);
+		q = last2mid.find(pl);
+		if ( q == last2mid.end() )  {
+			if ( pm->is_informative() ) {
+				last2mid.insert( std::pair< const cAttribute *, const cAttribute *> (pl, pm) );
+			}
+		}
+		else {
+			const unsigned int old_size = q->second->get_data().at(0)->size();
+			const unsigned int new_size = pm->get_data().at(0)->size();
+			if ( new_size > old_size )
+				q->second = pm;
+		}
+	}
+
+	map < const cAttribute *, const cAttribute * >::const_iterator cq;
+	for ( cGroup_Value::iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		const cAttribute * pl = (*p)->get_attrib_pointer_by_index(lastname_index);
+		const cAttribute * const & pm = (*p)->get_attrib_pointer_by_index(midname_index);
+		cq = last2mid.find(pl);
+		if ( pm->is_informative() && pm != cq->second ) {
+			const cAttribute* & rpm = const_cast < const cAttribute* & > (pm);
+			rpm = cq->second;
+		}
+	}
+	// end of modification
+
+
+
 	this->find_representative();
 	//this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
 	//mergee.reset_cCoauthor_pointer(this->coauthor_list);

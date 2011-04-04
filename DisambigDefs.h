@@ -46,6 +46,8 @@ using std::map;
 using std::set;
 
 class cRecord;
+void cRecord_update_active_similarity_names();
+
 typedef list<const cRecord*> cGroup_Value;
 class cAttribute;
 //======================================================================================
@@ -285,6 +287,7 @@ public:
 };
 
 
+
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute {
 	friend bool fetch_records_from_sqlite3(list <cRecord> & source, const char * sql_file, const char * statement,
@@ -414,8 +417,8 @@ public:
 	static void enable() { bool_is_enabled = true;}
 	static bool static_is_comparator_activated() {return bool_comparator_activated;}
 	bool is_comparator_activated() const { return bool_comparator_activated;}
-	static void activate_comparator() {bool_comparator_activated = true; std::cout << static_get_class_name() << " comparison is active now." << std::endl;}
-	static void deactivate_comparator() {bool_comparator_activated = false;std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;}
+	static void activate_comparator() { bool_comparator_activated = true; std::cout << static_get_class_name() << " comparison is active now." << std::endl; cRecord_update_active_similarity_names() ; }
+	static void deactivate_comparator() {bool_comparator_activated = false;std::cout << static_get_class_name() << " comparison is deactivated." << std::endl; cRecord_update_active_similarity_names() ;}
 	void print( std::ostream & os ) const {
 		//static const char lineend = '\n';
 		vector < const string * >::const_iterator p = this->get_data().begin();
@@ -803,6 +806,19 @@ public:
 		return max_value;
 	}
 	//unsigned int compare(const cAttribute & rhs) const;
+};
+
+
+class cClass_M2 : public cAttribute_Set_Mode < cClass_M2 > {
+private:
+	static const unsigned int max_value = 4;
+public:
+	unsigned int get_attrib_max_value() const {
+		if ( ! is_comparator_activated() )
+			cAttribute::get_attrib_max_value();
+		return max_value;
+	}
+	unsigned int compare(const cAttribute & right_hand_side) const;
 };
 
 

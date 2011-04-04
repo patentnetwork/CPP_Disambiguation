@@ -37,8 +37,12 @@ class cRecord {
 private:
 	vector <const cAttribute *> vector_pdata;
 	static vector <string> column_names;
+	static vector < string > active_similarity_names;
+	static const cRecord * sample_record_pointer;
 public:
 	cRecord(const vector <const cAttribute *>& input_vec): vector_pdata(input_vec) {};
+	cRecord() {}
+	void assigne (const vector <const cAttribute *>& input_vec )  { vector_pdata = input_vec; }
 	vector <unsigned int> record_compare(const cRecord & rhs) const;
 	vector <unsigned int> record_compare_by_attrib_indice (const cRecord &rhs, const vector < unsigned int > & attrib_indice_to_compare) const;
 	static unsigned int get_index_by_name(const string & inputstr);
@@ -54,6 +58,9 @@ public:
 	void set_attrib_pointer_by_index( const cAttribute * pa, const unsigned int i ) { vector_pdata.at(i) = pa;}
 	void clean_member_attrib_pool() const;
 	static unsigned int record_size() { return column_names.size();}
+	static void update_active_similarity_names();
+	static const vector < string > & get_similarity_names() { return active_similarity_names;}
+	static unsigned int get_similarity_index_by_name(const string & inputstr);
 };
 
 //================================================

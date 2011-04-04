@@ -24,6 +24,8 @@
 using std::map;
 using std::set;
 vector <string> cRecord::column_names;
+vector <string> cRecord::active_similarity_names;
+const cRecord * cRecord::sample_record_pointer = NULL;
 
 unsigned int cWorker_For_Disambiguation::count = 0;
 pthread_mutex_t cWorker_For_Disambiguation::iter_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -68,6 +70,17 @@ unsigned int cRecord::informative_attributes() const {
 	return cnt;
 }
 
+void cRecord::update_active_similarity_names() {
+	cRecord::active_similarity_names.clear();
+	const cRecord * pr = cRecord::sample_record_pointer;
+	for ( vector < const cAttribute *>::const_iterator p = pr->vector_pdata.begin(); p != pr->vector_pdata.end(); ++p ) {
+		//std::cout << (*p)->get_class_name() << " , ";
+		if ( (*p)->is_comparator_activated() )
+			cRecord::active_similarity_names.push_back((*p)->get_class_name());
+	}
+}
+
+void cRecord_update_active_similarity_names()  { cRecord::update_active_similarity_names();}
 
 
 void cRecord::print( std::ostream & os ) const {
@@ -144,6 +157,14 @@ unsigned int cRecord::get_index_by_name(const string & inputstr) {
 			return i;
 	throw cException_ColumnName_Not_Found(inputstr.c_str());
 }
+
+unsigned int cRecord::get_similarity_index_by_name(const string & inputstr) {
+	for ( unsigned int i = 0 ; i < active_similarity_names.size(); ++i )
+		if ( active_similarity_names.at(i) == inputstr )
+			return i;
+	throw cException_ColumnName_Not_Found(inputstr.c_str());
+}
+
 
 inline string cString_Truncate::manipulate( const string & inputstring ) const {
 	if ( ! is_usable )
@@ -1431,13 +1452,17 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior,
 									 const cRatios & ratio,  const double mutual_threshold ) {
+	static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
+	static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
+	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
+
 	//prescreening.
 	const bool prescreening = true;
 	if ( prescreening ) {
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
 		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
-		if ( screen_p < 0.3 )
+		if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
 			return std::pair<const cRecord *, double> (NULL, 0);
 	}
 	const bool partial_match_mode = true;
@@ -1457,6 +1482,10 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
 		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
 			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
+				return std::pair<const cRecord *, double> (NULL, 0);
+
+
 			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
 
 			if ( r_value == 0 ) {
@@ -1963,84 +1992,89 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	for ( unsigned int i = 0; i < num_cols; ++i ) {
 		if ( cRecord::column_names[i] == cFirstname::class_name ) {
 			cFirstname::enable();
-			pointer_array[i] = new cFirstname();
+			pointer_array[i] = new cFirstname;
 			cFirstname::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cLastname::class_name ) {
 			cLastname::enable();
-			pointer_array[i] = new cLastname();
+			pointer_array[i] = new cLastname;
 			cLastname::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cMiddlename::class_name ) {
 			cMiddlename::enable();
-			pointer_array[i] = new cMiddlename();
+			pointer_array[i] = new cMiddlename;
 			cMiddlename::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cLatitude::class_name ) {
 			cLatitude::enable();
-			pointer_array[i] = new cLatitude();
+			pointer_array[i] = new cLatitude;
 			cLatitude::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cLongitude::class_name ) {
 			cLongitude::enable();
-			pointer_array[i] = new cLongitude();
+			pointer_array[i] = new cLongitude;
 			cLongitude::column_index_in_query = i;
 			cLatitude::interactive_column_indice_in_query.push_back(i);
 		}
 		else if ( cRecord::column_names[i] == cStreet::class_name ) {
 			cStreet::enable();
-			pointer_array[i] = new cStreet();
+			pointer_array[i] = new cStreet;
 			cStreet::column_index_in_query = i;
 			cLatitude::interactive_column_indice_in_query.push_back(i);
 		}
 		else if ( cRecord::column_names[i] == cCountry::class_name ) {
 			cCountry::enable();
-			pointer_array[i] = new cCountry();
+			pointer_array[i] = new cCountry;
 			cCountry::column_index_in_query = i;
 			cLatitude::interactive_column_indice_in_query.push_back(i);
 		}
 		else if ( cRecord::column_names[i] == cClass::class_name ) {
 			cClass::enable();
-			pointer_array[i] = new cClass();
+			pointer_array[i] = new cClass;
 			cClass::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cCoauthor::class_name ) {
 			cCoauthor::enable();
-			pointer_array[i] = new cCoauthor();
+			pointer_array[i] = new cCoauthor;
 			cCoauthor::column_index_in_query = i;
 			cCluster::set_coauthor_index(i);
 		}
 		else if ( cRecord::column_names[i] == cAssignee::class_name ) {
 			cAssignee::enable();
-			pointer_array[i] = new cAssignee();
+			pointer_array[i] = new cAssignee;
 			cAssignee::column_index_in_query = i;
 			cAssignee::set_assignee_tree_pointer (asgtree);
 		}
 		else if ( cRecord::column_names[i] == cAsgNum::class_name ) {
 			cAsgNum::enable();
-			pointer_array[i] = new cAsgNum();
+			pointer_array[i] = new cAsgNum;
 			cAsgNum::column_index_in_query = i;
 			cAssignee::interactive_column_indice_in_query.push_back(i);
 		}
 		else if ( cRecord::column_names[i] == cUnique_Record_ID::class_name ) {
 			cUnique_Record_ID::enable();
-			pointer_array[i] = new cUnique_Record_ID();
+			pointer_array[i] = new cUnique_Record_ID;
 			cUnique_Record_ID::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cApplyYear::class_name ) {
 			cApplyYear::enable();
-			pointer_array[i] = new cApplyYear();
+			pointer_array[i] = new cApplyYear;
 			cApplyYear::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cCity::class_name ) {
 			cCity::enable();
-			pointer_array[i] = new cCity();
+			pointer_array[i] = new cCity;
 			cCity::column_index_in_query = i;
 		}
 		else if ( cRecord::column_names[i] == cPatent::class_name ) {
 			cPatent::enable();
-			pointer_array[i] = new cPatent();
+			pointer_array[i] = new cPatent;
 			cPatent::column_index_in_query = i;
+		}
+		else if ( cRecord::column_names[i] == cClass_M2::class_name ) {
+			cClass_M2::enable();
+			pointer_array[i] = new cClass_M2;
+			cClass_M2::column_index_in_query = i;
 		}
 		else {
 			for ( unsigned int j = 0; j < i; ++j )
@@ -2114,7 +2148,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		}
 
 		cRecord temprec(temp_vec_attrib);
-		source.push_back(temprec);
+		source.push_back( temprec );
 		//temprec.print();
 		++size;
 		if ( size % base == 0 )
@@ -2122,6 +2156,8 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	}
 	std::cout << std::endl;
 	std::cout << size << " records have been fetched from "<< txt_file << std::endl;
+	cRecord::sample_record_pointer = & source.front();
+	source.front().update_active_similarity_names();
 
 	//Reconfigure
 	std::cout << "Reconfiguring ..." << std::endl;
