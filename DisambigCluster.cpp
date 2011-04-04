@@ -652,6 +652,9 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_threads, const char * const debug_block_file) {
 	if ( is_matching_cluster() != true )
 		throw cException_Cluster_Error("Wrong type of clusters for disambiguation.");
+	if ( this->thresholds.empty() )
+		throw cException_Cluster_Error("Thresholds have not been set up yet.");
+
 	unsigned int size_to_disambig = this->reset_debug_activity(debug_block_file);
 
 	std::cout << "Starting disambiguation ... ..." << std::endl;
@@ -800,20 +803,32 @@ bool disambiguate_wrapper(const map<string, cCluster_Info::cRecGroup>::iterator 
 	//else
 	unsigned int temp1 = 0, temp2 = 0;
 	const unsigned int max_round = 40;
-	for ( unsigned int i = 0; i < max_round; ++i ){
-		temp1 = temp2;
-		temp2 = cluster.disambiguate_by_block(p->second, cluster.get_prior_map().find(pst)->second, ratio, pst);
-		if ( temp2 == temp1 )
-			return true;
+	for ( vector < double >::const_iterator c = cluster.thresholds.begin(); c != cluster.thresholds.end(); ++c ) {
+		unsigned int i = 0;
+		for ( i = 0; i < max_round; ++i ){
+			temp1 = temp2;
+			temp2 = cluster.disambiguate_by_block(p->second, cluster.get_prior_map().find(pst)->second, ratio, pst, *c);
+			if ( temp2 == temp1 )
+				break;
+		}
+		if ( max_round == i ) {
+			std::cout << "============= POSSIBLE FAILURE IN BLOCK ==============" << std::endl;
+			std::cout << p->first << " has exceeded max rounds within block disambiguation !!" << std::endl;
+			std::cout << "============= END OF WARNING =============" << std::endl;
+			return false;
+		}
 	}
-	std::cout << "============= POSSIBLE FAILURE IN BLOCK ==============" << std::endl;
-	std::cout << p->first << " has exceeded max rounds within block disambiguation !!" << std::endl;
-	std::cout << "============= END OF WARNING =============" << std::endl;
-	return false;
+	return true;
+
+}
+
+const vector < double > & cCluster_Info::set_thresholds ( const vector < double > & input ) {
+	this->thresholds =  input;
+	return this->thresholds;
 }
 
 unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
-							const cRatios & ratio, const string * const bid ) {
+							const cRatios & ratio, const string * const bid, const double threshold ) {
 	//const bool debug_mode = true;
 	//const bool update_prior = false;
 	//divide and conquer
@@ -826,16 +841,16 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	cRecGroup secondpart ( split_cursor, to_be_disambiged_group.end());
 	to_be_disambiged_group.erase( split_cursor, to_be_disambiged_group.end() );
 
-	disambiguate_by_block( to_be_disambiged_group, prior_value, ratio, bid );
-	disambiguate_by_block( secondpart, prior_value, ratio, bid );
+	disambiguate_by_block( to_be_disambiged_group, prior_value, ratio, bid, threshold );
+	disambiguate_by_block( secondpart, prior_value, ratio, bid , threshold);
 
 	// now compare the two disambiguated parts;
 
 	cRecGroup::iterator first_iter, second_iter;
 
-	const double threshold_list[] = {	0.90 };
+	//const double threshold_list[] = {	0.90 };
 
-	for ( unsigned int round = 0; round < sizeof(threshold_list)/sizeof(double); ++ round) {
+	//for ( unsigned int round = 0; round < sizeof(threshold_list)/sizeof(double); ++ round) {
 
 		for ( first_iter = to_be_disambiged_group.begin(); first_iter != to_be_disambiged_group.end(); ) {
 			bool should_increment_first = true;
@@ -854,7 +869,7 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 				//std::pair<const cRecord *, double> result =  disambiguate_by_set(first_iter->first, first_iter->second,
 				//		first_cohesion, second_iter->first, second_iter->second, second_cohesion, prior_value, ratio, 0 );
 
-				cCluster_Head result = first_iter->disambiguate(*second_iter, prior_value, threshold_list[round]);
+				cCluster_Head result = first_iter->disambiguate(*second_iter, prior_value, threshold);
 				if ( debug_mode && result.m_delegate != NULL) {
 					std::cout << "**************************" << std::endl;
 					first_iter->get_cluster_head().m_delegate->print(std::cout);
@@ -932,7 +947,7 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 			if ( should_increment_first)
 				++ first_iter;
 		}
-	}
+	//}
 		// now merge the two.
 
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());

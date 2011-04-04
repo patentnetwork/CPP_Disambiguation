@@ -81,6 +81,7 @@ private:
 	string useless;
 	const bool frequency_adjust_mode;
 	const bool debug_mode;
+	vector < double > thresholds;
 
 
 	class cException_Cluster_Error: public cAbstract_Exception {
@@ -91,7 +92,7 @@ private:
 	void config_prior();
 
 	unsigned int disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
-											const cRatios & ratiosmap, const string * const bid ) ;
+											const cRatios & ratiosmap, const string * const bid, const double threshold ) ;
 	void retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file);
 public:
 
@@ -237,6 +238,7 @@ public:
 	unsigned int current_size() const;
 	const bool is_matching_cluster() const {return is_matching;};
 	bool is_consistent() const;
+	const vector < double > & set_thresholds ( const vector < double > & input );
 };
 
 

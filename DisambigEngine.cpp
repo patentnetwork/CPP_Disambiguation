@@ -82,7 +82,6 @@ void cRecord::update_active_similarity_names() {
 
 void cRecord_update_active_similarity_names()  { cRecord::update_active_similarity_names();}
 
-
 void cRecord::print( std::ostream & os ) const {
 	const char lend = '\n';
 	for ( vector <const cAttribute *>::const_iterator p = this->vector_pdata.begin(); p != this->vector_pdata.end(); ++p )

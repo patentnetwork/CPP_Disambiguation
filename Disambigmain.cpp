@@ -1053,6 +1053,7 @@ int fullrun_iterative_v4() {
 	const bool do_not_train_stable = true;
 	const bool use_available_ratios = false;
 	const string working_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
+	const double thresholds[] = { 0.99, 0.95, 0.90 };
 	const unsigned int buff_size = 500;
 	const unsigned int num_threads = 4;
 	std::cout << std::endl;
@@ -1118,7 +1119,9 @@ int fullrun_iterative_v4() {
 	//const unsigned int max_round_by_name = 3;
 	const unsigned int max_round_by_coauthor = 8;
 
+	const vector < double > threshold_vec( thresholds, thresholds + sizeof(thresholds)/sizeof(double) ) ;
 	cCluster_Info match ( uid_dict, true, true, false);
+	match.set_thresholds( threshold_vec);
 
 	cString_Remove_Space operator_no_space;
 	cString_NoSpace_Truncate operator_truncate_firstname;
