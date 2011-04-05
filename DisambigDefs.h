@@ -36,7 +36,7 @@
 #include <typeinfo>
 
 //#define DEBUG
-
+#define INERT_ATTRIB_GROUP_IDENTIFIER "NONE"
 
 
 using std::string;
@@ -237,6 +237,8 @@ private:
 	vector <const string *> data;
 	//vector <unsigned int> data_count;
 	friend void attrib_merge ( list < const cAttribute **> & l1, list < const cAttribute **> & l2 );
+
+
 protected:
 	static const vector <const cAttribute *> empty_interactive;
 	vector < const string * > & get_data_modifiable() {return data;}
@@ -417,8 +419,20 @@ public:
 	static void enable() { bool_is_enabled = true;}
 	static bool static_is_comparator_activated() {return bool_comparator_activated;}
 	bool is_comparator_activated() const { return bool_comparator_activated;}
-	static void activate_comparator() { bool_comparator_activated = true; std::cout << static_get_class_name() << " comparison is active now." << std::endl; cRecord_update_active_similarity_names() ; }
-	static void deactivate_comparator() {bool_comparator_activated = false;std::cout << static_get_class_name() << " comparison is deactivated." << std::endl; cRecord_update_active_similarity_names() ;}
+	static void activate_comparator() {
+		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
+			throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. ") + attrib_group ).c_str());
+		bool_comparator_activated = true;
+		std::cout << static_get_class_name() << " comparison is active now." << std::endl;
+		cRecord_update_active_similarity_names() ;
+	}
+	static void deactivate_comparator() {
+		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
+			throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. ") + attrib_group ).c_str());
+		bool_comparator_activated = false;
+		std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;
+		cRecord_update_active_similarity_names() ;
+	}
 	void print( std::ostream & os ) const {
 		//static const char lineend = '\n';
 		vector < const string * >::const_iterator p = this->get_data().begin();
@@ -677,304 +691,5 @@ public:
 };
 */
 
-class cFirstname : public cAttribute_Single_Mode <cFirstname> {
-private:
-	static const unsigned int max_value = Jaro_Wrinkler_Max;
-public:
-	cFirstname(const char * source = NULL) {}
-	bool split_string(const char*);
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-
-class cLastname : public cAttribute_Single_Mode <cLastname> {
-private:
-	static const unsigned int max_value = Jaro_Wrinkler_Max;
-public:
-	cLastname(const char * source = NULL ) {}
-	//unsigned int compare(const cAttribute & rhs) const ;
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-class cMiddlename : public cAttribute_Single_Mode <cMiddlename> {
-private:
-	static const unsigned int max_value = 3;
-public:
-	cMiddlename(const char * source = NULL ) {}
-	unsigned int compare(const cAttribute & rhs) const;
-	bool split_string(const char*);
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-class cLatitude : public cAttribute_Single_Mode <cLatitude> {
-private:
-	static const unsigned int max_value = 4;
-	vector <const cAttribute *> vec_pinteractive;
-public:
-	cLatitude(const char * source = NULL ) {}
-	unsigned int compare(const cAttribute & rhs) const;
-	const vector <const cAttribute *> & get_interactive_vector() const {return vec_pinteractive;};
-	void reset_interactive (const vector <const cAttribute *> &inputvec ) { vec_pinteractive = inputvec;};
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-class cLongitude: public cAttribute_Single_Mode <cLongitude> {
-private:
-public:
-	cLongitude(const char * source = NULL ) {}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
-};
-
-class cStreet: public cAttribute_Single_Mode <cStreet> {
-private:
-public:
-	cStreet(const char * source = NULL) {}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE Street IS NOT BEING COMPARED either. IT IS WITH THE LATITUDE COMPARISION.
-
-};
-
-class cCountry: public cAttribute_Single_Mode <cCountry> {
-private:
-public:
-	cCountry(const char * source = NULL ) {}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE country IS NOT BEING COMPARED either. IT IS WITH THE LATITUDE COMPARISION.
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-#if 0
-class cClass : public cAttribute_Intermediary<cClass> {
-private:
-	static unsigned int const max_value = 4;
-	//static const set < const string * > empty_set_classes;
-	set < const string * > set_class;
-	const cClass * attrib_merge ( const cAttribute & rhs) const;
-public:
-	cClass(const char * source = NULL )
-		: cAttribute_Intermediary<cClass>(source){}
-	unsigned int compare(const cAttribute & rhs) const;
-	bool split_string(const char*);
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	bool operator < ( const cAttribute & rhs ) const { return this->set_class < dynamic_cast< const cClass & >(rhs).set_class;}
-	void print( std::ostream & os ) const {
-		set < const string * >::const_iterator p = set_class.begin();
-		os << this->get_class_name() << ": ";
-		if ( p == set_class.end() ) {
-			os << "Empty attribute." << std::endl;
-			return;
-		}
-		os << "No raw data. " << ", Derivatives = ";
-		for ( ; p != set_class.end(); ++p )
-			os << **p << " | ";
-		os << std::endl;
-	}
-};
-#endif
-
-class cClass: public cAttribute_Set_Mode < cClass > {
-private:
-	static unsigned int const max_value = 4;
-public:
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	//unsigned int compare(const cAttribute & rhs) const;
-};
-
-
-class cClass_M2 : public cAttribute_Set_Mode < cClass_M2 > {
-private:
-	static const unsigned int max_value = 4;
-public:
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	unsigned int compare(const cAttribute & right_hand_side) const;
-};
-
-
-#if 0
-class cCoauthor : public cAttribute_Intermediary<cCoauthor> {
-private:
-	static list < cCoauthor > attrib_pool;
-	static const set < const string * > empty_set_coauthors;
-	const set < const string * > * pset;
-public:
-	static const unsigned int max_value = 6;
-	cCoauthor(const char * source = NULL )
-		: cAttribute_Intermediary<cCoauthor>(source), pset(&empty_set_coauthors){}
-	unsigned int compare(const cAttribute & rhs) const;
-	bool split_string(const char*);
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	cAttribute* clone() const {
-		attrib_pool.push_back(*this);
-		return & attrib_pool.back();
-	}
-
-	void reset_pointer(const set < const string *> & s) {	pset = &s ;}
-	const set < const string *> * get_set_pointer() const {return pset;}
-	bool operator == ( const cCoauthor & rhs) const { return *pset == * rhs.pset;}
-	void print( std::ostream & os ) const {
-		set < const string * >::const_iterator p = pset->begin();
-		os << this->get_class_name() << ": ";
-		if ( p == pset->end() ) {
-			os << "Empty attribute." << std::endl;
-			return;
-		}
-		os << "No raw data. " << ", Derivatives = ";
-		for ( ; p != pset->end(); ++p )
-			os << **p << " | ";
-		os << std::endl;
-	}
-	bool operator < ( const cAttribute & rhs ) const {
-		throw cException_Other(" operator less than of class cCoauthor should be invalid.");
-		const cCoauthor & r = dynamic_cast< const cCoauthor & > (rhs);
-		return this->pset < r.pset;
-	}
-	bool is_informative () const  {
-		if ( pset->empty())
-			return false;
-		return true;
-	}
-};
-
-#endif
-
-
-class cCoauthor : public cAttribute_Set_Mode < cCoauthor >  {
-	friend class cReconfigurator_Coauthor;
-private:
-	static unsigned int const max_value = 6;
-public:
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	//unsigned int compare(const cAttribute & rhs) const;
-};
-
-class cAssignee : public cAttribute_Single_Mode <cAssignee> {
-private:
-	static const unsigned int max_value = Jaro_Wrinkler_Max + 1;
-	static const map<string, std::pair<string, unsigned int>  > * assignee_tree_pointer;
-public:
-	cAssignee(const char * source = NULL ) {}
-	//bool split_string(const char*);
-	unsigned int compare(const cAttribute & rhs) const;
-	static void set_assignee_tree_pointer(const map<string, std::pair<string, unsigned int>  >& asgtree) {assignee_tree_pointer = & asgtree;}
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-class cAsgNum : public cAttribute_Single_Mode<cAsgNum> {
-private:
-public:
-	cAsgNum(const char * source = NULL ){}
-};
-
-class cUnique_Record_ID : public cAttribute_Single_Mode <cUnique_Record_ID> {
-private:
-public:
-	cUnique_Record_ID(const char * source = NULL ){}
-};
-
-class cApplyYear: public cAttribute_Single_Mode<cApplyYear> {
-private:
-public:
-	cApplyYear(const char * source = NULL ){}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
-};
-
-class cCity: public cAttribute_Single_Mode <cCity> {
-private:
-public:
-	cCity(const char * source = NULL ) {}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
-	bool split_string(const char*);
-	//int exact_compare( const cAttribute & rhs ) const { return this->get_data().at(0) == rhs.get_data().at(0); }
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-
-class cPatent: public cAttribute_Single_Mode <cPatent> {
-private:
-public:
-	cPatent( const char * source = NULL){};
-};
-
-//=======
-
-// template static variables.
-// Declaration and default definition.
-// Specialization should be implemented in the cpp file.
-template <typename Derived> unsigned int cAttribute_Intermediary<Derived>::column_index_in_query;
-//template <typename Derived> string cAttribute_Intermediary<Derived>::column_name_in_query;
-template <typename Derived> vector <unsigned int> cAttribute_Intermediary<Derived>::interactive_column_indice_in_query;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_interactive_consistency_checked = false;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_is_enabled = false;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_comparator_activated = false;
-template <typename Derived> set < string > cAttribute_Intermediary<Derived>:: data_pool;
-template <typename Derived> map < Derived, int > cAttribute_Intermediary<Derived>:: attrib_pool;
-template <typename Derived> pthread_rwlock_t cAttribute_Intermediary<Derived>:: attrib_pool_structure_lock = PTHREAD_RWLOCK_INITIALIZER;
-template <typename Derived> pthread_mutex_t cAttribute_Intermediary<Derived>:: attrib_pool_count_lock = PTHREAD_MUTEX_INITIALIZER;
-
-
-
-//declaration ( not definition ) of specialized template
-template <> const string cAttribute_Intermediary<cFirstname>::attrib_group;
-template <> const string cAttribute_Intermediary<cLastname>::attrib_group;
-template <> const string cAttribute_Intermediary<cMiddlename>::attrib_group;
-template <> const string cAttribute_Intermediary<cLatitude>::attrib_group;
-template <> const string cAttribute_Intermediary<cAssignee>::attrib_group;
-template <> const string cAttribute_Intermediary<cClass>::attrib_group;
-template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group;
-template <typename Derived> const string cAttribute_Intermediary<Derived>::attrib_group = "None";
-
-template <> const string cAttribute_Intermediary<cLatitude>::interactive_column_names[];
-template <> const string cAttribute_Intermediary<cAssignee>::interactive_column_names[];
-template <typename Derived> const string cAttribute_Intermediary<Derived>::interactive_column_names[] = {};
-
-
-template <> const unsigned int cAttribute_Intermediary<cLatitude>::num_of_interactive_columns;
-template <> const unsigned int cAttribute_Intermediary<cAssignee>::num_of_interactive_columns;
-template <typename Derived> const unsigned int cAttribute_Intermediary<Derived>::num_of_interactive_columns = 0;
 
 #endif /* DISAMBIGLIB_HPP_ */

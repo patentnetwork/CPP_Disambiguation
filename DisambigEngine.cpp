@@ -1454,10 +1454,22 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
 	static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
 	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
+	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+
+	static const bool country_check = true;
+
 
 	//prescreening.
 	const bool prescreening = true;
 	if ( prescreening ) {
+		if ( country_check ) {
+			const cAttribute * p1 = key1->get_attrib_pointer_by_index(country_index);
+			const cAttribute * p2 = key2->get_attrib_pointer_by_index(country_index);
+			if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+				return std::pair<const cRecord *, double> (NULL, 0);
+		}
+
+
 		vector < unsigned int > screen_sp = key1->record_compare(*key2);
 		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
 		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
@@ -1480,6 +1492,16 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	unsigned int required_cnt = 0;
 	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
 		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
+
+			if ( country_check ) {
+				const cAttribute * p1 = (*p)->get_attrib_pointer_by_index(country_index);
+				const cAttribute * p2 = (*q)->get_attrib_pointer_by_index(country_index);
+				if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+					return std::pair<const cRecord *, double> (NULL, 0);
+			}
+
+
+
 			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
 			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
 				return std::pair<const cRecord *, double> (NULL, 0);
