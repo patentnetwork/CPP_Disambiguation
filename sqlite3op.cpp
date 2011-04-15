@@ -60,7 +60,7 @@ const unsigned char * cSql3query::get_string_data(const char *input_colname){
 int cSql3query::get_int_data(int input_index) {
 	if (SQLITE_INTEGER != sqlite3_column_type(pstmt, input_index) ) {
 		std::cout << "Get_int_data error: invalid index or wrong data type!" <<std::endl;
-		return NULL;
+		return 0;
 	}
 	else
 		return sqlite3_column_int(pstmt, input_index);
