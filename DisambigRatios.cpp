@@ -9,7 +9,7 @@
 
 #include "DisambigRatios.h"
 #include "DisambigEngine.h"
-//#include "DisambigNNLS.h"
+#include <cstring>
 
 
 const char * cRatios::primary_delim = "#";

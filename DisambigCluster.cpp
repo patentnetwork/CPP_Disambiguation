@@ -257,7 +257,12 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 		}
 	}
 
-	config_prior();
+	//if ( debug_mode ) {
+	//	std::cout << "DEBUG mode on. Skipping config prior." <<std::endl;
+	//	return;
+	//}
+
+	//config_prior();
 
 
 
@@ -369,14 +374,14 @@ void cCluster_Info::print(std::ostream & os) const {
 }
 
 
-unsigned int cCluster_Info::reset_debug_activity( const char * const filename ) {
+unsigned int cCluster_Info::reset_block_activity( const char * const filename ) {
 	const char * const delim = cCluster_Info::secondary_delim;
 	unsigned int cnt = 0;
 	std::cout << "Resetting block activity for debug purpose in accordance with file " << filename << " ...  " << std::endl;
-	this->debug_activity.clear();
+	this->block_activity.clear();
 	map < string , cRecGroup >::const_iterator cpm;
 	for ( cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++cpm ) {
-		debug_activity.insert(std::pair<const string*, bool>(&cpm->first, false));
+		block_activity.insert(std::pair<const string*, bool>(&cpm->first, false));
 	}
 
 
@@ -396,7 +401,7 @@ unsigned int cCluster_Info::reset_debug_activity( const char * const filename ) 
 			std::cout << data << " is not a good block identifier." << std::endl;
 		else {
 			const string * pstr = & cluster_by_block.find(data)->first;
-			debug_activity.find(pstr)->second = true;
+			block_activity.find(pstr)->second = true;
 			++cnt;
 		}
 	}
@@ -406,9 +411,9 @@ unsigned int cCluster_Info::reset_debug_activity( const char * const filename ) 
 		std::cout << cnt <<  " blocks have been activated." << std::endl;
 	else {
 		std::cout << "Warning: Since 0 blocks are active, all will be ACTIVATED instead." << std::endl;
-		for ( map< const string *, bool>::iterator p = debug_activity.begin(); p != debug_activity.end(); ++p )
+		for ( map< const string *, bool>::iterator p = block_activity.begin(); p != block_activity.end(); ++p )
 			p->second = true;
-		cnt = debug_activity.size();
+		cnt = block_activity.size();
 	}
 	return cnt;
 }
@@ -445,6 +450,7 @@ void cCluster_Info::output_list ( list<const cRecord *> & target) const {
 
 void cCluster_Info::config_prior()  {
 	prior_data.clear();
+
 	std::cout << "Creating prior values ..." << std::endl;
 
 #if 0
@@ -519,7 +525,19 @@ void cCluster_Info::config_prior()  {
 	}
 #endif
 
+	map < const string *, bool >::const_iterator pmdebug;
 	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
+		if ( block_activity.empty())
+			break;
+		const string * pstr = & cpm->first ;
+		pmdebug = this->block_activity.find( pstr );
+		if ( pmdebug == this->block_activity.end() )
+			continue;
+		else {
+			if ( debug_mode && pmdebug->second == false )
+				continue;
+		}
+
 		double prior = get_prior_value(cpm->first, cpm->second);
 
 		prior_data.insert(std::pair<const string*, double> (& (cpm->first), prior));
@@ -535,13 +553,22 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	static const double prior_default = 1e-6;
 	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
 
+	std::ofstream * pfs = NULL;
+	if ( debug_mode ) {
+		pfs = new std::ofstream ("prior_debug.txt");
+		(*pfs) << "Content size: " << '\n';
+	}
 	double numerator = 0;
 	unsigned int tt = 0;
 	for ( list<cCluster>::const_iterator q = rg.begin(); q != rg.end(); ++q ) {
 		const unsigned int c = q->get_fellows().size();
 		numerator += 1.0 * c * ( c - 1 );
 		tt += c;
+
+		if ( debug_mode )
+			(*pfs) << c << " , ";
 	}
+
 	double denominator = 1.0 * tt * ( tt - 1 );
 	if ( denominator == 0 )
 		denominator = 1e10;
@@ -552,6 +579,8 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	//decompose the block_identifier string so as to get the frequency of each piece
 	size_t pos = 0, prev_pos = 0;
 	unsigned int seq = 0;
+	double final_factor = 0.0;
+	vector <double> factor_history;
 	while ( true ) {
 	    pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
 	    if ( pos == string::npos )
@@ -565,11 +594,49 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	    	continue;
 	    }
 	    double factor = 1.0;
-	    if ( frequency_adjust_mode && max_occurrence.at(seq) != 0 )
-	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
-	    prior *= factor;
+	    if ( frequency_adjust_mode && max_occurrence.at(seq) != 0 ) {
+	      //const double temp = 2.0 * log ( sqrt( 1.0 * max_occurrence.at(seq) * min_occurrence.at(seq) ) / this->column_stat.at(seq)[piece] );
+	      //if ( temp >= 0 ) // encourage
+	    	//	factor = 1.0 + temp;
+	    	//else	//panalize
+	    	//	factor = 1.0 / ( 1.0 - temp );
+	        //const double temp = sqrt( 1.0 * max_occurrence.at(seq) * min_occurrence.at(seq) ) / this->column_stat.at(seq)[piece];
+	        //factor = sqrt(temp);
+	    	factor = log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
+
+		factor_history.push_back(factor);
+	    	//factor = 1.0 + 0.5 * ( log (  max_occurrence.at(seq) ) + log(min_occurrence.at(seq) ) ) - log ( this->column_stat.at(seq)[piece] );
+	    }
+
+
+
+	    if ( debug_mode ) {
+	    	(*pfs) << '\n'
+	    			<< "Part: " << seq
+	    			<< " Max occurrence: " << max_occurrence.at(seq)
+	    			<< " Min occurrence: " << min_occurrence.at(seq)
+	    			<< " Self occurrence: " << this->column_stat.at(seq)[piece]
+	    			<< " Before adjustment: "<< prior << '\n';
+	    }
+
+	    final_factor = max_val( final_factor,  factor );
+
+
+
+
 	    ++seq;
 	}
+
+    if ( final_factor <= 1 )
+        prior *= final_factor;
+    else {
+        for ( vector <double>::const_iterator pv = factor_history.begin(); pv != factor_history.end(); ++pv )
+	    if ( *pv > 1 )
+	        prior *= *pv;
+    }
+
+    if ( debug_mode )
+    	(*pfs) << " After adjustment: " << prior << '\n';
 
 	//const double first_factor = 1.0 + log ( 1.0 * max_occurrence.at(0) / this->firstname_stat[fn_piece]);
 	//const double last_factor = 1.0 + log ( 1.0 * max_occurrence.at(1) / this->lastname_stat[ln_piece]);
@@ -579,6 +646,8 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	if ( prior > prior_max )
 		prior = prior_max;
 
+	if ( debug_mode )
+		delete pfs;
 
 	return prior;
 }
@@ -655,7 +724,10 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 	if ( this->thresholds.empty() )
 		throw cException_Cluster_Error("Thresholds have not been set up yet.");
 
-	unsigned int size_to_disambig = this->reset_debug_activity(debug_block_file);
+	unsigned int size_to_disambig = this->reset_block_activity(debug_block_file);
+
+	config_prior();
+
 
 	std::cout << "Starting disambiguation ... ..." << std::endl;
 	cRecGroup emptyone;
@@ -795,7 +867,7 @@ bool disambiguate_wrapper(const map<string, cCluster_Info::cRecGroup>::iterator 
 		std::cout << "Block Without Any Infomation Tag: " << p->first << " Size = " << p->second.size() << "----------SKIPPED."<< std::endl;
 		return false;
 	}
-	if ( cluster.debug_activity.find(pst)->second == false )
+	if ( cluster.block_activity.find(pst)->second == false )
 		return false;
 
 	if ( p->second.size() > 3000)
@@ -832,6 +904,8 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	//const bool debug_mode = true;
 	//const bool update_prior = false;
 	//divide and conquer
+
+
 	const unsigned int group_size = to_be_disambiged_group.size();
 	if ( group_size == 1 )
 		return group_size;
@@ -953,7 +1027,7 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
 
 	//if ( update_prior )
-	//	prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+		prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
 
 	return to_be_disambiged_group.size();
 

@@ -78,6 +78,8 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 		const cAttribute * const & pm = (*p)->get_attrib_pointer_by_index(midname_index);
 		cq = last2mid.find(pl);
 		if ( pm->is_informative() && pm != cq->second ) {
+			cq->second->add_attrib(1);
+			pm->reduce_attrib(1);
 			const cAttribute* & rpm = const_cast < const cAttribute* & > (pm);
 			rpm = cq->second;
 		}
@@ -116,6 +118,10 @@ cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m
 
 
 cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold) const {
+	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+	static const string asian_countries[] = {"JP"};
+	static const double asian_threshold = 0.99;
+
 	if ( pratio == NULL)
 		throw cException_Other("Critical: ratios map is not set yet.");
 	if ( this->m_mergeable == false ) {
@@ -125,9 +131,21 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 		throw cException_Empty_Cluster("Comparison error: rhs is empty.");
 	}
 
+	double threshold = mutual_threshold;
+	const cAttribute * this_country = this->m_info.m_delegate->get_attrib_pointer_by_index(country_index);
+	const cAttribute * rhs_country = rhs.m_info.m_delegate->get_attrib_pointer_by_index(country_index);
+
+	for ( unsigned int i = 0; i < sizeof(asian_countries)/sizeof(string); ++i ) {
+		if ( this_country == rhs_country && * this_country->get_data().at(0) == asian_countries[i] ) {
+			threshold = asian_threshold;
+			break;
+		}
+	}
+
+
 	std::pair<const cRecord *, double > ans ( disambiguate_by_set ( this->m_info.m_delegate, this->m_fellows, this->m_info.m_cohesion,
 												rhs.m_info.m_delegate, rhs.m_fellows, rhs.m_info.m_cohesion,
-													prior, *pratio, mutual_threshold) );
+													prior, *pratio, threshold) );
 
 	return cCluster_Head(ans.first, ans.second);
 

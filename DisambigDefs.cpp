@@ -5,32 +5,28 @@
  *      Author: ysun
  */
 
-#include <iostream>
-#include <cstdlib>
 #include "DisambigDefs.h"
-#include "sqlite3op.h"
 #include <algorithm>
-#include <typeinfo>
-extern "C" {
-	#include "strcmp95.h"
-}
-#include "DisambigComp.h"
+#include <cstring>
+
 using std::list;
 using std::string;
 
-
-
-const char cSql3query::nullchar;
 const vector <const cAttribute *> cAttribute::empty_interactive(0);
 const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarity_Compare::default_sp_exception("Error: Different Similarity profile dimensions");
 
+
+/*
+ * This function splits the input string and save it into the attribute object.
+ * Legacy format of data is in the form of "DATA1~COUNT1/DATA2~COUNT2/DATA3~COUNT3", so this function splits the string and
+ * saves the pointer to "DATA1", 'DATA2', 'DATA3'. There was a counter class member, but it was removed later.
+ */
 
 bool cAttribute::split_string(const char* recdata) {
 	static const string emptystring ("");
 	const char * p = recdata;
 	const char * pend = p + strlen(recdata);
 	if ( pend == p ) {
-		//data.push_back(string(""));
 		data.push_back( this->add_string(emptystring));
 		return true;
 	}
@@ -50,10 +46,8 @@ bool cAttribute::split_string(const char* recdata) {
 			count_length = q - r - 1;
 			memcpy(string_count_cache, r + 1, count_length *sizeof(char) );
 			*(string_count_cache + count_length ) = '\0';
-			//data_count.push_back(atoi(string_count_cache));
 		}
 		else {
-			//data_count.push_back( 0 );
 		}
 		p = q + 1;
 	}
@@ -65,34 +59,36 @@ bool cAttribute::split_string(const char* recdata) {
 		count_length = q - r - 1;
 		memcpy(string_count_cache, r + 1, count_length *sizeof(char) );
 		*(string_count_cache + count_length ) = '\0';
-		//data_count.push_back(atoi(string_count_cache));
 	}
 	else {
-		//data_count.push_back( 0 );
 	}
 	
 	// now use swap trick to minimize the volumn of each attribute. Effective STL by Scott Meyers, Item 17
 	vector< const string* > (data).swap(data);
-	//vector<unsigned int> (data_count).swap(data_count);
-
-	
 	
 	if ( data.size() > 1 )
 		throw cException_Vector_Data(recdata);
 	
-
-
 	return true;
 }
 
 
-
+/*
+ * This is a global function, not a class member function!!!!!!!
+ * usually for set_mode classes, attrib_merge works, and classes of single_mode do not support such operation.
+ * if this function is called, the attributes in list1 and list2 will be merged into a larger attribute object,
+ * and the pointers in list1 and list2 will then point to the newly created large object.
+ *
+ */
 
 void attrib_merge ( list < const cAttribute * *> & l1, list < const cAttribute * *> & l2 ) {
 	static const string errmsg = "Error: attribute pointers are not pointing to the same object. Attribute Type = ";
 	if ( l1.empty() || l2.empty() )
 		return;
 
+	// calls the class member function to check if attrib merge is supported.
+	// if Null is returned, it means attrib_merge is not supported.
+	// usually for set_mode classes, attrib_merge works, and classes of single_mode do not support such operation.
 	const cAttribute * new_object_pointer = (*l1.front())->attrib_merge(** l2.front());
 	if ( new_object_pointer == NULL )
 		return;
@@ -136,8 +132,6 @@ void attrib_merge ( list < const cAttribute * *> & l1, list < const cAttribute *
 		**p = new_object_pointer;
 
 }
-
-
 
 
 

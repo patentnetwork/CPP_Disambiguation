@@ -31,6 +31,7 @@ class cRatios;
 class cCluster_Info {
 	friend class cBlocking_For_Disambiguation;
 	friend class cWorker_For_Disambiguation;
+public:
 	typedef set<const cRecord *> recordset;
 
 	/*
@@ -74,7 +75,7 @@ private:
 	//map < unsigned int, unsigned int > lastname_dist;
 	vector < map < string, unsigned int > > column_stat;
 	map < const string *, double > prior_data;
-	map < const string *, bool > debug_activity;
+	map < const string *, bool > block_activity;
 	vector < unsigned int > max_occurrence;
 	vector < unsigned int > min_occurrence;
 
@@ -94,6 +95,8 @@ private:
 	unsigned int disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
 											const cRatios & ratiosmap, const string * const bid, const double threshold ) ;
 	void retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file);
+
+	cCluster_Info ( const cCluster_Info &);
 public:
 
 	static const char * primary_delim;
@@ -103,7 +106,7 @@ public:
 	void output_list ( list<const cRecord *> & target) const;
 	void print(std::ostream & os) const;
 
-	unsigned int reset_debug_activity( const char * filename );
+	unsigned int reset_block_activity( const char * filename );
 	void reset_blocking(const cBlocking_Operation & blocker, const char * const past_comparision_file);
 	void preliminary_consolidation(const cBlocking_Operation & blocker, const list < const cRecord *> & all_rec_list);
 	cCluster_Info(const map <string, const cRecord*> & input_uid2record, const bool input_is_matching , const bool aum = false, const bool debug = false )

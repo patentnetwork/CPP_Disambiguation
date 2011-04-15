@@ -16,7 +16,9 @@
 #include "DisambigRatios.h"
 #include "DisambigTraining.h"
 #include "DisambigCluster.h"
+#include "DisambigPostProcess.h"
 #include <cmath>
+#include <cstring>
 using std::list;
 using std::string;
 #include "Disambigmain.h"
@@ -1053,6 +1055,7 @@ int fullrun_iterative_v4() {
 	const bool do_not_train_stable = true;
 	const bool use_available_ratios = false;
 	const string working_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
+	const string final_file = working_dir + "/final.txt";
 	const double thresholds[] = { 0.99, 0.95, 0.90 };
 	const unsigned int buff_size = 500;
 	const unsigned int num_threads = 4;
@@ -1120,7 +1123,10 @@ int fullrun_iterative_v4() {
 	const unsigned int max_round_by_coauthor = 8;
 
 	const vector < double > threshold_vec( thresholds, thresholds + sizeof(thresholds)/sizeof(double) ) ;
-	cCluster_Info match ( uid_dict, true, true, false);
+	bool matching_mode = true;
+	bool frequency_adjust_mode = true;
+	bool debug_mode = false;
+	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
 
 	cString_Remove_Space operator_no_space;
@@ -1132,11 +1138,15 @@ int fullrun_iterative_v4() {
 
 
 	char xset01[buff_size], tset05[buff_size], ratiofile[buff_size], matchfile[buff_size], stat_patent[buff_size], stat_personal[buff_size];
-	char oldmatchfile[buff_size], debug_block_file[buff_size];
+	char oldmatchfile[buff_size], debug_block_file[buff_size], network_file[buff_size], postprocesslog[buff_size];
 	sprintf(oldmatchfile, "%s/match_cons.txt", working_dir.c_str() );
 	//char oldmatchfile[buff_size] = "/media/data/edwardspace/workplace/testcpp/Disambiguation/newmatch_1.txt";
 
 
+	bool network_clustering = true;
+
+	if ( debug_mode )
+		network_clustering = false;
 	const unsigned int starting_round =  1;
 	unsigned int round = starting_round;
 
@@ -1184,8 +1194,6 @@ int fullrun_iterative_v4() {
 	blocking_column_data_indice.at(1) = 1;
 	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names, blocking_column_data_indice);
 
-
-
 	vector < string > prev_train_vec;
 	for ( ; round <= max_round_by_coauthor; ++round ) {
 		std::cout << std::endl;
@@ -1200,12 +1208,15 @@ int fullrun_iterative_v4() {
 		sprintf(stat_patent, "%s/stat_patent_%d.txt", working_dir.c_str(), round);
 		sprintf(stat_personal, "%s/stat_personal_%d.txt", working_dir.c_str(), round);
 		sprintf(debug_block_file, "%s/debug_block_%d.txt", working_dir.c_str(), round);
+		sprintf(network_file, "%s/network_%d.txt", working_dir.c_str(), round);
+		sprintf(postprocesslog, "%s/postprocesslog_%d.txt", working_dir.c_str(), round);
 
 		//now training
 		//match.output_list(record_pointers);
 
 		const string training_changable [] = { xset01, tset05 };
 		const vector<string> training_changable_vec ( training_changable, training_changable + sizeof(training_changable)/sizeof(string));
+
 
 
 		switch (round) {
@@ -1234,16 +1245,14 @@ int fullrun_iterative_v4() {
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
 			cLatitude::activate_comparator();
-			cAssignee::deactivate_comparator();
+			cAssignee::activate_comparator();
 			cClass::deactivate_comparator();
 			cCoauthor::deactivate_comparator();
 
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 0, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+
 			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
 			//					 training_changable_vec.at(1).c_str() );
 			break;
@@ -1251,7 +1260,7 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::deactivate_comparator();
+			cLatitude::activate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
@@ -1259,15 +1268,15 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 0, true);
 			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			//match.reset_blocking(blocker, oldmatchfile);
+			//if ( ! use_available_ratios )
+			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			break;
 		case 3:
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::deactivate_comparator();
+			cLatitude::activate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
@@ -1275,9 +1284,9 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 5, true);
 			operator_truncate_middlename.set_truncater(0, 1, true);
 			operator_truncate_lastname.set_truncater(0, 8, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			//match.reset_blocking(blocker, oldmatchfile);
+			//if ( ! use_available_ratios )
+			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
 			//					 training_changable_vec.at(1).c_str() );
 			break;
@@ -1293,9 +1302,9 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 3, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			//match.reset_blocking(blocker, oldmatchfile);
+			//if ( ! use_available_ratios )
+			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			//prev_train_vec = training_changable_vec;
 			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
 			//					 training_changable_vec.at(1).c_str() );
@@ -1315,9 +1324,9 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			//match.reset_blocking(blocker, oldmatchfile);
+			//if ( ! use_available_ratios )
+			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			break;
 
 		case 6:
@@ -1333,7 +1342,7 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
-			match.reset_blocking(blocker, oldmatchfile);
+			//match.reset_blocking(blocker, oldmatchfile);
 			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );
 			sprintf( tset05, "%s/tset05_%d.txt", working_dir.c_str(), round - 1 );
 			prev_train_vec.clear();
@@ -1343,6 +1352,10 @@ int fullrun_iterative_v4() {
 			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
 				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
 			}
+
+			std::cout << "=============== WARNING: STEP " << round << " IS SKIPPED ! ================="  << std::endl;
+			continue;
+
 			break;
 
 
@@ -1358,9 +1371,9 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
-			match.reset_blocking(blocker, oldmatchfile);
-			if ( ! use_available_ratios )
-				make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
+			//match.reset_blocking(blocker, oldmatchfile);
+			//if ( ! use_available_ratios )
+			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 			break;
 
 		case 8:
@@ -1375,7 +1388,7 @@ int fullrun_iterative_v4() {
 			operator_truncate_firstname.set_truncater(0, 1, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
-			match.reset_blocking(blocker, oldmatchfile);
+			//match.reset_blocking(blocker, oldmatchfile);
 			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );
 			sprintf( tset05, "%s/tset05_%d.txt", working_dir.c_str(), round - 1 );
 			prev_train_vec.clear();
@@ -1385,12 +1398,32 @@ int fullrun_iterative_v4() {
 			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
 				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
 			}
+
+			std::cout << "=============== WARNING: STEP " << round << " IS SKIPPED ! ================="  << std::endl;
+			continue;
+
 			break;
 
 
 		default:
 			throw cException_Other("Invalid round.");
 		}
+
+		if ( network_clustering ) {
+			blocker_coauthor.build_uid2uinv_tree(match);
+			cCluster_Set cs;
+			cs.convert_from_ClusterInfo(&match);
+			post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), string(postprocesslog));
+			cs.output_results(network_file);
+			match.reset_blocking(blocker, network_file);
+		}
+		else {
+			match.reset_blocking(blocker, oldmatchfile);
+		}
+
+
+		if ( ! use_available_ratios )
+			make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
 
 		const cRatios * ratio_pointer;
 		if ( ! use_available_ratios ) {
@@ -1424,16 +1457,24 @@ int fullrun_iterative_v4() {
 
 		strcpy ( oldmatchfile, matchfile);
 
-		//if ( round == 1 )
-		//	match.disambig_assignee( string( working_dir + string( "/assignee_disambig.txt") ).c_str());
-
 	}
 
-	//dump_match ( string( working_dir + string ( "/mini_to_dump.sqlite3")  ).c_str(), "invpat",
-	//						matchfile, string("Invnum"), string("Invnum_N") );
+
+	// post-processing now
+
+	operator_truncate_firstname.set_truncater(0, 0, true);
+	operator_truncate_middlename.set_truncater(0, 0, false);
+	operator_truncate_lastname.set_truncater(0, 0, true);
+
+	match.reset_blocking(blocker, oldmatchfile);
+
+	blocker_coauthor.build_uid2uinv_tree(match);
+	cCluster_Set cs;
+	cs.convert_from_ClusterInfo(&match);
+	post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), "final_postprocess_log.txt");
+	cs.output_results(final_file.c_str());
 
 
-	//clear_records(all_records);
 	return 0;
 }
 

@@ -325,6 +325,7 @@ public:
 	string extract_blocking_info(const cRecord *) const;
 	void build_uid2uinv_tree( const cCluster_Info &);
 	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & get_patent_tree() const {return patent_tree;}
+	map < const cRecord *, const cRecord * > & get_uid2uinv_tree() { return uid2uinv_tree;}
 
 };
 

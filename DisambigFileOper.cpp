@@ -12,10 +12,10 @@
 #include "sqlite3op.h"
 #include "DisambigCluster.h"
 #include <fstream>
+#include <cstring>
 
 
-
-
+const char cSql3query::nullchar;
 
 const cRecord * retrieve_record_pointer_by_unique_id(const string & uid, const map <string, const cRecord*> & uid_tree) {
 	map <string, const cRecord *>::const_iterator cpm = uid_tree.find(uid);
@@ -249,6 +249,7 @@ bool dump_match ( const char * sqlite3_target, const char * tablename, const cha
 }
 
 
+#if 0
 //================================================================== OBSOLETE ======================
 bool fetch_records_from_sqlite3(list <cRecord> & source, const char * sql_file, const char * statement, const map<string, asgdetail>& asgtree){
 
@@ -387,3 +388,4 @@ bool fetch_records_from_sqlite3(list <cRecord> & source, const char * sql_file, 
 
 	return true;
 }
+#endif

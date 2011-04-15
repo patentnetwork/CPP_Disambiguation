@@ -183,10 +183,10 @@ int jwcmp_old(const string & str1, const string& str2){
     double tok_score, score = 0;
     if( 0 == str1.size() || 0 == str2.size() )
         //missing!
-        return cJWscore::JWMISSING;
+        return 1;
 
     if( ( str1 == str2 ) && 0==nospacecmp( str1.c_str(), str2.c_str() )){
-        return cJWscore::JW100; //JW100
+        return 4; //JW100
     }
     size_t pos1, prev_pos1, pos2, prev_pos2;
     pos1 = prev_pos1 = 0;
@@ -553,7 +553,7 @@ int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 	}
 	int score = 0;
 	if ( p1->second.first == p2->second.first && p1->second.first.size() > 3 ) {
-		score = cASGscore::ASGNUMLARGE;
+		score = 6;
 		if ( p1->second.second < 100 || p2->second.second < 100)
 			score += 2;
 		else if ( p1->second.second < 1000 || p2->second.second < 1000 )
