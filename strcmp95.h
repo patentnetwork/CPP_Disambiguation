@@ -22,3 +22,6 @@
 
 //double  strcmp95(char *, char *, long, int **);
 double strcmp95_modified (const char *ying, const char *yang);
+int is_misspell( const char * s1, const char * s2 );
+int is_abbreviation( const char * s1, const char * s2 );
+

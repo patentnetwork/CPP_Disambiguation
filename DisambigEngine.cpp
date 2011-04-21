@@ -428,7 +428,6 @@ void cReconfigurator_Latitude_Interactives::reconfigure ( const cRecord * p ) co
 	interact.push_back(p->get_attrib_pointer_by_index(this->country_index));
 	const cAttribute * const & tp = p->get_attrib_pointer_by_index(this->latitude_index);
 	const cAttribute * & cp = const_cast< const cAttribute * &> (tp);
-	//cAttribute * & lp = const_cast<cAttribute * &> (tp);
 	cp = tp->config_interactive(interact);
 }
 

@@ -58,6 +58,27 @@ template <> const string cAttribute_Intermediary<cCity>::class_name = "City";
 template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent";
 
 
+/*
+ * Whenever overriding a comparison fucntion, it is extremely important to check if the comparator is activated. i.e.
+ * Always keep the following statement in a comparison function:
+ *
+ * if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+ *
+ *
+ */
+
+
+
+
+/*
+ * cFirstname::split_string does 3 things:
+ * 1. Extract the first name from an input string, which is usually mixed with first name and middle name.
+ * 	  i.e. Input string = "JOHN David WILLIAM", extracted string = "JOHN"
+ * 2. Keep the original copy of the original input string.
+ * 3. Save the first extracted string in data[0], and the second original copy in data[1].
+ *
+ */
 
 
 bool cFirstname::split_string(const char *inputdata) {
@@ -75,62 +96,39 @@ bool cFirstname::split_string(const char *inputdata) {
 	return true;
 }
 
-/*
+
 unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
-	if ( ! is_comparator_activated () )
-		throw cException_No_Comparision_Function(static_get_class_name().c_str());
-	try {
-		unsigned int res = 0;
-		const cFirstname & rhs = dynamic_cast< const cFirstname & > (right_hand_side);
-		//for (vector <string>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
-		//	for (vector <string>::const_iterator q = rhs.get_data().begin(); q != rhs.get_data().end(); ++q ) {
-		//		unsigned int temp_res = jwcmp(*p, *q);
-		//		res = ( res < temp_res ) ? temp_res : res ;
-		//	}
-		//}
+	// ALWAYS CHECK THE ACTIVITY OF COMPARISON FUNCTION !!
+	if ( ! this->is_comparator_activated () )
+		throw cException_No_Comparision_Function(this->static_get_class_name().c_str());
+	if ( this == & right_hand_side )
+		return this->get_attrib_max_value();
 
-		res = jwcmp(* this->get_data().at(1), * rhs.get_data().at(1));
-		if ( res > max_value )
-			res = max_value;
-		return res;
-	}
-	catch ( const std::bad_cast & except ) {
-		std::cerr << except.what() << std::endl;
-		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
-		throw;
-	}
+	unsigned int res = 0;
+	res = name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1));
+	if ( res > this->get_attrib_max_value() )
+		res = this->get_attrib_max_value();
+	return res;
 }
-*/
 
-#if 0
-unsigned int cLastname::compare(const cAttribute & right_hand_side) const {
-	if ( ! is_comparator_activated () )
-		throw cException_No_Comparision_Function(static_get_class_name().c_str());
-	try {
-		unsigned int res = 0;
-		const cLastname & rhs = dynamic_cast< const cLastname & > (right_hand_side);
-		//for (vector <string>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
-		//	for (vector <string>::const_iterator q = rhs.get_data().begin(); q != rhs.get_data().end(); ++q ) {
-		//		unsigned int temp_res = jwcmp(*p, *q);
-		//		res = ( res < temp_res ) ? temp_res : res ;
-		//	}
-		//}
 
-		res = jwcmp( * this->get_data().at(0), * rhs.get_data().at(0));
-		if ( res > max_value )
-			res = max_value;
-		return res;
-	}
-	catch ( const std::bad_cast & except ) {
-		std::cerr << except.what() << std::endl;
-		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
-		throw;
-	}
-}
-#endif
+
+/*
+ * cMiddlename::split_string does 3 things:
+ * 1. Extract the middle name from an input string, which is usually mixed with first name and middle name.
+ * 	  i.e. Input string = "JOHN David WILLIAM", extracted string = "David WILLIAM"
+ * 		   Input string = "JOHN", extracted string = ""
+ *
+ * 2. Extract the initials of middle names.
+ * 	  i.e. Input string = "JOHN DAVID WILLIAM", middle initials = "DW"
+ * 3. Save the first extracted string in data[0], and the second middle initial string in data[1].
+ *
+ *
+ */
+
+
 
 bool cMiddlename::split_string(const char *inputdata) {
-	//static const string impossible_label = "@";
 	cAttribute::split_string(inputdata);
 	const string & source = * get_data().at(0);
 	size_t pos = source.find(' ');
@@ -140,15 +138,9 @@ bool cMiddlename::split_string(const char *inputdata) {
 	else
 		midpart = source.substr( pos + 1 );
 
-	char initials[50];
+	char initials[64];
 	extract_initials(initials, midpart.c_str());
-	//if ( ! midpart.empty())
-	//	midpart = impossible_label + midpart;
 	const char * start = initials;
-	//if ( initials[0] == '\0' )
-	//	start = initials;
-	//else
-	//	start = initials + 1;
 	vector < const string * > & data_alias = get_data_modifiable();
 	string temp(start);
 	data_alias.clear();
@@ -157,18 +149,25 @@ bool cMiddlename::split_string(const char *inputdata) {
 	return true;
 }
 
+
+/*
+ * cMiddlename::compare:
+ * Compare the extracted strings in data[0] to see whether they started with the same letter and whether one contains the other.
+ * i.e.
+ * "DAVID WILLIAM" vs "DAVID" = 3 ( max score)
+ * "DAVID WILLIAM" vs "WILLIAM" = 0 (min score, not starting with the same letters)
+ * "DAVID WILLIAM" vs "DAVE" = 0 ( either one does not container the other. )
+ * "" vs "" = 2 ( both missing information )
+ * "DAVID" vs "" = 1 ( one missing information )
+ *
+ */
+
+
 unsigned int cMiddlename::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
 	try {
-		//unsigned int res = 0;
 		const cMiddlename & rhs = dynamic_cast< const cMiddlename & > (right_hand_side);
-		//for (vector <string>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
-		//	for (vector <string>::const_iterator q = rhs.get_data().begin(); q != rhs.get_data().end(); ++q ) {
-				//unsigned int temp_res = midnamecmp(*p, *q);
-				//res = ( res < temp_res ) ? temp_res : res ;
-		//	}
-		//}
 		unsigned int res = midnamecmp(* this->get_data().at(0), * rhs.get_data().at(0));
 		if ( res > max_value )
 			res = max_value;
@@ -181,6 +180,20 @@ unsigned int cMiddlename::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+
+
+/*
+ * cLatitude::compare:
+ * Such comparison is complicated because cLatitude is interacted with cLongitude, cCountry , and possibly cStreet
+ * One needs to know the structure of how the interactive data are stored, which is actually an assumed knowledge.
+ *
+ * If the distance calculated by latitude and longitude < 1 mile, score = 4 ( max score)
+ * If the distance calculated by latitude and longitude < 10 mile, score = 3
+ * If the distance calculated by latitude and longitude < 50 mile, score = 2
+ * If the distance calculated by latitude and longitude > 50 mile, score = 1
+ * If countries are different, score = 0;
+ *
+ */
 
 unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
@@ -205,7 +218,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		}
 
 
-
+		/*
 		//latitude interacts with		{"Longitude", "Street", "Country"}; the sequence is important.
 		vector <const string* >::const_iterator p, q;
 
@@ -228,8 +241,9 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		else
 			res = latlon_score;
 
+		 */
 
-		/*
+		//obsolete now.
 		const string * p1 = this->get_data().front();
 		const string * q1 = this->get_interactive_vector().at(0)->get_data().front();
 		const string * p2 = rhs.get_data().front();
@@ -241,162 +255,6 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 			res = 2;
 		else
 			res = 1;
-		 */
-
-		if ( res > max_value )
-			res = max_value;
-		return res;
-	}
-	catch ( const std::bad_cast & except ) {
-		std::cerr << except.what() << std::endl;
-		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
-		throw;
-	}
-}
-
-#if 0
-bool cClass::split_string(const char* inputdata) {
-	try {
-		cAttribute::split_string(inputdata);
-	}
-	catch ( const cException_Vector_Data & except) {
-		//std::cout << "cClass allows vector data. This info should be disabled in the real run." << std::endl;
-	}
-	const string raw(inputdata);
-	this->set_class.clear();
-	this->set_class.insert(this->get_data().begin(), this->get_data().end());
-	this->get_data_modifiable().clear();
-	//this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
-	return true;
-}
-
-const cClass * cClass::attrib_merge ( const cAttribute & right_hand_side) const {
-	try {
-		const cClass & rhs = dynamic_cast< const cClass & > (right_hand_side);
-		set < const string * > temp (this->set_class);
-		temp.insert(rhs.set_class.begin(), rhs.set_class.end());
-		cClass tempclass;
-		tempclass.set_class = temp;
-		const cClass * result = this->static_add_attrib(tempclass, 2);
-		cClass::static_reduce_attrib(*this, 1);
-		cClass::static_reduce_attrib(rhs, 1);
-		return result;
-
-	}
-	catch ( const std::bad_cast & except ) {
-		std::cerr << except.what() << std::endl;
-		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
-		throw;
-	}
-
-}
-
-#endif
-
-#if 0
-unsigned int cClass::compare(const cAttribute & right_hand_side) const {
-	if ( ! is_comparator_activated () )
-		throw cException_No_Comparision_Function(static_get_class_name().c_str());
-	try {
-
-		unsigned int res = 0;
-		const cClass & rhs = dynamic_cast< const cClass & > (right_hand_side);
-		/*
-		vector <const string*>::const_iterator p = this->get_data().begin();
-		for ( ++p ; p != this->get_data().end(); ++p ) {
-			vector < const string*>::const_iterator q = rhs.get_data().begin();
-			for ( ++q ; q != rhs.get_data().end(); ++q ) {
-				unsigned int temp_res = classcmp(**p, **q);
-				res += temp_res;
-			}
-		}
-		*/
-
-		const unsigned int cnt  = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
-								 	 rhs.attrib_set.begin(), rhs.attrib_set.end(), 0 );
-		const double score = 1.0 * cnt * cnt / this->attrib_set.size() / rhs.attrib_set.size();
-
-		if ( score > 0.1 )
-			++res;
-		if ( score > 0.2 )
-			++res;
-		if ( score > 0.3 )
-			++res;
-		if ( score > 0.4 )
-			++res;
-
-		if ( res > max_value )
-			res = max_value;
-		return res;
-	}
-	catch ( const std::bad_cast & except ) {
-		std::cerr << except.what() << std::endl;
-		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
-		throw;
-	}
-}
-#endif
-
-
-#if 0
-bool cCoauthor::split_string(const char* inputdata) {
-
-	try {
-		cAttribute::split_string(inputdata);
-	}
-	catch ( const cException_Vector_Data & except) {
-		//std::cout << "cClass allows vector data. This info should be disabled in the real run." << std::endl;
-	}
-	//const string raw(inputdata);
-	this->attrib_set.clear();
-	for ( vector < const string *>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
-		if ( (*p)->empty() )
-			continue;
-		this->attrib_set.insert(*p);
-	}
-	this->get_data_modifiable().clear();
-	//this->get_data_modifiable().insert(this->get_data_modifiable().begin(), this->add_string(raw));
-	return true;
-}
-
-
-
-
-unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
-	if ( ! is_comparator_activated () )
-		throw cException_No_Comparision_Function(static_get_class_name().c_str());
-	try {
-		unsigned int res = 0;
-		const cCoauthor & rhs = dynamic_cast< const cCoauthor & > (right_hand_side);
-		//for (vector <string>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
-			//for (vector <string>::const_iterator q = rhs.get_data().begin(); q != rhs.get_data().end(); ++q ) {
-				//unsigned int temp_res = coauthorcmp(*p, *q);
-				//res += temp_res;
-			//}
-		//}
-		/*
-		const bool scan_left_tree = this->pset->size() > rhs.pset->size();
-		const set< const string * > * ps, *qs;
-		ps = qs = NULL;
-		if ( scan_left_tree ) {
-			ps = this->pset;
-			qs = rhs.pset;
-		}
-		else {
-			qs = this->pset;
-			ps = rhs.pset;
-		}
-
-		for ( set< const string* >::const_iterator p = qs->begin(); p != qs->end(); ++p ) {
-			if ( ps->find(*p) != ps->end())
-				++res;
-		}
-		*/
-
-		res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
-									 rhs.attrib_set.begin(), rhs.attrib_set.end(),
-									 this->max_value);
-
 
 
 		if ( res > max_value )
@@ -410,24 +268,12 @@ unsigned int cCoauthor::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
-#endif
-#if 0
-bool cAssignee::split_string(const char* inputdata) {
-	cAttribute::split_string(inputdata);
-	static const char delim = ' ';
-	const char * const pend = inputdata + strlen(inputdata);
-	const char * pos, * prev_pos;
-	pos = prev_pos = inputdata;
-	vector < const string *> & data_ref = this->get_data_modifiable();
-	do {
-		pos = std::find( prev_pos, pend, delim);
-		string temp ( prev_pos, pos );
-		data_ref.push_back( this->add_string( temp ) );
-		prev_pos = pos + 1;
-	} while ( pos != pend);
-	return true;
-}
-#endif
+
+/*
+ * cClass_M2::compare
+ * A second way to score the "class" attribute.
+ * Not in use now.
+ */
 
 
 unsigned int cClass_M2::compare(const cAttribute & right_hand_side) const {
@@ -449,6 +295,12 @@ unsigned int cClass_M2::compare(const cAttribute & right_hand_side) const {
 		return 0;
 }
 
+/*
+ * cCountry::compare
+ * Not supposed to be used, because country attribute is mixed in the latitude comparison.
+ *
+ */
+
 unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -462,6 +314,17 @@ unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
 }
 
 
+/*
+ * cAssignee::compare:
+ * Comparison of assignee includes two steps:
+ * 1. look up the assignee->asgnum(assignee number) tree, in order to check whether two assignees shared the same number.
+ * 		If they do, they are believed to be the same, and the score of 5 is granted. If the assignee has fewer than 100 different patents, an additional 1 point is added.
+ * 2. If their assignee numbers are different, they can still be the same assignee.
+ *    In this case, a fairly crude jaro-winkler string comparison is used to score.
+ *    Refer to the function jwcmp for more scoring information.
+ *
+ */
+
 unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
@@ -471,7 +334,7 @@ unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 
 		const cAssignee & rhs = dynamic_cast< const cAssignee & > (right_hand_side);
 		//unsigned int res = asgcmp(this->get_data(), rhs.get_data(), assignee_tree_pointer);
-		unsigned int res = asgcmp_old ( * this->get_data().at(0), * rhs.get_data().at(0), assignee_tree_pointer);
+		unsigned int res = asgcmp ( * this->get_data().at(0), * rhs.get_data().at(0), assignee_tree_pointer);
 		if ( res > max_value )
 			res = max_value;
 		return res;
@@ -483,9 +346,13 @@ unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	}
 }
 
+/*
+ * The reason to override cCity::split_string from its base is because a city's name can include some delimiters in the default base implementation.
+ *
+ */
+
 bool cCity::split_string(const char* source) {
 	string temp (source);
 	get_data_modifiable().push_back(this->add_string(temp));
-	//data_count.push_back(1);
 	return true;
 }

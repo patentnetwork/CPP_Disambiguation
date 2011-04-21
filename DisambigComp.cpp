@@ -516,7 +516,7 @@ int coauthorcmp(const string &coauthor1, const string& coauthor2 ){
     return ( coauthor1 == coauthor2 )? 1 : 0;
 }
 
-int asgcmp_old(const string & asg1, const string & asg2, const map<string, std::pair<string, unsigned int> > * const asg_table_pointer){
+int asgcmp(const string & asg1, const string & asg2, const map<string, std::pair<string, unsigned int> > * const asg_table_pointer){
 	map<string, std::pair<string, unsigned int> >::const_iterator p1, p2;
 	p1 = asg_table_pointer->find(asg1);
 	p2 = asg_table_pointer->find(asg2);
@@ -577,26 +577,21 @@ int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 	return score;
 }
 
-/*
-template < typename Iter1, typename Iter2 >
-unsigned int num_common_elements ( Iter1 p1b, Iter1 p1e , Iter2 p2b, Iter2 p2e) {
-	// it has to be a sorted version container, like set, or sorted vector or list
-	unsigned int cnt = 0;
-	while ( p1b != p1e && p2b != p2e ) {
-		if ( *p1b < *p2b ) {
-			++p1b;
-		}
-		else if ( *p2b  < *p1b  ) {
-			++p2b;
-		}
-		else {
-			++cnt;
-			++p1b;
-			++p2b;
-		}
-	}
-	return cnt;
+int name_compare( const string & s1, const string & s2) {
+	if ( s1.empty() || s2.empty() )
+		return 1;
+	if ( s1 == s2 )
+		return 4;
+	int misspell_score = is_misspell(s1.c_str(), s2.c_str()) ;
+	if ( misspell_score )
+		return 3;
+
+	int abbrev_score = is_abbreviation ( s1.c_str(), s2.c_str());
+	if ( abbrev_score )
+		return 2;
+
+	return 0;
+
 }
-*/
 
 

@@ -90,7 +90,7 @@ private:
 		cException_Cluster_Error(const char* errmsg): cAbstract_Exception(errmsg){};
 	};
 
-	void config_prior();
+	void config_prior( const char * outputfile);
 
 	unsigned int disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
 											const cRatios & ratiosmap, const string * const bid, const double threshold ) ;
@@ -115,7 +115,7 @@ public:
 		std::cout << "FREQUENCY_ADJUST_PRIOR_MODE: " << (frequency_adjust_mode ? "ON" : "OFF")
 					<< "       DEBUG MODE: " << (debug_mode ? "ON" : "OFF") << std::endl;
 	} ;
-	void disambiguate(const cRatios & ratiosmap, const unsigned int num_threads, const char * const debug_block_file);
+	void disambiguate(const cRatios & ratiosmap, const unsigned int num_threads, const char * const debug_block_file, const char * const prior_to_save);
 	void disambig_assignee(const char * outputfile) const;
 	const string & get_useless_string() const {return useless;}
 	~cCluster_Info() {}

@@ -20,6 +20,10 @@ const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarit
  * This function splits the input string and save it into the attribute object.
  * Legacy format of data is in the form of "DATA1~COUNT1/DATA2~COUNT2/DATA3~COUNT3", so this function splits the string and
  * saves the pointer to "DATA1", 'DATA2', 'DATA3'. There was a counter class member, but it was removed later.
+ *
+ * One needs to be very familiar with how the strings look like and what they can be in the source text file. Especially the delimiters.
+ * However, one is also assumed to have familiarized with the source text format.
+ *
  */
 
 bool cAttribute::split_string(const char* recdata) {

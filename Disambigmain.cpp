@@ -1138,7 +1138,7 @@ int fullrun_iterative_v4() {
 
 
 	char xset01[buff_size], tset05[buff_size], ratiofile[buff_size], matchfile[buff_size], stat_patent[buff_size], stat_personal[buff_size];
-	char oldmatchfile[buff_size], debug_block_file[buff_size], network_file[buff_size], postprocesslog[buff_size];
+	char oldmatchfile[buff_size], debug_block_file[buff_size], network_file[buff_size], postprocesslog[buff_size], prior_save_file[buff_size];
 	sprintf(oldmatchfile, "%s/match_cons.txt", working_dir.c_str() );
 	//char oldmatchfile[buff_size] = "/media/data/edwardspace/workplace/testcpp/Disambiguation/newmatch_1.txt";
 
@@ -1210,6 +1210,7 @@ int fullrun_iterative_v4() {
 		sprintf(debug_block_file, "%s/debug_block_%d.txt", working_dir.c_str(), round);
 		sprintf(network_file, "%s/network_%d.txt", working_dir.c_str(), round);
 		sprintf(postprocesslog, "%s/postprocesslog_%d.txt", working_dir.c_str(), round);
+		sprintf(prior_save_file, "%s/prior_saved_%d.txt", working_dir.c_str(), round);
 
 		//now training
 		//match.output_list(record_pointers);
@@ -1245,7 +1246,7 @@ int fullrun_iterative_v4() {
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
 			cLatitude::activate_comparator();
-			cAssignee::activate_comparator();
+			cAssignee::deactivate_comparator();
 			cClass::deactivate_comparator();
 			cCoauthor::deactivate_comparator();
 
@@ -1260,7 +1261,7 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::activate_comparator();
+			cLatitude::deactivate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
@@ -1276,7 +1277,7 @@ int fullrun_iterative_v4() {
 			cFirstname::activate_comparator();
 			cMiddlename::activate_comparator();
 			cLastname::activate_comparator();
-			cLatitude::activate_comparator();
+			cLatitude::deactivate_comparator();
 			cAssignee::activate_comparator();
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
@@ -1408,7 +1409,8 @@ int fullrun_iterative_v4() {
 		default:
 			throw cException_Other("Invalid round.");
 		}
-
+		
+		match.reset_blocking(blocker, oldmatchfile);
 		if ( network_clustering ) {
 			blocker_coauthor.build_uid2uinv_tree(match);
 			cCluster_Set cs;
@@ -1417,9 +1419,7 @@ int fullrun_iterative_v4() {
 			cs.output_results(network_file);
 			match.reset_blocking(blocker, network_file);
 		}
-		else {
-			match.reset_blocking(blocker, oldmatchfile);
-		}
+	      
 
 
 		if ( ! use_available_ratios )
@@ -1449,7 +1449,7 @@ int fullrun_iterative_v4() {
 		cCluster::set_ratiomap_pointer(*ratio_pointer);
 		// now disambiguate
 		all_records.front().clean_member_attrib_pool();
-		match.disambiguate(*ratio_pointer, num_threads, debug_block_file);
+		match.disambiguate(*ratio_pointer, num_threads, debug_block_file, prior_save_file);
 
 		delete ratio_pointer;
 

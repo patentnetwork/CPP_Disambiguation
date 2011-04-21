@@ -22,6 +22,8 @@ using std::list;
 using std::vector;
 using std::map;
 using std::set;
+
+//asgdetail consists of assignee number and its patent counts.
 typedef std::pair<string, unsigned int> asgdetail;
 
 
@@ -39,6 +41,8 @@ private:
 	static vector <string> column_names;
 	static vector < string > active_similarity_names;
 	static const cRecord * sample_record_pointer;
+
+
 public:
 	cRecord(const vector <const cAttribute *>& input_vec): vector_pdata(input_vec) {};
 	cRecord() {}

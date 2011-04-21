@@ -448,7 +448,7 @@ void cCluster_Info::output_list ( list<const cRecord *> & target) const {
 			target.push_back(cq->get_cluster_head().m_delegate);
 }
 
-void cCluster_Info::config_prior()  {
+void cCluster_Info::config_prior(const char * outputfile)  {
 	prior_data.clear();
 
 	std::cout << "Creating prior values ..." << std::endl;
@@ -544,7 +544,11 @@ void cCluster_Info::config_prior()  {
 
 	}
 
-	std::cout << "Prior values map created." << std::endl;
+	std::ofstream of(outputfile);
+	for ( map<const string *, double>::const_iterator p = prior_data.begin(); p != prior_data.end(); ++p )
+		of << *(p->first) << " : " << p->second << '\n';
+
+	std::cout << "Prior values map created and saved in " << outputfile << std::endl;
 }
 
 //#if 0
@@ -718,7 +722,7 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 
 #endif
 
-void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_threads, const char * const debug_block_file) {
+void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_threads, const char * const debug_block_file, const char * const prior_to_save) {
 	if ( is_matching_cluster() != true )
 		throw cException_Cluster_Error("Wrong type of clusters for disambiguation.");
 	if ( this->thresholds.empty() )
@@ -726,7 +730,7 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 
 	unsigned int size_to_disambig = this->reset_block_activity(debug_block_file);
 
-	config_prior();
+	config_prior( prior_to_save );
 
 
 	std::cout << "Starting disambiguation ... ..." << std::endl;
@@ -1027,7 +1031,7 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
 
 	//if ( update_prior )
-		prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+			prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
 
 	return to_be_disambiged_group.size();
 

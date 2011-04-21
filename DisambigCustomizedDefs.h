@@ -39,7 +39,8 @@
 
 class cFirstname : public cAttribute_Single_Mode <cFirstname> {
 public:
-	static const unsigned int max_value = Jaro_Wrinkler_Max;
+	//static const unsigned int max_value = Jaro_Wrinkler_Max;
+	static const unsigned int max_value = 4;
 
 	cFirstname(const char * source = NULL) {}
 	bool split_string(const char*);		//override because some class-specific splitting is involved.
@@ -50,6 +51,7 @@ public:
 	}
 	//override the base class to enable the functionality of the function.
 	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
+	unsigned int compare(const cAttribute & right_hand_side) const ;
 };
 
 
@@ -81,31 +83,10 @@ public:
 	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
-/*
-class cLatitude : public cAttribute_Single_Mode <cLatitude> {
-public:
-	static const unsigned int max_value = 4;
-private:
-	vector <const cAttribute *> vec_pinteractive;	//Latitude has interactions with Longitude, Country, and Street.
-public:
-	bool operator < ( const cAttribute & rhs ) const; //MUST override because the default implementation ignores the interactive elements.
-
-	cLatitude(const char * source = NULL ) {}
-	unsigned int compare(const cAttribute & rhs) const;	//override to customize
-	const vector <const cAttribute *> & get_interactive_vector() const {return vec_pinteractive;};	//override the base class
-	void reset_interactive (const vector <const cAttribute *> &inputvec ) { vec_pinteractive = inputvec;};	//override the base class
-	unsigned int get_attrib_max_value() const {
-		if ( ! is_comparator_activated() )
-			cAttribute::get_attrib_max_value();
-		return max_value;
-	}
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
-};
-*/
 
 class cLatitude : public cAttribute_Single_Interactive_Mode <cLatitude> {
 public:
-	static const unsigned int max_value = 4;
+	static const unsigned int max_value = 2;
 public:
 	cLatitude(const char * source = NULL ) {}
 	unsigned int compare(const cAttribute & rhs) const;	//override to customize

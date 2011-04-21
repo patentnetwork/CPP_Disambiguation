@@ -1,6 +1,7 @@
 /* strcmp95.c   Version 2						      */
 
 #include "strcmp95.h"
+#include "stdlib.h"
 
 //double  strcmp95(char *ying, char *yang, long y_length, int *ind_c[])
 double strcmp95_modified (const char *ying, const char *yang)
@@ -196,4 +197,180 @@ if (weight > 0.7) {
 return(weight);
 
 } /* strcmp95 */
+
+
+
+
+
+
+
+//==========================================================
+
+
+unsigned int LCS_Incontinuous(const char * s1, const char * s2, char * output ) {
+	const unsigned int m = strlen(s1) + 1;
+	const unsigned int n = strlen(s2) + 1;
+	const unsigned int mat_size = m * n * sizeof(int);
+	int * pmat;
+	register int i, j;
+	register int ** lcs;
+	unsigned int cnt = 0;
+
+	if ( m == 1 || n == 1 ) {
+		output = '\0';
+		return 0;
+	}
+
+	pmat = (int*) malloc ( mat_size );
+	memset( pmat, 0, mat_size );
+
+	lcs = ( int **) malloc ( m * sizeof ( int * ));
+	for ( i = 0 ; i < m; ++i )
+		lcs[i] = pmat + i * n;
+
+	for ( i = 1; i < m ; ++i ) {
+		for ( j = 1 ; j < n ; ++j ) {
+			if ( s1[i-1] == s2[j-1] )
+				lcs[i][j] = lcs[i-1][j-1] + 1;
+			else
+				lcs[i][j] = lcs[i-1][j] >= lcs[i][j-1] ? lcs[i-1][j] : lcs[i][j-1];//get the upper or lefter max value
+		}
+	}
+
+	i = m-2;
+	j = n-2;
+	while ( i != -1 && j != -1 ) {
+		if ( s1[i] == s2[j]  )	{
+			*output++ = s1[i];
+			++cnt;
+			i--;
+			j--;
+		}
+		else {
+			if ( lcs[i+1][j+1] == lcs[i][j] ) 	{
+				i--;
+				j--;
+			}
+			else {
+				if( lcs[i][j+1] >= lcs[i+1][j] )
+					i--;
+				else
+					j--;
+			}
+		}
+	}
+
+	*output = '\0';
+
+
+	free(pmat);
+	free(lcs);
+	return cnt;
+
+}
+
+
+
+int is_misspell( const char * s1, const char * s2 ) {
+	const int size_diff = strlen(s1)- strlen(s2);
+	const char * plong = NULL, *pshort = NULL;
+	int hit = 0;
+
+
+	if ( size_diff == 1 || size_diff == -1  ) {
+		// one character is missing
+		if ( size_diff == 1 ) {
+			plong = s1;
+			pshort = s2;
+		}
+		else {
+			plong = s2;
+			pshort = s1;
+		}
+
+		while ( *pshort != '\0' ) {
+			if ( *plong++ != *pshort++ ) {
+				if ( hit )
+					return 0;
+				++plong;
+				hit = 1;
+			}
+		}
+
+		if ( *pshort != '\0' && *plong != '\0' )
+			return 0;
+		else
+			return 1;
+	}
+
+	else if ( size_diff == 0) {
+		//switch or misspell
+		while ( *s1 != '\0' ) {
+			if ( *s1 != *s2 ) {
+				if ( hit )
+					return 0;
+				else {
+					hit = 1;
+					plong = s1;
+					pshort = s2;
+					++s1;
+					++s2;
+					if ( *s1 == '\0' )
+						return 3; //misspelling of last char
+				}
+
+			}
+			++s1;
+			++s2;
+		}
+		if ( hit == 0 )
+			return 4; //exact match
+		else {
+			if ( *plong != *pshort && *( plong + 1 ) == *(pshort + 1) )
+				return 3; //misspelling
+			else if ( *plong == * (pshort + 1) && *pshort == *(plong + 1 ))
+				return 2; //switch of 2 chars
+			else
+				return 0;
+		}
+	}
+	else
+		return 0;
+
+}
+
+int is_abbreviation( const char * s1, const char * s2 ) {
+	while ( *s1 != '\0' && *s2 != '\0' && *s1++ == *s2++ );
+	if ( *s1 != '\0' && *s2 != '\0' )
+		return 0;
+	else if ( *s1 == '\0' && *s2 == '\0' )
+		return 2;
+	else
+		return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
