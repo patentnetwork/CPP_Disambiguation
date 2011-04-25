@@ -577,7 +577,7 @@ int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 	return score;
 }
 
-int name_compare( const string & s1, const string & s2) {
+int name_compare( const string & s1, const string & s2, const unsigned int prev, const unsigned int cur) {
 	if ( s1.empty() || s2.empty() )
 		return 1;
 	if ( s1 == s2 )
@@ -586,11 +586,15 @@ int name_compare( const string & s1, const string & s2) {
 	if ( misspell_score )
 		return 3;
 
-	int abbrev_score = is_abbreviation ( s1.c_str(), s2.c_str());
-	if ( abbrev_score )
-		return 2;
+	unsigned int abbrev_score = is_abbreviation ( s1.c_str(), s2.c_str());
+	if ( abbrev_score == 0 )
+		return 0;
+	else if ( cur != 0 && cur <= abbrev_score ) {
+		if ( prev == 0 || ( prev != 0 && prev > abbrev_score ) )
+			return 4;
+	}
 
-	return 0;
+	return 2;
 
 }
 

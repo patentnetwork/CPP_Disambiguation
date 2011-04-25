@@ -50,6 +50,11 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
 	mergee.m_fellows.clear();
 
+	this->find_representative();
+	mergee.m_mergeable = false;
+}
+
+void cCluster::change_mid_name()  {
 	// The folowing step actually changes the raw data. Changes the abbreviated middlename to a longer one if possible.
 	static const unsigned int midname_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
 	static const unsigned int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
@@ -85,15 +90,9 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 		}
 	}
 	// end of modification
-
-
-
-	this->find_representative();
-	//this->coauthor_list.insert(mergee.coauthor_list.begin(), mergee.coauthor_list.end());
-	//mergee.reset_cCoauthor_pointer(this->coauthor_list);
-	//mergee.coauthor_list.clear();
-	mergee.m_mergeable = false;
 }
+
+
 
 cCluster::~cCluster() {
 	/*

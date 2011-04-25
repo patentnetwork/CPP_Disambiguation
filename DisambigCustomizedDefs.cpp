@@ -69,7 +69,8 @@ template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent"
  */
 
 
-
+unsigned int cFirstname::previous_truncation = 0;
+unsigned int cFirstname::current_truncation = 0;
 
 /*
  * cFirstname::split_string does 3 things:
@@ -105,7 +106,7 @@ unsigned int cFirstname::compare(const cAttribute & right_hand_side) const {
 		return this->get_attrib_max_value();
 
 	unsigned int res = 0;
-	res = name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1));
+	res = name_compare(* this->get_data().at(1), * right_hand_side.get_data().at(1), previous_truncation, current_truncation);
 	if ( res > this->get_attrib_max_value() )
 		res = this->get_attrib_max_value();
 	return res;

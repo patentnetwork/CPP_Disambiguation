@@ -253,6 +253,7 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 
 	for ( map <string, cRecGroup>::iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::iterator cp = p->second.begin(); cp != p->second.end(); ++cp ) {
+			cp->change_mid_name();
 			cp->self_repair();
 		}
 	}
@@ -448,7 +449,7 @@ void cCluster_Info::output_list ( list<const cRecord *> & target) const {
 			target.push_back(cq->get_cluster_head().m_delegate);
 }
 
-void cCluster_Info::config_prior(const char * outputfile)  {
+void cCluster_Info::config_prior()  {
 	prior_data.clear();
 
 	std::cout << "Creating prior values ..." << std::endl;
@@ -526,6 +527,8 @@ void cCluster_Info::config_prior(const char * outputfile)  {
 #endif
 
 	map < const string *, bool >::const_iterator pmdebug;
+	list <double> empty_list;
+	map < const string *, list<double> >::iterator pp;
 	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
 		if ( block_activity.empty())
 			break;
@@ -540,15 +543,23 @@ void cCluster_Info::config_prior(const char * outputfile)  {
 
 		double prior = get_prior_value(cpm->first, cpm->second);
 
-		prior_data.insert(std::pair<const string*, double> (& (cpm->first), prior));
-
+		pp = prior_data.insert(std::pair<const string*, list<double> > (& (cpm->first), empty_list)).first;
+		pp->second.push_back(prior);
 	}
 
-	std::ofstream of(outputfile);
-	for ( map<const string *, double>::const_iterator p = prior_data.begin(); p != prior_data.end(); ++p )
-		of << *(p->first) << " : " << p->second << '\n';
+	std::cout << "Prior values map is created." << std::endl;
+}
 
-	std::cout << "Prior values map created and saved in " << outputfile << std::endl;
+
+void cCluster_Info::output_prior_value( const char * const outputfile ) const {
+	std::ofstream of(outputfile);
+	for ( map<const string *, list<double> >::const_iterator p = prior_data.begin(); p != prior_data.end(); ++p ) {
+		of << *(p->first) << " : ";
+		for ( list<double>::const_iterator q = p->second.begin(); q != p->second.end(); ++q )
+			of << *q << ", ";
+		of << '\n';
+	}
+	std::cout << "Prior values are saved in " << outputfile << std::endl;
 }
 
 //#if 0
@@ -730,7 +741,7 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 
 	unsigned int size_to_disambig = this->reset_block_activity(debug_block_file);
 
-	config_prior( prior_to_save );
+	config_prior();
 
 
 	std::cout << "Starting disambiguation ... ..." << std::endl;
@@ -771,6 +782,8 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 	std::cout << "Disambiguation done! " ;
 	std::cout << cWorker_For_Disambiguation::get_count() << " blocks were eventually disambiguated." << std::endl;
 	cWorker_For_Disambiguation::zero_count();
+
+	output_prior_value(prior_to_save);
 
 
 	unsigned int max_inventor = 0;
@@ -903,7 +916,8 @@ const vector < double > & cCluster_Info::set_thresholds ( const vector < double 
 	return this->thresholds;
 }
 
-unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
+#if 0
+unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
 							const cRatios & ratio, const string * const bid, const double threshold ) {
 	//const bool debug_mode = true;
 	//const bool update_prior = false;
@@ -919,9 +933,10 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	cRecGroup secondpart ( split_cursor, to_be_disambiged_group.end());
 	to_be_disambiged_group.erase( split_cursor, to_be_disambiged_group.end() );
 
-	disambiguate_by_block( to_be_disambiged_group, prior_value, ratio, bid, threshold );
-	disambiguate_by_block( secondpart, prior_value, ratio, bid , threshold);
+	disambiguate_by_block( to_be_disambiged_group, prior_list, ratio, bid, threshold );
+	disambiguate_by_block( secondpart, prior_list, ratio, bid , threshold);
 
+	const double prior_value = prior_list.back();
 	// now compare the two disambiguated parts;
 
 	cRecGroup::iterator first_iter, second_iter;
@@ -1031,11 +1046,60 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
 
 	//if ( update_prior )
-			prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+	const double new_prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+	if ( new_prior_value != prior_value )
+		prior_list.push_back(new_prior_value);
 
 	return to_be_disambiged_group.size();
 
 }
+
+#endif
+
+
+
+unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
+							const cRatios & ratio, const string * const bid, const double threshold ) {
+	//const bool debug_mode = true;
+	//const bool update_prior = false;
+	//divide and conquer
+
+
+	cRecGroup::iterator first_iter, second_iter;
+	const double prior_value = prior_list.back();
+
+	for ( first_iter = to_be_disambiged_group.begin(); first_iter != to_be_disambiged_group.end(); ++first_iter) {
+		second_iter = first_iter;
+		for ( ++second_iter; second_iter != to_be_disambiged_group.end(); ) {
+			cCluster_Head result = first_iter->disambiguate(*second_iter, prior_value, threshold);
+			if ( debug_mode && result.m_delegate != NULL) {
+				std::cout << "**************************" << std::endl;
+				first_iter->get_cluster_head().m_delegate->print(std::cout);
+				std::cout << "The first cluster has " << first_iter->get_fellows().size() << " members." << std::endl;
+				second_iter->get_cluster_head().m_delegate->print(std::cout);
+				std::cout << "The second cluster has " << second_iter->get_fellows().size() << " members." << std::endl;
+				std::cout << "Prior value = "<< prior_value << " Probability = " << result.m_cohesion << std::endl;
+				std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
+			}
+
+			if ( result.m_delegate != NULL ) {
+				first_iter->merge(*second_iter, result);
+				to_be_disambiged_group.erase( second_iter++ );
+			}
+			else
+				++second_iter;
+		}
+	}
+
+	//if ( update_prior )
+	const double new_prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+	if ( new_prior_value != prior_value )
+		prior_list.push_back(new_prior_value);
+
+	return to_be_disambiged_group.size();
+
+}
+
 
 
 void cCluster_Info::disambig_assignee( const char * outputfile) const {

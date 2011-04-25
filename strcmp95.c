@@ -340,13 +340,15 @@ int is_misspell( const char * s1, const char * s2 ) {
 }
 
 int is_abbreviation( const char * s1, const char * s2 ) {
-	while ( *s1 != '\0' && *s2 != '\0' && *s1++ == *s2++ );
+        int cnt = 0;
+	while ( *s1 != '\0' && *s2 != '\0' && *s1++ == *s2++ )
+	    ++cnt;
 	if ( *s1 != '\0' && *s2 != '\0' )
 		return 0;
-	else if ( *s1 == '\0' && *s2 == '\0' )
-		return 2;
+	//else if ( *s1 == '\0' && *s2 == '\0' )
+	//	return 2;
 	else
-		return 1;
+		return cnt;
 }
 
 

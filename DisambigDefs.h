@@ -382,6 +382,7 @@ public:
  */
 
 
+
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute {
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, std::pair<string, unsigned int> >& asgtree);
@@ -411,6 +412,7 @@ protected:
 public:
 	static void clear_data_pool() {data_pool.clear();}
 	static void clear_attrib_pool() {attrib_pool.clear();}
+
 
 	cAttribute_Intermediary(const char * source = NULL )
 		:	cAttribute(source) {
@@ -690,6 +692,7 @@ public:
 		return true;
 	}
 	bool operator < ( const cAttribute & rhs ) const { return this->attrib_set < dynamic_cast< const AttribType & >(rhs).attrib_set;}
+
 	void print( std::ostream & os ) const {
 		set < const string * >::const_iterator p = attrib_set.begin();
 		os << this->get_class_name() << ": ";
@@ -754,7 +757,6 @@ public:
 		this->get_data_modifiable().push_back(p);
 		return true;
 	}
-
 
 };
 

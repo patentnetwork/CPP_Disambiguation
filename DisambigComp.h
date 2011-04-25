@@ -44,7 +44,7 @@ int coauthorcmp(const string &coauthor1, const string& coauthor2 );
 int asgcmp(const string & asg1, const string & asg2, const map<string, std::pair<string, unsigned int> > * const asg_table_pointer);
 int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 		   const map<string, std::pair<string, unsigned int> > * const asg_table_pointer);
-int name_compare( const string & s1, const string & s2);
+int name_compare( const string & s1, const string & s2, const unsigned int prev, const unsigned int cur);
 
 
 class cSentence_JWComparator {

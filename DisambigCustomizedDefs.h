@@ -38,7 +38,11 @@
 
 
 class cFirstname : public cAttribute_Single_Mode <cFirstname> {
-public:
+private:
+  static unsigned int previous_truncation;
+  static unsigned int current_truncation;
+ public:
+  static void set_truncation( const unsigned int prev, const unsigned int cur ) { previous_truncation = prev; current_truncation = cur; }
 	//static const unsigned int max_value = Jaro_Wrinkler_Max;
 	static const unsigned int max_value = 4;
 

@@ -459,58 +459,6 @@ void cReconfigurator_Coauthor :: reconfigure ( const cRecord * p ) const {
 }
 
 
-
-
-void cRecord::reset_coauthors(const cBlocking_Operation_By_Coauthors & bb, const unsigned int topN) const {
-	const unsigned int firstname_attrib_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
-	const unsigned int lastname_attrib_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
-	const unsigned int coauthor_attrib_index = cRecord::get_index_by_name(cCoauthor::static_get_class_name());
-	const cAttribute * const * ppAttrib = & this->get_attrib_pointer_by_index(coauthor_attrib_index);
-	const cCoauthor * pCoauthorAttrib = dynamic_cast< const cCoauthor *> (*ppAttrib);
-	if ( pCoauthorAttrib == NULL )
-		throw cException_Other("Critical Error: Attribute is not Coauthor !");
-
-	if ( bb.patent_tree.find (this) == bb.patent_tree.end() )
-		throw cException_Other("Critical Error: Record not found !");
-
-	const cGroup_Value top_coauthor_list = bb.get_topN_coauthors(this, topN);
-	if ( top_coauthor_list.empty() )
-		return;
-
-	//now edit cCoauthor.
-	//cCoauthor * pCoauthor = const_cast < cCoauthor *> (pCoauthorAttrib);
-	string coauthor_str;
-	const string primary_delim = "/";
-	const string secondary_delim = ".";
-	cGroup_Value::const_iterator p = top_coauthor_list.begin();
-	coauthor_str += * (*p)->get_data_by_index(firstname_attrib_index).at(0);
-	coauthor_str += secondary_delim;
-	coauthor_str += * (*p)->get_data_by_index(lastname_attrib_index).at(0);
-	++p;
-	for ( ; p != top_coauthor_list.end(); ++p ) {
-		coauthor_str += primary_delim;
-		coauthor_str += * (*p)->get_data_by_index(firstname_attrib_index).at(0);
-		coauthor_str += secondary_delim;
-		coauthor_str += * (*p)->get_data_by_index(lastname_attrib_index).at(0);
-	}
-	cCoauthor tempco ( * pCoauthorAttrib);
-	tempco.reset_data(coauthor_str.c_str());
-	const cAttribute * pt = cCoauthor::static_add_attrib(tempco, 1);
-	pCoauthorAttrib->reduce_attrib(1);
-	//pCoauthor->reset_data(coauthor_str.c_str());
-	const cAttribute ** ppA = const_cast< const cAttribute **> (ppAttrib);
-	*ppA = pt;
-
-}
-
-
-
-
-
-
-
-
-
 cBlocking::cBlocking (const list<const cRecord *> & psource,
 						const vector<string> & blocking_column_names,
 						const vector<const cString_Manipulator*>& pmanipulators,

@@ -1058,7 +1058,7 @@ int fullrun_iterative_v4() {
 	const string final_file = working_dir + "/final.txt";
 	const double thresholds[] = { 0.99, 0.95, 0.90 };
 	const unsigned int buff_size = 500;
-	const unsigned int num_threads = 4;
+	const unsigned int num_threads = 1;
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
@@ -1195,6 +1195,7 @@ int fullrun_iterative_v4() {
 	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names, blocking_column_data_indice);
 
 	vector < string > prev_train_vec;
+	unsigned int firstname_prev_truncation = 0, firstname_cur_truncation = 0;
 	for ( ; round <= max_round_by_coauthor; ++round ) {
 		std::cout << std::endl;
 		std::cout << "====================== ROUND " << round << " ===========================" << std::endl;
@@ -1219,6 +1220,8 @@ int fullrun_iterative_v4() {
 		const vector<string> training_changable_vec ( training_changable, training_changable + sizeof(training_changable)/sizeof(string));
 
 
+
+		firstname_prev_truncation = firstname_cur_truncation;
 
 		switch (round) {
 		case 1:
@@ -1266,7 +1269,11 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 0, true);
+
+			firstname_cur_truncation = 0;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
+
 			operator_truncate_middlename.set_truncater(0, 0, true);
 			operator_truncate_lastname.set_truncater(0, 0, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1282,7 +1289,10 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 5, true);
+
+			firstname_cur_truncation = 5;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
 			operator_truncate_middlename.set_truncater(0, 1, true);
 			operator_truncate_lastname.set_truncater(0, 8, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1300,7 +1310,10 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 3, true);
+
+			firstname_cur_truncation = 3;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1322,7 +1335,10 @@ int fullrun_iterative_v4() {
 			cCoauthor::activate_comparator();
 
 
-			operator_truncate_firstname.set_truncater(0, 1, true);
+
+			firstname_cur_truncation = 1;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1340,7 +1356,10 @@ int fullrun_iterative_v4() {
 			cCoauthor::activate_comparator();
 
 
-			operator_truncate_firstname.set_truncater(0, 1, true);
+
+			firstname_cur_truncation = 1;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 5, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1369,7 +1388,11 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 1, true);
+
+			firstname_cur_truncation = 1;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
+
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
 			//match.reset_blocking(blocker, oldmatchfile);
@@ -1386,7 +1409,9 @@ int fullrun_iterative_v4() {
 			cClass::activate_comparator();
 			cCoauthor::activate_comparator();
 
-			operator_truncate_firstname.set_truncater(0, 1, true);
+			firstname_cur_truncation = 1;
+			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
+			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
 			operator_truncate_middlename.set_truncater(0, 0, false);
 			operator_truncate_lastname.set_truncater(0, 3, true);
 			//match.reset_blocking(blocker, oldmatchfile);

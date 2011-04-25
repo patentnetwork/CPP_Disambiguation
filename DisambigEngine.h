@@ -26,12 +26,52 @@ using std::set;
 //asgdetail consists of assignee number and its patent counts.
 typedef std::pair<string, unsigned int> asgdetail;
 
-
-class cAttribute;
+// forward diclarations
 class cBlocking_Operation_By_Coauthors;
 
+
+/*
+ * definition of Record class.
+ * The cRecord class is used to save a real line of record which includes multiple concrete attributes.
+ *
+ *
+ * Private:
+ * 		vector <const cAttribute *> vector_pdata: the major data of the class, which stores a vector of pointers of concrete attributes.
+ * 		static vector <string> column_names: static member which stores the name of each attributes with sequential information. Very important.
+ * 		static vector < string > active_similarity_names: static member which stores the names of attributes whose comparison functions are activated.
+ * 		static const cRecord * sample_record_pointer: a pointer of a real record object, allowing some polymorphic static functions.
+ *
+ * Public:
+ * 		cRecord(const vector <const cAttribute *>& input_vec): vector_pdata(input_vec): constructor.
+ * 		cRecord(): default constructor.
+ *		vector <unsigned int> record_compare(const cRecord & rhs) const: compare (*this) with rhs and get a similarity profile.
+ *						NOTE THAT SIMILARITY PROFILES ARE vector <unsigned int>s;
+ *			Example: if (Firstname, Lastname, Assignee, class, Coauthor) are activated for comparison, the function will return a
+ *						vector < unsigned int > of 5-dimensions, each of which indicating a score for its corresponding column.
+ *		vector <unsigned int> record_compare_by_attrib_indice (const cRecord &rhs, const vector < unsigned int > & attrib_indice_to_compare) const:
+ *				compare (*this) with rhs only in the columns whose indice are given in "attrib_indice_to_compare", and returns an incomplete similarity profile.
+ *			Example: if (Firstname, Lastname, Assignee, class, Coauthor) are activated, and the attrib_indice_to_compare = [ 0, 2, 3],
+ *					 then the return value is a vector < unsigned int > = [ Firstname, Assignee, Class];
+ *		static unsigned int get_index_by_name(const string & inputstr): get the index of the attribute whose specifier is "inputstr"
+ *		const vector <const string * > & get_data_by_index(const unsigned int i) const: get the REAL data of the ith attribute through its index.
+ *		const cAttribute * const & get_attrib_pointer_by_index(const unsigned int i) const:
+ *				get the reference of the const pointer to a const attribute based on its index. Returning of reference is critical,
+ *				because this allows modification of the attribute pointer in the vector.
+ *		const vector < const cAttribute*> & get_attrib_vector () const: returns the vector of attribute pointers.
+ *		void print( std::ostream & os ) const: output the record to an output stream, like std::cout or ofstream.
+ *		void print() const: output the record to std::cout. Used mainly for debug purpose.
+ *		static const vector < string > & get_column_names(): get the attribute names vector.
+ *		unsigned int informative_attributes() const: count the number of informative attributes ( those containing "something" rather than empty strings ).
+ *		unsigned int record_exact_compare(const cRecord & rhs ) const: compare (*this) with rhs and return the number of attributes that are exactly the same.
+ *		void set_attrib_pointer_by_index( const cAttribute * pa, const unsigned int i ): modify the attribute vector, setting the ith element to pa
+ *		void clean_member_attrib_pool() const: clear all the members static attribute pool. This is EXTREMELY dangerous, unless its functionality is fully understood.
+ *		static unsigned int record_size(): returns the number of attributes of a record.
+ *		static void update_active_similarity_names(): update the static member "active_similarity_names" by checking the comparator of each attribute.
+ *		static const vector < string > & get_similarity_names(): get the names of the active similarity profile attributes.
+ *		static unsigned int get_similarity_index_by_name(const string & inputstr): get the index of an attribute in the ACTIVE similarity profile.
+ *
+ */
 class cRecord {
-	friend bool fetch_records_from_sqlite3(list <cRecord> & source, const char * sql_file, const char * statement, const map<string, asgdetail>& asgtree);
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, asgdetail>& asgtree);
 	friend void clear_records(const list <cRecord> & source);
 	friend class cSort_by_attrib;
@@ -46,7 +86,6 @@ private:
 public:
 	cRecord(const vector <const cAttribute *>& input_vec): vector_pdata(input_vec) {};
 	cRecord() {}
-	void assigne (const vector <const cAttribute *>& input_vec )  { vector_pdata = input_vec; }
 	vector <unsigned int> record_compare(const cRecord & rhs) const;
 	vector <unsigned int> record_compare_by_attrib_indice (const cRecord &rhs, const vector < unsigned int > & attrib_indice_to_compare) const;
 	static unsigned int get_index_by_name(const string & inputstr);
@@ -56,7 +95,6 @@ public:
 	void print( std::ostream & os ) const;
 	void print() const; //{ this->print(std::cout);}
 	static const vector < string > & get_column_names() { return column_names;}
-	void reset_coauthors( const cBlocking_Operation_By_Coauthors &, const unsigned int topN) const;
 	unsigned int informative_attributes() const;
 	unsigned int record_exact_compare(const cRecord & rhs ) const;
 	void set_attrib_pointer_by_index( const cAttribute * pa, const unsigned int i ) { vector_pdata.at(i) = pa;}
@@ -69,18 +107,26 @@ public:
 
 //================================================
 
+/*
+ * cSort_by_attrib:
+ * A functor for comparison of attributes in associated containers such as map or set.
+ * bool operator () (const cRecord * prec1, const cRecord *prec2 ) const: comparison between two records pointers based on their content.
+ * 			The conparison content depends on the internal information of the cSort_by_attrib object. i.e. attrib_index;
+ *
+ * Example:
+ * 1. cSort_by_attrib obj1( "Patent" ); this will create an instance obj1 which compares two cRecord pointers based on the "Patent" information column.
+ *    map < const cRecord *, VALUE_TYPE, cSort_by_attrib > m1(obj1); will create a map (binary tree) whose key is const cRecord pointer, and
+ *    		the way of sorting is through comparison of "Patent" attribute. Binary tree is ideal for fast search, insertion and deletion.
+ *
+ */
 
 class cSort_by_attrib {
 private:
-	const unsigned int attrib_index;
+	const unsigned int attrib_index;	//attrib_index is the column index on which the cRecord's comparison depends.
 public:
 	bool operator () (const cRecord * prec1, const cRecord *prec2 ) const {
 		const cAttribute * attr1 = prec1->vector_pdata.at(attrib_index);
 		const cAttribute * attr2 = prec2->vector_pdata.at(attrib_index);
-		//if ( attr1->get_data().size() != 1 )
-		//	throw cException_Invalid_Attribute_For_Sort(attr1->get_class_name().c_str());
-		//if ( attr2->get_data().size() != 1 )
-		//	throw cException_Invalid_Attribute_For_Sort(attr2->get_class_name().c_str());
 
 		return attr1->get_data().at(0) < attr2->get_data().at(0);
 	};
@@ -92,16 +138,47 @@ public:
 
 //=====================================================
 
+/*
+ * cString_Manipulator:
+ * 	- cString_Remain_Same
+ * 	- cString_Remove_Space
+ * 	- cString_Truncate
+ * 		-- cString_NoSpace_Truncate
+ * 	- cExtract_Initials
+ * 	- cString_Extract_FirstWord
+ *
+ * cString_Manipulator is a hierarchy of of string operation functors. The reason to create such hierarchy is to allow polymorphism.
+ * Subclasses override the virtual function "string manipulate ( const string & input ) const " with their own implementations.
+ *
+ * To use, one should create an object of a subclass, and call the "manipulate" function.
+ * To add more user defined string manipulators, one should simply create a class that inherits the cString_Manipulator class, and override the manipulate function.
+ *
+ */
+
 class cString_Manipulator{
 public:
 	virtual string manipulate(const string & inputstring) const = 0;
 	virtual ~cString_Manipulator() {};
 };
 
+/*
+ * cString_Remain_Same:
+ * As is indicated by the name, this class returns the raw string it obtains.
+ *
+ */
+
 class cString_Remain_Same : public cString_Manipulator {
 public:
 	string manipulate(const string & inputstring ) const { return inputstring;}
 };
+
+
+/*
+ * cString_Remove_Space:
+ * This class remove all the white spaces of the input string and returns a cleaned one.
+ * i.e. Input = "THIS IS AN   EXAMPLE  ". Return value = "THISISANEXAMPLE".
+ *
+ */
 
 class cString_Remove_Space : public cString_Manipulator {
 private:
@@ -114,6 +191,45 @@ public:
 	};
 	explicit cString_Remove_Space(){};
 };
+
+/*
+ * cString_Truncate:
+ * This class is more often used for string operation. Understanding of the member is desirable.
+ *
+ * Private:
+ * int begin: location of the starting point for truncation. Non-negative value means the position of starting character is from the beginning,
+ * 			  and negative value means the position of starting character is from the end of the string.
+ * unsigned int nchar: number of characters to extract. if nchar == 0, all the string will be extracted. If nchar > length of string, only the string part will be kept.
+ * bool is_forward: indicating the direction to truncation. true = forward ( left to right ), false = backward ( right to left )
+ * bool is_usable: internal data of the class. false = the object is not prepared yet. true = ready to use.
+ *
+ *
+ * WARNING: A COMBINATION OF NCHAR = 0 AND IS_FORWARD = FALSE WILL RETURN AN EMPTY STRING.
+ *
+ *
+ * Public:
+ * 	explicit cString_Truncate(): default constructor.
+ *  void set_truncater( const int inputbegin, const unsigned int inputnchar, const bool inputforward): configure the object.
+ *  string manipulate( const string & inputstring ) const: implementation of the extraction operation. Defined in cpp file.
+ *
+ * Example:
+ *  cString_Truncate stobj; //created an instance
+ *  stobj.set_truncater(0, 5, true) : starting position = 0 (head of the string), extraction length = 5, direction = forward.
+ *  stobj.manipulate ("ERIC") returns "ERIC".
+ *  stobj.manipulate ("JOHNSON") returns "JOHNS";
+ *  stobj.set_truncater(0, 0, true) : starting position = 0 (head of the string), extraction length = full length, direction = forward.
+ *  stobj.manipulate ("JOHNSON") returns "JOHNSON";
+ *  stobj.set_truncater(-6, 2, true) : starting position = -6, extraction length = 2, direction = forward.
+ *  stobj.manipulate ("JOHNSON") returns "OH";
+ *  stobj.set_truncater(-6, 2, false) : starting position = -6, extraction length = 2, direction = backward.
+ *  stobj.manipulate ("JOHNSON") returns "HO";
+ *  stobj.set_truncater(4, 3, false) : starting position = 4, extraction length = 4, direction = backward.
+ *  stobj.manipulate ("JOHNSON") returns "SNH";
+ *  stobj.set_truncater(4, 0, false) : starting position = 4, extraction length = 0, direction = backward.  --- read the Warning part.
+ *  stobj.manipulate ("JOHNSON") returns "";
+ *
+ */
+
 
 class cString_Truncate: public cString_Manipulator {
 private:
@@ -138,6 +254,13 @@ public:
 	string manipulate( const string & inputstring ) const;
 };
 
+/*
+ * cString_NoSpace_Truncate:
+ * The functionality of the class is similar to the above cString_Truncate.
+ * The only difference is that it removes space first and then truncates as directed.
+ *
+ */
+
 class cString_NoSpace_Truncate: public cString_Truncate {
 private:
 	const cString_Remove_Space ns;
@@ -149,6 +272,16 @@ public:
 };
 
 
+/*
+ * cExtract_Initials:
+ * Extract the initials from the string, starting from the (starting_word)th word.
+ *
+ * Example:
+ * cExtract_Initials eiobj(3);	//create an instance eiobj, setting the starting_word = 3;
+ * eiobj.manipulate("THIS IS AN EXAMPLE, YOU KNOW.") returns "EYK".
+ *
+ */
+
 class cExtract_Initials : public cString_Manipulator {
 private:
 	const unsigned int starting_word;
@@ -158,6 +291,15 @@ public:
 	explicit cExtract_Initials (const unsigned int start ): starting_word(start) {};
 };
 
+
+/*
+ * cString_Extract_FirstWord:
+ * Extract the first word of the input string.
+ *
+ * cString_Extract_FirstWord sefobj;
+ * sefobj.manipulate("THOMAS DAVID ANDERSON") returns "THOMAS"
+ */
+
 class cString_Extract_FirstWord : public cString_Manipulator {
 private:
 	static const char delimiter = ' ';
@@ -166,6 +308,36 @@ public:
 };
 
 //==========================================================
+
+/*
+ * cBlocking_Operation
+ * 	- cBlocking_Operation_Column_Manipulate
+ * 	- cBlocking_Operation_Multiple_Column_Manipulate
+ *
+ * cBlocking_Operation reads data from a const cRecord pointer, and extract information to create a string which represents the blocking id to which the record belongs.
+ *
+ * Protected:
+ * 		string infoless: this string represents the string that has delimiters ONLY. i.e. no useful information at all.
+ * 						Usually, the variable is changed by concrete subclasses.
+ *
+ * Public:
+ * 		const string & get_useless_string () const: returns the infoless string.
+ * 		static const string delim: the separator between columns. Defined in cpp file. Will be used by other modules.
+ * 		virtual string extract_blocking_info(const cRecord *) const = 0: pure virtual function to extract information from a cRecord pointer.
+ * 		virtual string extract_column_info ( const cRecord *, unsigned int flag ) const:
+ * 				virtual function that extract information from the (flag)th column.
+ *  	virtual unsigned int num_involved_columns() const: return number of columns that the extraction operates on.
+ *
+ * Example:
+ * 		cRecord recobj: firstname = "JACK", lastname = "SMITH", patent = "12345A"
+ * 		if cBlocking_Operation::delim == "###", then
+ * 			extract_blocking_info ( &recobj ) probably returns "J###SMI###" if the blocking operation
+ * 											just wants the first char of firstname and 3 chars from lastname.
+ * 			extract_column_info ( & recobj, 1 ) probably returns "SMI" if the information of the second column (which is lastname ) is desired.
+ * 			num_involved_column() probably returns 2. ( firstname + lastname).
+ * 			get_useless_string() returns "######".
+ *
+ */
 
 class cBlocking_Operation {
 protected:
@@ -179,22 +351,22 @@ public:
 	virtual unsigned int num_involved_columns() const { return 1;}
 };
 
-#if 0
-class cBlocking_Operation_FmLnName_NoSpace: public cBlocking_Operation {
-private:
-	cString_NoSpace_Truncate m_ftruncater;
-	cString_NoSpace_Truncate n_ltruncater;
-	const unsigned int firstname_index;
-	const unsigned int lastname_index;
-public:
-	void set_firstname_truncater(const int begin, const unsigned int length, const bool is_forward) {m_ftruncater.set_truncater(begin, length, is_forward);}
-	void set_lastname_truncater(const int begin, const unsigned int length, const bool is_forward) {n_ltruncater.set_truncater(begin, length, is_forward);}
-	cBlocking_Operation_FmLnName_NoSpace(): firstname_index(cRecord::get_index_by_name(cFirstname::static_get_class_name())),
-											lastname_index(cRecord::get_index_by_name(cLastname::static_get_class_name())) {}
-	string extract_blocking_info(const cRecord *) const;
-};
-#endif
-
+/*
+ * cBlocking_Operation_Column_Manipulate:
+ * This is a subclass of cBlocking_Operation. Usage of the class is described in its base class.
+ *
+ * Example:
+ * const cString_Truncate stobj (0, 3, true);
+ * cBlocking_Operation_Column_Manipulate bocmobj ( stobj, cLastname::get_class_name() );
+ * 		// set up a bocmobj instance of cBlocking_Operation_Column_Manipulate, which takes a cString_Truncate object as the string manipulater,
+ * 		// and applies the string manipulation on the "Last name" column.
+ * Assuming a record recobj: Firstname = "JOHN", lastname = "FLEMING", patent = "1234Q", Country = "CA", ... ...
+ * bocmobj.extract_blocking_info( & recobj ) returns "FLE";
+ *
+ *
+ * However, this concrete class is not used often, because the next class (cBlocking_Operation_Multiple_Column_Manipulate ) is more widely used.
+ *
+ */
 class cBlocking_Operation_Column_Manipulate: public cBlocking_Operation {
 private:
 	const cString_Manipulator & sm;
@@ -205,11 +377,44 @@ public:
 	string extract_blocking_info(const cRecord * p) const {return sm.manipulate( * p->get_data_by_index(column_index).at(0));}
 };
 
+
+
+/*
+ * cBlocking_Operation_Multiple_Column_Manipulate:
+ * This is a subclass of cBlocking_Operation, which extracts information from several columns and returns a block specifier string.
+ *
+ * Private:
+ * 		vector < const cString_Manipulator * > vsm: the vector of string manipulator pointers.
+ * 		vector < unsigned int > indice: the vector of column indice from which the manipulators extract information, respectively.
+ * 		vector < const unsigned int * > pdata_indice: the vector of the const interger pointers indicating the positions of data in the data vector in cAttribute on which the extractions take place.
+ *
+ * Public:
+ * 	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di )
+ * 		: This is a constructor of the class. inputvsm = the vector of string manipulator pointers
+ * 			columnnames = the vector of strings which reprensents the name of columns that the extractions will be applied on, respectively.
+ * 			di = the vector of indice in the cAttribute::data, which will serve as the source string pointers.
+ * 			NOTE: di SHOULD NOT BE DESTRUCTED BEFORE THE cBlocking_Operation_Multiple_Column_Manipulate object is discarded.
+ * cBlocking_Operation_Multiple_Column_Manipulate (const cString_Manipulator * const* pinputvsm, const string * pcolumnnames, const unsigned int  * pdi, const unsigned int num_col ):
+ * 			This is another constructor of the class object. pinputvsm = pointer of the string manipulator pointers array
+ * 			pcolumnnames = pointer of the strings array. pdi = pointer of the cAttribute::data indice array. num_col = number of involed columns.
+ * 			NOTE: pdi SHOULD NOT BE DESTRUCTED BEFORE THE cBlocking_Operation_Multiple_Column_Manipulate object is discarded.
+ *	string extract_blocking_info(const cRecord * p) const: extracts information and returns a string.
+ *	string extract_column_info ( const cRecord * p, unsigned int flag ) const: extracts information from specified column and returns a string
+ *	unsigned int num_involved_columns() const : return number of involved columns.
+ *
+ *
+ *
+ */
+
+
+
+
 class cBlocking_Operation_Multiple_Column_Manipulate : public cBlocking_Operation {
 private:
 	vector < const cString_Manipulator * > vsm;
 	vector < unsigned int > indice;
 	vector < const unsigned int * > pdata_indice;
+
 public:
 	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di )
 		:vsm(inputvsm) {
@@ -249,6 +454,29 @@ public:
 	unsigned int num_involved_columns() const { return vsm.size();}
 
 };
+
+class cCluster_Info;
+class cBlocking_Operation_By_Coauthors : public cBlocking_Operation {
+private:
+	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree;
+	map < const cRecord *, const cRecord * > uid2uinv_tree;
+	map < const cRecord *, unsigned int > uinv2count_tree;
+
+	const unsigned int num_coauthors;
+
+	void build_patent_tree(const list < const cRecord * > & allrec);
+	cGroup_Value get_topN_coauthors( const cRecord *, const unsigned int topN) const;
+
+public:
+	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const cCluster_Info& cluster, const unsigned int coauthors);
+	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const unsigned int num_coauthors);
+	string extract_blocking_info(const cRecord *) const;
+	void build_uid2uinv_tree( const cCluster_Info &);
+	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & get_patent_tree() const {return patent_tree;}
+	map < const cRecord *, const cRecord * > & get_uid2uinv_tree() { return uid2uinv_tree;}
+
+};
+
 
 
 class cRecord_Reconfigurator {
@@ -310,28 +538,7 @@ public:
 
 
 
-class cCluster_Info;
-class cBlocking_Operation_By_Coauthors : public cBlocking_Operation {
-	friend void cRecord::reset_coauthors(const cBlocking_Operation_By_Coauthors & bb, const unsigned int topN) const;
-private:
-	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree;
-	map < const cRecord *, const cRecord * > uid2uinv_tree;
-	map < const cRecord *, unsigned int > uinv2count_tree;
 
-	const unsigned int num_coauthors;
-
-	void build_patent_tree(const list < const cRecord * > & allrec);
-	cGroup_Value get_topN_coauthors( const cRecord *, const unsigned int topN) const;
-
-public:
-	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const cCluster_Info& cluster, const unsigned int coauthors);
-	cBlocking_Operation_By_Coauthors(const list < const cRecord * > & allrec, const unsigned int num_coauthors);
-	string extract_blocking_info(const cRecord *) const;
-	void build_uid2uinv_tree( const cCluster_Info &);
-	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & get_patent_tree() const {return patent_tree;}
-	map < const cRecord *, const cRecord * > & get_uid2uinv_tree() { return uid2uinv_tree;}
-
-};
 
 
 //=========================================

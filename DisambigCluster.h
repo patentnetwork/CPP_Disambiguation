@@ -74,7 +74,7 @@ private:
 	//map < unsigned int, unsigned int > firstname_dist;
 	//map < unsigned int, unsigned int > lastname_dist;
 	vector < map < string, unsigned int > > column_stat;
-	map < const string *, double > prior_data;
+	map < const string *, list <double>  > prior_data;
 	map < const string *, bool > block_activity;
 	vector < unsigned int > max_occurrence;
 	vector < unsigned int > min_occurrence;
@@ -90,12 +90,12 @@ private:
 		cException_Cluster_Error(const char* errmsg): cAbstract_Exception(errmsg){};
 	};
 
-	void config_prior( const char * outputfile);
+	void config_prior();
 
-	unsigned int disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  double & prior_value,
+	unsigned int disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_value,
 											const cRatios & ratiosmap, const string * const bid, const double threshold ) ;
 	void retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file);
-
+	void output_prior_value( const char * const prior_to_save ) const;
 	cCluster_Info ( const cCluster_Info &);
 public:
 
@@ -122,8 +122,8 @@ public:
 
 	double get_prior_value( const string & block_identifier, const list <cCluster> & rg );
 	const map < string, cRecGroup> & get_cluster_map () const {return cluster_by_block;}
-	const map < const string *, double > & get_prior_map() const {return prior_data;}
-	map < const string*, double > & get_prior_map() {return prior_data;};
+	const map < const string *, list<double> > & get_prior_map() const {return prior_data;}
+	map < const string*, list <double> > & get_prior_map() {return prior_data;};
 	const cRecGroup & get_comparision_map(const string* bid) const {
 		map < string, cRecGroup >::const_iterator q = cluster_by_block.find(*bid);
 		if ( q == cluster_by_block.end())
