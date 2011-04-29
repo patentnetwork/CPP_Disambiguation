@@ -12,6 +12,60 @@ extern "C" {
 }
 
 
+cBlocking::cBlocking (const list<const cRecord *> & psource,
+						const vector<string> & blocking_column_names,
+						const vector<const cString_Manipulator*>& pmanipulators,
+						const string & unique_identifier)
+					: blocking_column_names(blocking_column_names), string_manipulator_pointers(pmanipulators){
+
+	const string label_delim = cBlocking_Operation::delim;
+	const unsigned int num_block_columns = blocking_column_names.size();
+	if ( num_block_columns != pmanipulators.size())
+		throw cBlocking::cException_Blocking("Blocking Constructor Error.");
+
+	cSort_by_attrib unique_comparator(unique_identifier);
+	vector < unsigned int > blocking_indice;
+	for ( unsigned int i = 0; i < num_block_columns; ++i ) {
+		blocking_indice.push_back(cRecord::get_index_by_name(blocking_column_names.at(i)));
+	}
+
+	map<string, cGroup_Value >::iterator b_iter;
+	const map<string, cGroup_Value >::key_compare bmap_compare = blocking_data.key_comp();
+	std::cout << "Grouping ..." << std::endl;
+	unsigned int count = 0;
+	const unsigned int base = 100000;
+	for ( list<const cRecord*>::const_iterator p = psource.begin(); p != psource.end(); ++p ) {
+		string label;
+		for ( unsigned int i = 0; i < num_block_columns; ++i ) {
+			const vector < const string * > & source_data = (*p)->get_data_by_index(blocking_indice.at(i));
+			if ( source_data.size() == 0 )
+				throw cException_Vector_Data( (*p)->get_column_names().at(blocking_indice.at(i)).c_str());
+			//for ( vector <string> :: const_iterator q = source_data.begin(); q != source_data.end(); ++q ) {
+			vector < const string* > :: const_iterator q = source_data.begin();
+			label += pmanipulators.at(i)->manipulate(**q);
+			label += label_delim;
+			//}
+		}
+
+		b_iter = blocking_data.lower_bound(label);
+		if ( b_iter != blocking_data.end() && ! bmap_compare(label, b_iter->first) ) {
+			//b_iter->second.insert(*p);
+			b_iter->second.push_back(*p);
+		}
+		else {
+			cGroup_Value tempset;
+			//tempset.insert( *p );
+			tempset.push_back(*p);
+			b_iter = blocking_data.insert(b_iter, std::pair< string, cGroup_Value >(label, tempset));
+		}
+
+		record2blockingstring.insert(std::pair<const cRecord*, const string *>(*p, &(b_iter->first)));
+		++count;
+		if ( count % base == 0 )
+			std::cout << count << " records have been grouped into blocks." << std::endl;
+	}
+}
+
 cBlocking_For_Training::cBlocking_For_Training( const list < const cRecord *> & source, const vector<string> & blocking_column_names,
 									const vector<const cString_Manipulator*>& pmanipulators, const string & unique_identifier, const unsigned int qt)
 				: cBlocking ( source, blocking_column_names, pmanipulators, unique_identifier ), total_quota(qt) {

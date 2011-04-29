@@ -19,6 +19,9 @@ extern "C" {
 const char * cCluster_Info::primary_delim = "###";
 const char * cCluster_Info::secondary_delim = ",";
 
+unsigned int cWorker_For_Disambiguation::count = 0;
+pthread_mutex_t cWorker_For_Disambiguation::iter_lock = PTHREAD_MUTEX_INITIALIZER;
+
 bool cCluster_Info::is_consistent() const {
 	unsigned int temp_total = 0;
 	for ( map < string, cRecGroup >::const_iterator cp = cluster_by_block.begin(); cp != cluster_by_block.end(); ++cp ) {

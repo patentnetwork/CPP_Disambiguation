@@ -58,6 +58,42 @@ public:
 	cException_Reach_Limit(const char* errmsg): cAbstract_Exception(errmsg) {};
 };
 
+//=========================================
+
+class cCluster_Info;
+class cBlocking {
+	friend class cCluster_Info;
+private:
+	cBlocking ( const cBlocking &);
+protected:
+	class cException_Blocking: public cAbstract_Exception {
+	public:
+		cException_Blocking (const char * errmsg) : cAbstract_Exception(errmsg) {};
+	};
+
+	class cString_Pointer_Compare{
+	public:
+		bool operator() ( const string * p1, const string *p2 ) const {
+			return (*p1) < (*p2);
+		}
+	};
+
+	class cException_Tree_Key_Mismatch : public cAbstract_Exception {
+	public:
+		cException_Tree_Key_Mismatch(const char* errmsg): cAbstract_Exception(errmsg) {};
+	};
+
+	map<string, cGroup_Value > blocking_data;
+	map < const cRecord *, const string *> record2blockingstring;
+	const vector <string> blocking_column_names;
+	const vector<const cString_Manipulator*> string_manipulator_pointers;
+
+public:
+	explicit cBlocking(const list<const cRecord *> & psource, const vector<string> & blocking_column_names, const vector<const cString_Manipulator*>& pmanipulators, const string & unique_identifier );
+	const map<string, cGroup_Value > & get_block_map() const {return blocking_data;}
+};
+
+
 
 class cBlocking_For_Training : public cBlocking {
 

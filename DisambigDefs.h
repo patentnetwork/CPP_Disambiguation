@@ -2,15 +2,12 @@
  * DisambigDefs.h
  *
  *  Created on: Dec 7, 2010
- *      Author: Ye (Edward) Sun.  sunyedinken2002@hotmail.com
+ *      Author: Ye (Edward) Sun.  Harvard University. sunyedinken2002@hotmail.com
+ *
  *
  *
  *  This file contains most of the basic definitions.
  *
- *  Base classes:
- *  -- cAbstract_Exception
- *	-- cSimilarity_Compare
- *	--
  *
  */
 
@@ -33,7 +30,6 @@
 #include <pthread.h>
 #include <typeinfo>
 
-//#define DEBUG
 #define INERT_ATTRIB_GROUP_IDENTIFIER "NONE"			// the attribute group specifier that is not the component of similarity profiles
 
 
@@ -46,7 +42,8 @@ using std::set;
 class cRecord;
 void cRecord_update_active_similarity_names();
 
-typedef list<const cRecord*> cGroup_Value;
+
+
 class cAttribute;
 //======================================================================================
 
