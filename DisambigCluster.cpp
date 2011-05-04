@@ -257,7 +257,7 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 	for ( map <string, cRecGroup>::iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::iterator cp = p->second.begin(); cp != p->second.end(); ++cp ) {
 			cp->change_mid_name();
-			cp->self_repair();
+			//cp->self_repair();
 		}
 	}
 
@@ -298,8 +298,11 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 
 
 	for ( mi = cluster_by_block.begin(); mi != cluster_by_block.end(); ++mi ) {
-		cCluster & alias = mi->second.front();
-		alias.self_repair();
+		//cCluster & alias = mi->second.front();
+		for ( cRecGroup::iterator gi = mi->second.begin(); gi != mi->second.end(); ++gi) {
+			gi->self_repair();
+		}
+		//alias.self_repair();
 		//std::cout << "**************" << std::endl;
 		//for ( cGroup_Value::const_iterator p = alias.get_fellows().begin(); p != alias.get_fellows().end(); ++ p)
 		//	(*p)->print();
@@ -307,7 +310,7 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 	}
 
 	std::cout << "Preliminary consolidation done." << std::endl;
-	//config_prior();
+
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
 			//total_num += cp->second.size();
@@ -791,8 +794,6 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 
 	unsigned int max_inventor = 0;
 	const cCluster * pmax = NULL;
-	unsigned int max_coauthor = 0;
-	const cCluster * pmc = NULL;
 	for ( map < string, cRecGroup >::const_iterator p = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		const cRecGroup & galias = p->second;
 		for ( cRecGroup::const_iterator q = galias.begin(); q != galias.end(); ++q ) {
@@ -800,11 +801,6 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 			if ( t > max_inventor ) {
 				max_inventor = t;
 				pmax = &(*q);
-			}
-			const unsigned int c = q->get_coauthor_set().size();
-			if ( c > max_coauthor ) {
-				max_coauthor = c;
-				pmc = &(*q);
 			}
 		}
 	}
@@ -816,28 +812,6 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 			<<"." << * pmax->get_cluster_head().m_delegate->get_data_by_index(li).at(0)
 			<< "  ID = " << * pmax->get_cluster_head().m_delegate->get_data_by_index(ui).at(0)
 			<<". Size = " << max_inventor << std::endl;
-	std::cout << "His coauthors: ";
-	for (set< const string* >::const_iterator p = pmax->get_coauthor_set().begin(); p != pmax->get_coauthor_set().end(); ++p )
-		std::cout << **p << " | ";
-	std::cout << std::endl << std::endl;
-
-	std::cout << "Most collaborative inventor: " << * pmc->get_cluster_head().m_delegate->get_data_by_index(fi).at(0)
-					<<"." << * pmc->get_cluster_head().m_delegate->get_data_by_index(li).at(0)
-					<< "  ID = " << * pmc->get_cluster_head().m_delegate->get_data_by_index(ui).at(0)
-					<<". Size = " << max_coauthor << std::endl;
-	std::cout << "His coauthors: ";
-	for (set< const string* >::const_iterator p = pmc->get_coauthor_set().begin(); p != pmc->get_coauthor_set().end(); ++p )
-		std::cout << **p << " | ";
-	std::cout << std::endl << std::endl;
-
-	const char * collaborative_file = "Collaborative.txt";
-	std::ofstream of(collaborative_file);
-	std::cout << "Saving the most collaborative inventers detail in " << collaborative_file << std::endl;
-	pmc->get_cluster_head().m_delegate->print(of);
-	for ( cGroup_Value::const_iterator p = pmc->get_fellows().begin(); p != pmc->get_fellows().end(); ++p )
-		(*p)->print(of);
-	std::cout << "Saved." << std::endl;
-
 }
 
 

@@ -6,24 +6,27 @@
  */
 
 #include "DisambigNewCluster.h"
-#include <limits>
 
-unsigned int cCluster::coauthor_index = std::numeric_limits<unsigned int >::max() ;
+//static members initialization.
 const cRatios * cCluster::pratio = NULL;
 const map < const cRecord *, cGroup_Value, cSort_by_attrib > * cCluster::reference_pointer = NULL;
-const cString_Extract_FirstWord cCluster::firstname_extracter;
-const cString_Remove_Space cCluster::lastname_extracter;
+
+/*
+ * Aim: constructor of cCluster objects.
+ */
 
 cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
-	if ( coauthor_index == std::numeric_limits<unsigned int >::max() )
-		throw cException_Other("Coauthor index is not set properly.");
 	if ( NULL == reference_pointer )
 		throw cException_Other("Critical Error: reference pointer is not set yet.");
-	//reset_coauthor_list(*reference_pointer);
-	//reset_cCoauthor_pointer(coauthor_list);
 }
 
+/*
+ * Aim: merge the mergee object into "*this", with the new cluster head = info ( Actually only the cohesion is used,
+ * 		because the delegate will be reset by find_representative).
+ * Algorithm: put the mergee's members into "*this" object, and set mergee's signal to false.
+ * 				And then call find_representative.
+ */
 
 void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	if ( this->m_mergeable == false )
@@ -54,6 +57,15 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	mergee.m_mergeable = false;
 }
 
+/*
+ * Aim: To change the pointer to abbreviated middle names to the full names.
+ * Algorithm: build a binary tree: unique last name -> longest middle name pointer. Then traverse the whole record members to
+ * 			update the binary tree. Finally, traverse the record members again, look up their last names and update their
+ * 			middle name pointers to the corresponding pointer.
+ * ATTENTION: for records without middle names (ie. the pointer of middle name points to an empty string ), the modification will
+ * 			NOT take place. This is because it is very risky, as we have no information about the real middle name.
+ */
+
 void cCluster::change_mid_name()  {
 	// The folowing step actually changes the raw data. Changes the abbreviated middlename to a longer one if possible.
 	static const unsigned int midname_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
@@ -82,6 +94,7 @@ void cCluster::change_mid_name()  {
 		const cAttribute * pl = (*p)->get_attrib_pointer_by_index(lastname_index);
 		const cAttribute * const & pm = (*p)->get_attrib_pointer_by_index(midname_index);
 		cq = last2mid.find(pl);
+		//skip empty middle names.
 		if ( pm->is_informative() && pm != cq->second ) {
 			cq->second->add_attrib(1);
 			pm->reduce_attrib(1);
@@ -94,27 +107,23 @@ void cCluster::change_mid_name()  {
 
 
 
-cCluster::~cCluster() {
-	/*
-	if ( m_mergeable )
-		std::cout << "---------------ERROR: Cluster is not ready to be deleted yet.-----------" << std::endl;
-	for (cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
-		const cCoauthor * ct = dynamic_cast< const cCoauthor * > ((*p)->get_attrib_pointer_by_index(cCluster::coauthor_index));
-		if ( NULL == ct )
-			throw cException_Other("Critical Error: cannot convert pointer to cCoauthor *.");
-		if ( ct->get_set_pointer() == & this->coauthor_list )
-			std::cout << "---------------ERROR: Pointers in the Cluster will point to invalid addresses.-----------" << std::endl;
-	}
-	*/
-}
+//destructor.
+cCluster::~cCluster() {}
 
-cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true) //, coauthor_list(rhs.coauthor_list){
+
+//copy constructor
+cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true)
 {	if ( rhs.m_mergeable == false )
 		throw cException_Other("cCluster Copy Constructor error.");
-	//rhs.m_mergeable = false;
-	//this->reset_cCoauthor_pointer(this->coauthor_list);
 }
 
+/*
+ * Aim: to compare "*this" with rhs, and check whether the clusters should merge. If it is a merge, the returned
+ * 		cluster head consists of a non-NULL cRecord pointer and a cohesion value; if it is nor a merge, the returned cluster
+ * 		head is composed of a NULL cRecord pointer, and the cohesion value is useless then.
+ * Algorithm: Check if some special cases should be dealt first. Otherwise, call disambiguate_by_set in DisambigEngine.cpp
+ *
+ */
 
 cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, const double mutual_threshold) const {
 	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
@@ -150,79 +159,20 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 
 }
 
-#if 0
-unsigned int cCluster::reset_coauthor_list(const map < const cRecord *, cGroup_Value, cSort_by_attrib > & reference_patent_tree) {
-	this->coauthor_list.clear();
-	static const string dot = ".";
-	const unsigned int firstnameindex = cRecord::get_index_by_name(cFirstname::static_get_class_name());
-	const unsigned int lastnameindex = cRecord::get_index_by_name(cLastname::static_get_class_name());
-	map < const cRecord *, cGroup_Value, cSort_by_attrib >::const_iterator cpm;
-	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
-		cpm = reference_patent_tree.find(*p);
-		if ( cpm == reference_patent_tree.end())
-			throw cException_Other("Missing patent data.");
-		const cGroup_Value & patent_coauthors = cpm->second;
-		for ( cGroup_Value::const_iterator q = patent_coauthors.begin(); q != patent_coauthors.end(); ++q ) {
-			cGroup_Value::const_iterator ti = find( m_fellows.begin(), m_fellows.end(), *q );
-			if ( ti != m_fellows.end())
-				continue;
-			string fullname = firstname_extracter.manipulate( * (*q)->get_data_by_index(firstnameindex).at(0) ) + dot
-								+ lastname_extracter.manipulate( * (*q)->get_data_by_index(lastnameindex).at(0) );
-			this->coauthor_list.insert(cCoauthor::static_add_string (fullname) );
-		}
-	}
-	return coauthor_list.size();
-}
-
-void cCluster::reset_cCoauthor_pointer(const set< const string *> & s) {
-	for (cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
-		const cCoauthor * ct = dynamic_cast< const cCoauthor * > ((*p)->get_attrib_pointer_by_index(cCluster::coauthor_index));
-		if ( NULL == ct )
-			throw cException_Other("Critical Error: cannot convert pointer to cCoauthor *.");
-		cCoauthor * c = const_cast<cCoauthor*> (ct);
-		c->reset_pointer(s);
-	}
-}
-
-
-void cCluster::split ( const cBlocking_Operation & blocker, list<cCluster >& clusterlist ) const {
-	map < string, cGroup_Value > m;
-	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
-		string label = blocker.extract_blocking_info(*p);
-		map < string, cGroup_Value>::iterator q = m.find(label);
-		if ( q == m.end() ) {
-			m.insert(std::pair<string, cGroup_Value>(label, cGroup_Value(1, *p)));
-		}
-		else
-			q->second.push_back(*p);
-	}
-	for ( map<string, cGroup_Value>::const_iterator cq = m.begin(); cq != m.end(); ++ cq) {
-		const cGroup_Value & alias = cq->second;
-		cCluster_Head th ( alias.front(), 1 );
-		cCluster tc( th, alias);
-		tc.reset_clusterhead(0.5);
-		clusterlist.push_back(tc);
-	}
-}
-#endif
-
-void cCluster::reset_clusterhead(const double prior) {
-	cCluster_Head th( NULL, 1);
-	cGroup_Value tv;
-	cCluster tc(th, tv);
-	cCluster_Head newhead = this->disambiguate(tc, prior, 0.95);
-	this->m_info = newhead;
-	m_usable = true;
-}
+/*
+ * Aim: insert a new record pointer to the member list.
+ */
 
 void cCluster::insert_elem( const cRecord * more_elem) {
 	this->m_fellows.push_back(more_elem);
 	m_usable = false;
 }
 
+/*
+ * Aim: to repair a cluster.
+ */
+
 void cCluster::self_repair() {
-	//reset_coauthor_list(*reference_pointer);
-	//reset_cCoauthor_pointer(coauthor_list);
 	const unsigned int rec_size = cRecord::record_size();
 	for ( unsigned int i = 0 ; i < rec_size; ++i ) {
 		list < const cAttribute ** > l1;
@@ -242,9 +192,18 @@ void cCluster::self_repair() {
 			++q2;
 		}
 	}
-	m_usable = true;
+	//if it has not been merged before and m_usable is false, reset to usable.
+	if ( m_usable == false && ! m_fellows.empty())
+		m_usable = true;
 }
 
+
+/*
+ * Aim: to find a representative/delegate for a cluster.
+ * Algorithm: for each specified column, build a binary map of const cAttribute pointer -> unsigned int ( as a counter).
+ * 			Then traverse the whole cluster and fill in the counter. Finally, get the most frequent.
+ *
+ */
 void cCluster::find_representative()  {
 	static const string useful_columns[] = { cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name(),
 											cLatitude::static_get_class_name(), cAssignee::static_get_class_name(), cCity::static_get_class_name(), cCountry::static_get_class_name()};

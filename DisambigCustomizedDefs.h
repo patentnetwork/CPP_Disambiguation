@@ -244,6 +244,7 @@ template <> const string cAttribute_Intermediary<cLatitude>::attrib_group;
 template <> const string cAttribute_Intermediary<cAssignee>::attrib_group;
 template <> const string cAttribute_Intermediary<cClass>::attrib_group;
 template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group;
+template <> const string cAttribute_Intermediary<cClass_M2>::attrib_group;
 
 template <typename Derived> const string cAttribute_Intermediary<Derived>::attrib_group = INERT_ATTRIB_GROUP_IDENTIFIER;
 

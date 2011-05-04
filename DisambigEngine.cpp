@@ -1690,7 +1690,6 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 			cCoauthor::enable();
 			pointer_array[i] = new cCoauthor;
 			cCoauthor::column_index_in_query = i;
-			cCluster::set_coauthor_index(i);
 		}
 		else if ( cRecord::column_names[i] == cAssignee::class_name ) {
 			cAssignee::enable();

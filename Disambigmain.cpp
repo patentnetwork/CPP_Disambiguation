@@ -338,8 +338,8 @@ int fullrun_iterative_v4() {
 	const string working_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
 	const string final_file = working_dir + "/final.txt";
 	const double thresholds[] = { 0.99, 0.95, 0.90 };
-	const unsigned int buff_size = 500;
-	const unsigned int num_threads = 1;
+	const unsigned int buff_size = 512;
+	const unsigned int num_threads = 2;
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
