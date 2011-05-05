@@ -15,12 +15,36 @@ extern "C" {
 }
 #include <cmath>
 
-
-const char * cCluster_Info::primary_delim = "###";
-const char * cCluster_Info::secondary_delim = ",";
+//initialization of static members.
+const char * const cCluster_Info::primary_delim = "###";
+const char * const cCluster_Info::secondary_delim = ",";
 
 unsigned int cWorker_For_Disambiguation::count = 0;
 pthread_mutex_t cWorker_For_Disambiguation::iter_lock = PTHREAD_MUTEX_INITIALIZER;
+
+
+cCluster_Info::cCluster_Info(const map <string, const cRecord*> & input_uid2record,
+							const bool input_is_matching , const bool aum , const bool debug  )
+		: uid2record_pointer(&input_uid2record), is_matching(input_is_matching),
+		  frequency_adjust_mode(aum), debug_mode(debug) {
+	std::cout << "A cluster information class is set up." << std::endl;
+	std::cout << "FREQUENCY_ADJUST_PRIOR_MODE: " << (frequency_adjust_mode ? "ON" : "OFF")
+				<< "       DEBUG MODE: " << (debug_mode ? "ON" : "OFF") << std::endl;
+} ;
+
+const cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string* bid) const {
+	map < string, cRecGroup >::const_iterator q = cluster_by_block.find(*bid);
+	if ( q == cluster_by_block.end())
+		throw cException_Attribute_Not_In_Tree(bid->c_str());
+	return q->second;
+}
+
+cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string* bid) {
+	map < string, cRecGroup >::iterator q = cluster_by_block.find(*bid);
+	if ( q == cluster_by_block.end())
+		throw cException_Attribute_Not_In_Tree(bid->c_str());
+	return q->second;
+}
 
 bool cCluster_Info::is_consistent() const {
 	unsigned int temp_total = 0;
@@ -37,16 +61,6 @@ bool cCluster_Info::is_consistent() const {
 	//if ( cluster_by_block.size() != prior_data.size() )
 	//	return false;
 	return true;
-}
-
-unsigned int cCluster_Info::current_size() const {
-	// not thread safe
-	unsigned int unique_inventers = 0;
-	for ( map < string, cRecGroup >::const_iterator cp = cluster_by_block.begin(); cp != cluster_by_block.end(); ++cp )
-		for ( cRecGroup::const_iterator cq = cp->second.begin(); cq != cp ->second.end(); ++ cq )
-			//unique_inventers += cq->second.size();
-			unique_inventers += cq->get_fellows().size();
-	return unique_inventers;
 }
 
 
@@ -298,15 +312,9 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 
 
 	for ( mi = cluster_by_block.begin(); mi != cluster_by_block.end(); ++mi ) {
-		//cCluster & alias = mi->second.front();
 		for ( cRecGroup::iterator gi = mi->second.begin(); gi != mi->second.end(); ++gi) {
 			gi->self_repair();
 		}
-		//alias.self_repair();
-		//std::cout << "**************" << std::endl;
-		//for ( cGroup_Value::const_iterator p = alias.get_fellows().begin(); p != alias.get_fellows().end(); ++ p)
-		//	(*p)->print();
-
 	}
 
 	std::cout << "Preliminary consolidation done." << std::endl;
@@ -447,13 +455,6 @@ void cCluster_Info:: comparision_insert(const cRecord* key, const cRecord* one_m
 }
 */
 
-void cCluster_Info::output_list ( list<const cRecord *> & target) const {
-	target.clear();
-	for ( map < string, cRecGroup >::const_iterator cp = cluster_by_block.begin(); cp != cluster_by_block.end(); ++cp )
-		for ( cRecGroup::const_iterator cq = cp->second.begin(); cq != cp ->second.end(); ++ cq )
-			//target.push_back(cq->first);
-			target.push_back(cq->get_cluster_head().m_delegate);
-}
 
 void cCluster_Info::config_prior()  {
 	prior_data.clear();
@@ -1078,7 +1079,8 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 }
 
 
-
+#if 0
+//disambiguate the assignees. Under development and disabled now.
 void cCluster_Info::disambig_assignee( const char * outputfile) const {
 	std::ofstream ofmerge("Merging.txt");
 	typedef std::pair<const cRecord *, const cRecord *> ptrpair;
@@ -1228,6 +1230,6 @@ void cCluster_Info::disambig_assignee( const char * outputfile) const {
 
 }
 
-
+#endif
 
 

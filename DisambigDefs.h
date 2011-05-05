@@ -40,6 +40,7 @@ using std::map;
 using std::set;
 
 class cRecord;
+class cRecord_Reconfigurator;
 void cRecord_update_active_similarity_names();
 
 
@@ -817,6 +818,7 @@ public:
  *  Private:
  *  	static map < Inter_Vector, unsigned int > Interactive_Pool: another pooling system for interactive_vector data.
  *  	const Inter_Vector * pInteractive: the pointer that points to the interactive vector which is pooled.
+ *  	static bool has_reconfiged: static variable to check whether such class is reconfigured. It is necessary because it has interactive members.
  *   	static const Inter_Vector * add_interactive_vector(const Inter_Vector & inputvec, const unsigned int n ):
  *   				add the interactive vector into the pooling system by reference-counting. returns the pointer. For internal use only.
  *   	static const Inter_Vector * reduce_interactive_vector(const Inter_Vector & inputvec, const unsigned int n )
@@ -829,15 +831,20 @@ public:
  *  	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const:
  *  			create or find an attribute object such that interactive_data = inputvec, with the same local data. Returns the pointer to the object.
  *		unsigned int compare(const cAttribute & rhs) const = 0: Pure virtual function, forcing child class to implement.
+ *		static bool check_if_reconfigured(): check if the class is reconfigured. Throw an error if false.
  *
+ *	ATTENTION: WHEN OVERRIDING THE COMPARISON FUNCTION OF THIS CLASS, "check_if_reconfigured()" MUST BE CALLED.
  */
 
 
 template < typename AttribType >
 class cAttribute_Single_Interactive_Mode: public cAttribute_Single_Mode < AttribType > {
 	typedef vector<const cAttribute *> Inter_Vector;
+protected:
+
 private:
 	static map < Inter_Vector, unsigned int > Interactive_Pool;
+	static bool has_reconfiged;
 	const Inter_Vector * pInteractive;
 
 	static const Inter_Vector * add_interactive_vector(const Inter_Vector & inputvec, const unsigned int n ) {
@@ -868,6 +875,7 @@ private:
 	}
 
 
+
 public:
 	cAttribute_Single_Interactive_Mode(const char * source = NULL ) : pInteractive(NULL) {}
 	const vector <const cAttribute *> & get_interactive_vector() const {return *pInteractive;}
@@ -889,13 +897,20 @@ public:
 
 		temp.cAttribute_Single_Interactive_Mode::pInteractive = temp.cAttribute_Single_Interactive_Mode::add_interactive_vector(inputvec, 1);
 		const cAttribute * pattrib_in_pool = temp.add_attrib(1);
+		has_reconfiged = true;
 		return pattrib_in_pool;
 	}
+	static bool check_if_reconfigured() {
+		if ( ! has_reconfiged )
+			throw cException_Other("Interactive class has not been reconfigured yet.");
+		return has_reconfiged;
+	}
+
 	unsigned int compare(const cAttribute & rhs) const = 0;		//forcing child class to implement because it is unknown.
 };
 
 //declaration of static member
 template <typename Derived>  map < vector<const cAttribute *> , unsigned int > cAttribute_Single_Interactive_Mode<Derived>::Interactive_Pool;
-
+template <typename Derived> bool cAttribute_Single_Interactive_Mode<Derived>::has_reconfiged = false;
 
 #endif /* DISAMBIGLIB_HPP_ */

@@ -199,6 +199,7 @@ unsigned int cMiddlename::compare(const cAttribute & right_hand_side) const {
 unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	check_if_reconfigured();
 	try {
 		unsigned int res = 0;
 		const cLatitude & rhs = dynamic_cast< const cLatitude & > (right_hand_side);

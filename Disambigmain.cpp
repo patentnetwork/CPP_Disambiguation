@@ -443,25 +443,6 @@ int fullrun_iterative_v4() {
 	cReconfigurator_Coauthor corrector_coauthor ( blocker_coauthor.get_patent_tree());
 	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_coauthor);
 	cCluster::set_reference_patent_tree_pointer( blocker_coauthor.get_patent_tree());
-	//const unsigned int topNcoauthor = 8;
-
-	/*
-	//======preliminary consolidation. very strict conditions.
-	vector <string> presort_columns;
-	presort_columns.push_back(cFirstname::static_get_class_name());
-	presort_columns.push_back(cLastname::static_get_class_name());
-	presort_columns.push_back(cAssignee::static_get_class_name());
-	presort_columns.push_back(cStreet::static_get_class_name());
-	presort_columns.push_back(cCity::static_get_class_name());
-	presort_columns.push_back(cCountry::static_get_class_name());
-	presort_columns.push_back(cClass::static_get_class_name());
-
-	const vector < const cString_Manipulator *> presort_strman( presort_columns.size(), &operator_no_change);
-
-	const cBlocking_Operation_Multiple_Column_Manipulate presort_blocker(presort_strman, presort_columns);
-	match.preliminary_consolidation(presort_blocker, all_rec_pointers);
-	match.output_current_comparision_info(oldmatchfile);
-	*/
 
 	vector <const cString_Manipulator*> pstring_oper;
 	pstring_oper.push_back(& operator_truncate_firstname);
