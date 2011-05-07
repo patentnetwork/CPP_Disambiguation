@@ -22,7 +22,9 @@ const char * const cCluster_Info::secondary_delim = ",";
 unsigned int cWorker_For_Disambiguation::count = 0;
 pthread_mutex_t cWorker_For_Disambiguation::iter_lock = PTHREAD_MUTEX_INITIALIZER;
 
-
+/*
+ * Aim: constructor of cCluster_Info objects
+ */
 cCluster_Info::cCluster_Info(const map <string, const cRecord*> & input_uid2record,
 							const bool input_is_matching , const bool aum , const bool debug  )
 		: uid2record_pointer(&input_uid2record), is_matching(input_is_matching),
@@ -32,6 +34,9 @@ cCluster_Info::cCluster_Info(const map <string, const cRecord*> & input_uid2reco
 				<< "       DEBUG MODE: " << (debug_mode ? "ON" : "OFF") << std::endl;
 } ;
 
+/*
+ * Aim: return the list of clusters by the pointer of blocking id string.
+ */
 const cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string* bid) const {
 	map < string, cRecGroup >::const_iterator q = cluster_by_block.find(*bid);
 	if ( q == cluster_by_block.end())
@@ -39,6 +44,9 @@ const cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string
 	return q->second;
 }
 
+/*
+ * Aim: return the list of clusters by the pointer of blocking id string.
+ */
 cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string* bid) {
 	map < string, cRecGroup >::iterator q = cluster_by_block.find(*bid);
 	if ( q == cluster_by_block.end())
@@ -46,31 +54,48 @@ cCluster_Info::cRecGroup & cCluster_Info::get_comparision_map(const string* bid)
 	return q->second;
 }
 
+
+/*
+ * Aim: to check the consistency of a cCluster_Info object
+ * Algorithm: sum up the number of records after disambiguation and compare it with that before disambiguation.
+ * 			It is a very crude consistency check, and the functionality can be expanded if necessary.
+ */
 bool cCluster_Info::is_consistent() const {
 	unsigned int temp_total = 0;
 	for ( map < string, cRecGroup >::const_iterator cp = cluster_by_block.begin(); cp != cluster_by_block.end(); ++cp ) {
 		for ( cRecGroup::const_iterator cq = cp->second.begin(); cq != cp ->second.end(); ++ cq ) {
-			//temp_total += cq->second.size();
 			temp_total += cq->get_fellows().size();
 		}
-		//if ( cohesion_map_by_block.find(&cp->first)->second.size() != cp->second.size())
-		//	return false;
 	}
 	if ( temp_total != total_num )
 		return false;
-	//if ( cluster_by_block.size() != prior_data.size() )
-	//	return false;
 	return true;
 }
 
-
+/*
+ * Aim: read the previous disambiguation results into the cCluster_Info object, and block them by "blocker"
+ * Algorithm:
+ * 		The records saved in the file are in the form of:
+ * 		Delegate Unique record ID###cohesion_of_the_cluster###member1,member2,member3,...
+ * 		where ### is the primary delimiter and , is the secondary delimiter. (One can change them if necessary).
+ *
+ * 		So this function clears all the variables in the object first. And then,
+ * 		For each line in the file:
+ * 			Read the delegate string, and find its cRecord pointer.
+ * 			Use the pointer and the "blocker" to create a blocking string id, b_id.
+ * 				For each part of b_id, record its occurrence in the variable "column_stat".
+ * 			Look up the map "cluster_by_block" for b_id and get the cluster list. If b_id does not exist,
+ * 			create insert (b_id, an empty cluster list) into cluster_by_block.
+ * 			Read the rest of the whole line, and create a cCluster object.
+ * 			Append the cCluster object into the end of the list of clusters.
+ *
+ * 		Finally, use the variable "column_stat" to reset "min_occurrence" and "max_occurence".
+ */
 
 void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation & blocker, const char * const past_comparision_file) {
-	//bool debug = false;
+
 	try {
-	  //const int firstname_index = cRecord::get_index_by_name(cFirstname::static_get_class_name());
-	  //	const int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
-	        const unsigned int num_columns = blocker.num_involved_columns();
+	    const unsigned int num_columns = blocker.num_involved_columns();
 
 		std::ifstream::sync_with_stdio(false);
 		std::ifstream infile(past_comparision_file);
@@ -79,37 +104,29 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 		cGroup_Value empty_set;
 		map < string , cRecGroup >::iterator prim_iter;
 		map < const string*, map < const cRecord *, double> >::iterator prim_co_iter;
-		//unsigned int seq = 0;
 		unsigned int count = 0;
 		const unsigned int base = 100000;
 		cluster_by_block.clear();
 		this->column_stat.clear();
 		this->column_stat.resize(num_columns);
-		//this->firstname_stat.clear();
-		//this->lastname_stat.clear();
 		this->max_occurrence.clear();
 		this->max_occurrence.resize(num_columns);
 		this->min_occurrence.clear();
 		this->min_occurrence.resize(num_columns);
-		//cohesion_map_by_block.clear();
 		if (infile.good()) {
 			string filedata;
 			cRecGroup::iterator pm;
 			while ( getline(infile, filedata)) {
-				//++seq;
 				register size_t pos = 0, prev_pos = 0;
 				pos = filedata.find(primary_delim, prev_pos);
 				string keystring = filedata.substr( prev_pos, pos - prev_pos);
 				const cRecord * key = retrieve_record_pointer_by_unique_id( keystring, *uid2record_pointer);
-				//const string * mk = ref.record2blockingstring.find(key)->second;
 				const string b_id = blocker.extract_blocking_info(key);
 				vector < string > column_part (num_columns) ;
 				for ( unsigned int i = 0; i < num_columns; ++i ) {
 				    const string temp = blocker.extract_column_info ( key, i );
 				    column_part.at(i) = temp;
 				}
-				//const string firstname_part = blocker.extract_column_info(key, firstname_index);
-				//const string lastname_part = blocker.extract_column_info(key, lastname_index);
 
 
 				prim_iter = cluster_by_block.find(b_id);
@@ -121,17 +138,6 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				if ( is_matching ) {
 					string cohesionstring = filedata.substr( prev_pos, pos - prev_pos);
 					val = atof(cohesionstring.c_str());
-					/*
-					prim_co_iter = cohesion_map_by_block.find(&prim_iter->first);
-					if ( prim_co_iter != cohesion_map_by_block.end()) {
-						prim_co_iter->second.insert(std::pair<const cRecord*, double>(key, val));
-					}
-					else {
-						map<const cRecord *, double> one_elem;
-						one_elem.insert(std::pair<const cRecord*, double>(key, val));
-						cohesion_map_by_block.insert(std::pair<const string *, map<const cRecord*, double> >(&(prim_iter->first), one_elem));
-					}
-					*/
 				}
 				prev_pos = pos + primary_delim_size;
 
@@ -140,43 +146,21 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				while ( ( pos = filedata.find(secondary_delim, prev_pos) )!= string::npos){
 					string valuestring = filedata.substr( prev_pos, pos - prev_pos);
 					const cRecord * value = retrieve_record_pointer_by_unique_id( valuestring, *uid2record_pointer);
-
-					//if ( valuestring == string ("04325803-2"))
-						//debug = true;
-					//pm->second.insert(value);
-					//pm->second.push_back(value);
 					tempv.push_back(value);
 					prev_pos = pos + secondary_delim_size;
 				}
-
-				//cGroup_Key tempk (key, seq);
-				//cGroup_Key tempk(key);
 				cCluster_Head th(key, val);
 				cCluster tempc(th, tempv);
-				//std::cout << "************" << std::endl;
-				//tempc.get_cluster_head().m_delegate->print();
 
 				if ( prim_iter != cluster_by_block.end()) {
-					//pm = prim_iter->second.insert(std::pair<cGroup_Key, cGroup_Value >(tempk, empty_set)).first;
-					//prim_iter->second.push_back( std::pair<cGroup_Key, cGroup_Value >(tempk, empty_set));
-					//push back a cRecGroup = cCluster
-
 					prim_iter->second.push_back(tempc);
-					//pm = prim_iter->second.end();
-					//--pm;
 				}
 				else {
 					cRecGroup one_elem(1, tempc);
-					//one_elem.push_back(std::pair<cGroup_Key, cGroup_Value>(tempk, empty_set));
-					//prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
 					prim_iter = cluster_by_block.insert(std::pair<string, cRecGroup>(b_id, one_elem)).first;
-					//pm = prim_iter->second.begin();
 					for ( unsigned int i = 0; i < num_columns; ++i ) {
 					    this->column_stat.at(i)[column_part.at(i)] += 1;
 					}
-					//++ (this->firstname_stat[firstname_part]);
-					//++ (this->lastname_stat[lastname_part]);
-
 				}
 
 				++count;
@@ -184,25 +168,11 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 					std::cout << count << " records have been loaded from the cluster file. " << std::endl;
 			}
 
-			//std::cout << "Self correcting ...";
-			//for ( prim_iter = cluster_by_block.begin(); prim_iter != cluster_by_block.end(); ++ prim_iter ) {
-			//	for ( cRecGroup::iterator p = prim_iter->second.begin(); p != prim_iter->second.end(); ++p ) {
-			//		p->self_repair();
-			//	}
-			//}
-			//std::cout << "Done." << std::endl;
 			std::cout << "Obtained ";
 			for ( unsigned int i = 0; i < num_columns; ++i )
 			    std::cout << column_stat.at(i).size() << " / ";
 			std::cout << " unique column data." << std::endl;
-			/*
-			this->firstname_dist.clear();
-			this->lastname_dist.clear();
-			for ( map<string, unsigned int >::const_iterator p = firstname_stat.begin(); p != firstname_stat.end(); ++p )
-				++ ( firstname_dist[p->second]);
-			for ( map<string, unsigned int >::const_iterator p = lastname_stat.begin(); p != lastname_stat.end(); ++p )
-				++ ( lastname_dist[p->second]);
-			*/
+
 			unsigned int stat_cnt = 0;
 			unsigned int min_stat_cnt = 0;
 			for ( unsigned int i = 0; i < num_columns; ++i ) {
@@ -224,27 +194,6 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 						min_stat_cnt = p->second;
 				min_occurrence.at(i) = min_stat_cnt;
 			}
-			/*
-			stat_cnt = 0;
-			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
-				if ( p->first > stat_cnt )	{
-					stat_cnt = p->first;
-				}
-			for ( map<string, unsigned int >::const_iterator p = lastname_stat.begin(); p != lastname_stat.end(); ++p )
-				if ( p->second == stat_cnt )
-					std::cout << "Most common lastname part = " << p->first << " Occurrence = " << stat_cnt << std::endl;
-			max_occurrence.push_back(stat_cnt);
-
-
-			
-			std::ofstream ff("firstname_dist.txt");
-			std::ofstream lf ( "lastname_dist.txt");
-			const char * temp_delim = ",";
-			for ( map < unsigned int , unsigned int >::const_iterator p = firstname_dist.begin(); p != firstname_dist.end(); ++p )
-				ff << p->first << temp_delim << p->second << '\n';
-			for ( map < unsigned int , unsigned int >::const_iterator p = lastname_dist.begin(); p != lastname_dist.end(); ++p )
-				lf << p->first << temp_delim << p->second << '\n';
-			*/
 			std::cout << past_comparision_file << " has been read into memory as "
 						<<  ( is_matching ? "MATCHING" : "NON-MATCHING" ) << " reference." << std::endl;
 		}
@@ -270,23 +219,12 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 
 	for ( map <string, cRecGroup>::iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::iterator cp = p->second.begin(); cp != p->second.end(); ++cp ) {
-			cp->change_mid_name();
-			//cp->self_repair();
+			if ( cMiddlename::is_enabled() )
+				cp->change_mid_name();
 		}
 	}
-
-	//if ( debug_mode ) {
-	//	std::cout << "DEBUG mode on. Skipping config prior." <<std::endl;
-	//	return;
-	//}
-
-	//config_prior();
-
-
-
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
-			//total_num += cp->second.size();
 			total_num += cp->get_fellows().size();
 	}
 }

@@ -75,7 +75,7 @@ class cBlocking_Operation_By_Coauthors;
  *
  */
 class cRecord {
-	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, asgdetail>& asgtree);
+	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
 	friend void clear_records(const list <cRecord> & source);
 	friend class cSort_by_attrib;
 	friend class cRatioComponent;
@@ -378,6 +378,7 @@ public:
 	explicit cBlocking_Operation_Column_Manipulate(const cString_Manipulator & inputsm, const string & colname)
 			: sm(inputsm), column_index(cRecord::get_index_by_name(colname)) { infoless = delim;}
 	string extract_blocking_info(const cRecord * p) const {return sm.manipulate( * p->get_data_by_index(column_index).at(0));}
+	string extract_column_info ( const cRecord * p, unsigned int flag ) const { return extract_blocking_info(p);}
 };
 
 
@@ -741,7 +742,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (const cRecord * key1, co
  */
 
 void copyfile(const char * target, const char * source);
-
+cAttribute * create_attribute_instance ( const string & id );
 
 
 #endif /* DISAMBIGENGINE_H_ */

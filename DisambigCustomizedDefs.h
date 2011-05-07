@@ -224,7 +224,7 @@ public:
 // ALL THE FOLLOWING TEMPLATE MEMBER ARE DEFAULT VALUES.
 // Declaration and default definition.
 // Specialization should be implemented in the cpp file.
-template <typename Derived> unsigned int cAttribute_Intermediary<Derived>::column_index_in_query;
+//template <typename Derived> unsigned int cAttribute_Intermediary<Derived>::column_index_in_query;
 //template <typename Derived> string cAttribute_Intermediary<Derived>::column_name_in_query;
 template <typename Derived> vector <unsigned int> cAttribute_Intermediary<Derived>::interactive_column_indice_in_query;
 template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_interactive_consistency_checked = false;

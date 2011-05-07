@@ -1593,7 +1593,7 @@ void copyfile(const char * target, const char * source) {
  *
  */
 
-bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, asgdetail>& asgtree){
+bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns ){
 	std::ifstream::sync_with_stdio(false);
 	const char * delim = ",";	// this deliminator should never occur in the data.
 	const unsigned int delim_size = strlen(delim);
@@ -1620,6 +1620,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		total_col_names.push_back(columnname);
 		prev_pos = pos + delim_size;
 	}
+	cAttribute::register_class_names(requested_columns);
 	const unsigned int num_cols = requested_columns.size();
 	vector < unsigned int > requested_column_indice;
 	for ( unsigned int i = 0; i < num_cols; ++i ) {
@@ -1643,96 +1644,28 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	pos = prev_pos = 0;
 	unsigned int position_in_ratios = 0;
 	for ( unsigned int i = 0; i < num_cols; ++i ) {
-		if ( cRecord::column_names[i] == cFirstname::class_name ) {
-			cFirstname::enable();
-			pointer_array[i] = new cFirstname;
-			cFirstname::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cLastname::class_name ) {
-			cLastname::enable();
-			pointer_array[i] = new cLastname;
-			cLastname::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cMiddlename::class_name ) {
-			cMiddlename::enable();
-			pointer_array[i] = new cMiddlename;
-			cMiddlename::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cLatitude::class_name ) {
-			cLatitude::enable();
-			pointer_array[i] = new cLatitude;
-			cLatitude::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cLongitude::class_name ) {
-			cLongitude::enable();
-			pointer_array[i] = new cLongitude;
-			cLongitude::column_index_in_query = i;
-			cLatitude::interactive_column_indice_in_query.push_back(i);
-		}
-		else if ( cRecord::column_names[i] == cStreet::class_name ) {
-			cStreet::enable();
-			pointer_array[i] = new cStreet;
-			cStreet::column_index_in_query = i;
-			cLatitude::interactive_column_indice_in_query.push_back(i);
-		}
-		else if ( cRecord::column_names[i] == cCountry::class_name ) {
-			cCountry::enable();
-			pointer_array[i] = new cCountry;
-			cCountry::column_index_in_query = i;
-			cLatitude::interactive_column_indice_in_query.push_back(i);
-		}
-		else if ( cRecord::column_names[i] == cClass::class_name ) {
-			cClass::enable();
-			pointer_array[i] = new cClass;
-			cClass::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cCoauthor::class_name ) {
-			cCoauthor::enable();
-			pointer_array[i] = new cCoauthor;
-			cCoauthor::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cAssignee::class_name ) {
-			cAssignee::enable();
-			pointer_array[i] = new cAssignee;
-			cAssignee::column_index_in_query = i;
-			cAssignee::set_assignee_tree_pointer (asgtree);
-		}
-		else if ( cRecord::column_names[i] == cAsgNum::class_name ) {
-			cAsgNum::enable();
-			pointer_array[i] = new cAsgNum;
-			cAsgNum::column_index_in_query = i;
-			cAssignee::interactive_column_indice_in_query.push_back(i);
-		}
-		else if ( cRecord::column_names[i] == cUnique_Record_ID::class_name ) {
-			cUnique_Record_ID::enable();
-			pointer_array[i] = new cUnique_Record_ID;
-			cUnique_Record_ID::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cApplyYear::class_name ) {
-			cApplyYear::enable();
-			pointer_array[i] = new cApplyYear;
-			cApplyYear::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cCity::class_name ) {
-			cCity::enable();
-			pointer_array[i] = new cCity;
-			cCity::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cPatent::class_name ) {
-			cPatent::enable();
-			pointer_array[i] = new cPatent;
-			cPatent::column_index_in_query = i;
-		}
-		else if ( cRecord::column_names[i] == cClass_M2::class_name ) {
-			cClass_M2::enable();
-			pointer_array[i] = new cClass_M2;
-			cClass_M2::column_index_in_query = i;
-		}
-		else {
+		const int pos_in_query = cAttribute::position_in_registry(cRecord::column_names[i]);
+
+		if ( pos_in_query == -1 ) {
 			for ( unsigned int j = 0; j < i; ++j )
 				delete pointer_array[j];
 			delete [] pointer_array;
 			throw cException_ColumnName_Not_Found(cRecord::column_names[i].c_str());
+		}
+		else
+			pointer_array[i] = create_attribute_instance ( cRecord::column_names[i].c_str() );
+
+		if ( cRecord::column_names[i] == cLongitude::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cStreet::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cCountry::class_name ) {
+			cLatitude::interactive_column_indice_in_query.push_back(i);
+		}
+		else if ( cRecord::column_names[i] == cAsgNum::class_name ) {
+			cAssignee::interactive_column_indice_in_query.push_back(i);
 		}
 
 		if ( pointer_array[i]->get_attrib_group() != string("None") )
@@ -1799,16 +1732,6 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	cRecord::sample_record_pointer = & source.front();
 	source.front().update_active_similarity_names();
 
-	//Reconfigure
-	std::cout << "Reconfiguring ..." << std::endl;
-	const cReconfigurator_AsianNames corrector_asiannames;
-	const cReconfigurator_Latitude_Interactives corrector_lat_interactives;
-
-	std::for_each(source.begin(), source.end(), corrector_asiannames);
-	std::for_each(source.begin(), source.end(), corrector_lat_interactives);
-
-	std::cout << "Reconfiguration done." << std::endl;
-
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		delete pointer_array[i];
 	delete [] pointer_array;
@@ -1816,7 +1739,61 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	return true;
 }
 
+cAttribute * create_attribute_instance ( const string & id ) {
+	cAttribute *p = NULL;
+	if ( id == cFirstname::static_get_class_name() ) {
+		p = new cFirstname;
+	}
+	else if ( id == cLastname::static_get_class_name() ) {
+		p = new cLastname;
+	}
+	else if ( id == cMiddlename::static_get_class_name() ) {
+		p = new cMiddlename;
+	}
+	else if ( id == cLatitude::static_get_class_name() ) {
+		p = new cLatitude;
+	}
+	else if ( id == cLongitude::static_get_class_name() ) {
+		p = new cLongitude;
+	}
+	else if ( id == cStreet::static_get_class_name() ) {
+		p = new cStreet;
+	}
+	else if ( id == cCountry::static_get_class_name() ) {
+		p = new cCountry;
+	}
+	else if ( id == cClass::static_get_class_name() ) {
+		p = new cClass;
+	}
+	else if ( id == cCoauthor::static_get_class_name() ) {
+		p = new cCoauthor;
+	}
+	else if ( id == cAssignee::static_get_class_name() ) {
+		p = new cAssignee;
+	}
+	else if ( id == cAsgNum::static_get_class_name() ) {
+		p = new cAsgNum;
+	}
+	else if ( id == cUnique_Record_ID::static_get_class_name() ) {
+		p = new cUnique_Record_ID;
+	}
+	else if ( id == cApplyYear::static_get_class_name() ) {
+		p = new cApplyYear;
+	}
+	else if ( id == cCity::static_get_class_name() ) {
+		p = new cCity;
+	}
+	else if ( id == cPatent::static_get_class_name() ) {
+		p = new cPatent;
+	}
+	else if ( id == cClass_M2::static_get_class_name() ) {
+		p = new cClass_M2;
+	}
+	else
+		p = NULL;
 
+	return p;
+}
 
 
 

@@ -24,9 +24,12 @@ using std::string;
 #include "Disambigmain.h"
 
 int fullrun_iterative_v4();
+int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile);
+
 int main() {
-	fullrun_iterative_v4();
-	//main_to_dump();
+	//fullrun_iterative_v4();
+	unique_inventors_per_period ( 1975, 3, "/home/ysun/cpps/Disambiguation/invpat.txt",
+							"/home/ysun/cpps/Disambiguation/final.txt", "/home/ysun/cpps/Disambiguation/uy.txt");
 	return 0;
 }
 
@@ -367,9 +370,10 @@ int fullrun_iterative_v4() {
 	//assignee_tree.clear();
 	read_asgtree_file(assignee_tree, assignee_file);
 
-	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec, assignee_tree);
+	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec);
 	if (not is_success) return 1;
 
+	cAssignee::set_assignee_tree_pointer (assignee_tree);
 	const unsigned int limit = 100000;
 	//patent stable
 	const string training_stable [] = { working_dir + "/xset03_stable.txt",
@@ -440,8 +444,18 @@ int fullrun_iterative_v4() {
 	const unsigned int num_coauthors_to_group = 2;
 	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group );
 
+	//Reconfigure
+	std::cout << "Reconfiguring ..." << std::endl;
+	const cReconfigurator_AsianNames corrector_asiannames;
+	const cReconfigurator_Latitude_Interactives corrector_lat_interactives;
+
+	std::for_each(all_rec_pointers.begin(), all_rec_pointers.begin(), corrector_asiannames);
+	std::for_each(all_rec_pointers.begin(), all_rec_pointers.begin(), corrector_lat_interactives);
 	cReconfigurator_Coauthor corrector_coauthor ( blocker_coauthor.get_patent_tree());
 	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_coauthor);
+
+	std::cout << "Reconfiguration done." << std::endl;
+
 	cCluster::set_reference_patent_tree_pointer( blocker_coauthor.get_patent_tree());
 
 	vector <const cString_Manipulator*> pstring_oper;
@@ -766,4 +780,114 @@ int fullrun_iterative_v4() {
 }
 
 
+std::pair < const cRecord *, set < const cRecord * > > ones_temporal_unique_coauthors ( const cCluster & record_cluster,
+		const map < const cRecord *, const cRecord *> & complete_uid2uinv,
+		const map < const cRecord *, cGroup_Value, cSort_by_attrib > & complete_patent_tree,
+		const unsigned int begin_year, const unsigned int end_year, const unsigned int year_index ) {
+	//[ begin_year, end_year )
 
+	const cRecord * ret1 = NULL;
+	set < const cRecord * > ret2;
+
+	const cGroup_Value & same_author = record_cluster.get_fellows();
+
+	cGroup_Value qualified_same_author;
+	for ( cGroup_Value::const_iterator psa = same_author.begin(); psa != same_author.end(); ++psa ) {
+		//check year range
+		const cAttribute * pAttrib = (*psa)->get_attrib_pointer_by_index(year_index);
+		const unsigned int checkyear = atoi (pAttrib->get_data().at(0)->c_str());
+		if ( checkyear >= begin_year && checkyear < end_year )
+			qualified_same_author.push_back(*psa);
+		//end of year range check
+	}
+	for ( cGroup_Value::const_iterator pqsa = qualified_same_author.begin(); pqsa != qualified_same_author.end(); ++pqsa) {
+		const map < const cRecord *, cGroup_Value, cSort_by_attrib >::const_iterator tempi = complete_patent_tree.find(*pqsa);
+		if ( tempi == complete_patent_tree.end() )
+			throw cException_Other("patent not in patent tree.");
+		if ( tempi->first == *pqsa)
+			continue;
+		const cGroup_Value & coauthor_per_patent = tempi->second;
+		for ( cGroup_Value::const_iterator pp = coauthor_per_patent.begin(); pp != coauthor_per_patent.end(); ++pp ) {
+			map < const cRecord *, const cRecord *>::const_iterator tempi2 = complete_uid2uinv.find(*pp);
+			if ( tempi2 == complete_uid2uinv.end() )
+				throw cException_Other("uid not in uid tree.");
+			const cRecord * inv = tempi2->second;
+			//finally, got it.
+			ret2.insert(inv);
+		}
+	}
+	if ( ! qualified_same_author.empty())
+		ret1 = qualified_same_author.front();
+
+	return std::pair < const cRecord * ,set < const cRecord * > >(ret1, ret2);
+
+}
+
+int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile) {
+	typedef std::pair< const cRecord *, set < const cRecord *> > cUINV2UCOAUTHOR;
+	list <cRecord> all_records;
+	const string columns[] = {"Unique_Record_ID", "Patent",  "ApplyYear"};
+	const vector <string> column_vec(columns, columns + sizeof(columns)/sizeof(string) );
+
+	bool is_success = fetch_records_from_txt(all_records, wholedatabase, column_vec);
+	if (not is_success) return 1;
+
+	list < const cRecord *> all_rec_pointers;
+	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+		all_rec_pointers.push_back(&(*p));
+
+	cString_Remain_Same manobj;
+	cBlocking_Operation_Column_Manipulate tempblocker (manobj, "ApplyYear");
+	cBlocking_Operation_By_Coauthors bocobj(all_rec_pointers, 1);
+	cCluster::set_reference_patent_tree_pointer(bocobj.get_patent_tree());
+
+	map <string, const cRecord *> uid_dict;
+	create_btree_uid2record_pointer(uid_dict, all_records, cUnique_Record_ID::static_get_class_name());
+
+	cCluster_Info ci( uid_dict, true, true, false);
+	ci.reset_blocking(tempblocker, disambigresult);
+	bocobj.build_uid2uinv_tree(ci);
+
+	cCluster_Set all_clusters;
+	all_clusters.convert_from_ClusterInfo(&ci);
+
+	const map < const cRecord *, const cRecord *> & uid2uinv = bocobj.get_uid2uinv_tree();
+	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree = bocobj.get_patent_tree();
+	const list < cCluster > & full_list = all_clusters.get_set();
+
+
+
+	const string & beginyearstring = ci.get_cluster_map().begin()->first;
+	const string & endyearstring = ci.get_cluster_map().rbegin()->first;
+	const unsigned int endyear = atoi( endyearstring.c_str() );
+
+	const unsigned int appyearindex = cRecord::get_index_by_name(cApplyYear::static_get_class_name());
+	std::cout << "Begin year = "<<beginyearstring << " , End year = " << endyearstring << std::endl;
+
+	map < unsigned int, unsigned int > unique_coauthor_year_chunk;
+	map < unsigned int, unsigned int > unique_inventor_year_chunk;
+	for ( unsigned int y = starting_year; y <= endyear; y += interval ) {
+		unsigned int unique_inventors = 0;
+		unsigned int unique_coauthors = 0;
+		for ( list< cCluster >::const_iterator puinv = full_list.begin() ; puinv != full_list.end(); ++puinv) {
+			std::pair< const cRecord * , set< const cRecord *> > kk =
+					ones_temporal_unique_coauthors ( *puinv, uid2uinv, patent_tree, y, y + interval, appyearindex );
+			if ( kk.first != NULL ) {
+				++ unique_inventors;
+				unique_coauthors += kk.second.size();
+			}
+		}
+		unique_coauthor_year_chunk.insert(std::pair<unsigned int, unsigned int>(y, unique_coauthors));
+		unique_inventor_year_chunk.insert(std::pair<unsigned int, unsigned int>(y, unique_inventors));
+		std::cout << "Year " << y << " done." << std::endl;
+	}
+
+	std::ostream & os = std::cout;
+	const string space_delim = "          ";
+	os << "Year Chunk:" << space_delim << "Number of Unique Inventors:" << space_delim << "Number of Unique Coauthors:" << std::endl;
+	for ( map < unsigned int, unsigned int >::const_iterator p = unique_inventor_year_chunk.begin(); p != unique_inventor_year_chunk.end(); ++p ) {
+		os << p->first << space_delim << p->second << space_delim << unique_coauthor_year_chunk.find(p->first)->second << std::endl;
+	}
+
+	return 0;
+}

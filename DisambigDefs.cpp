@@ -14,6 +14,8 @@ using std::string;
 
 const vector <const cAttribute *> cAttribute::empty_interactive(0);
 const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarity_Compare::default_sp_exception("Error: Different Similarity profile dimensions");
+vector <string> cAttribute::Derived_Class_Name_Registry;
+
 
 
 /*
@@ -137,5 +139,15 @@ void attrib_merge ( list < const cAttribute * *> & l1, list < const cAttribute *
 
 }
 
+void cAttribute::register_class_names( const vector < string > & input) {
+	Derived_Class_Name_Registry = input;
+}
 
-
+int cAttribute::position_in_registry( const string & s ) {
+	int i = 0;
+	for ( i = 0; i < Derived_Class_Name_Registry.size(); ++i ) {
+		if ( s == Derived_Class_Name_Registry.at(i))
+			return i;
+	}
+	return -1;
+}

@@ -18,7 +18,7 @@ const map < const cRecord *, cGroup_Value, cSort_by_attrib > * cCluster::referen
 cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
 	if ( NULL == reference_pointer )
-		throw cException_Other("Critical Error: reference pointer is not set yet.");
+		throw cException_Other("Critical Error: Patent tree reference pointer is not set yet.");
 }
 
 /*
@@ -68,6 +68,8 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 
 void cCluster::change_mid_name()  {
 	// The folowing step actually changes the raw data. Changes the abbreviated middlename to a longer one if possible.
+	if ( ! cMiddlename::is_enabled() )
+		return;
 	static const unsigned int midname_index = cRecord::get_index_by_name(cMiddlename::static_get_class_name());
 	static const unsigned int lastname_index = cRecord::get_index_by_name(cLastname::static_get_class_name());
 	map < const cAttribute *, const cAttribute *> last2mid;

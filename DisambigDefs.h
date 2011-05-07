@@ -267,12 +267,13 @@ public:
 class cAttribute {
 private:
 	vector <const string *> data;
-	//vector <unsigned int> data_count;
 	friend void attrib_merge ( list < const cAttribute **> & l1, list < const cAttribute **> & l2 );
-
+	static vector <string> Derived_Class_Name_Registry;
 
 protected:
 	static const vector <const cAttribute *> empty_interactive;
+
+
 	vector < const string * > & get_data_modifiable() {return data;}
 	virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const { return NULL;};
 
@@ -311,7 +312,8 @@ public:
 	virtual const cAttribute * reduce_attrib(unsigned int n) const = 0;
 	virtual const cAttribute * add_attrib( unsigned int n ) const = 0  ;
 	virtual const set < const string *> * get_attrib_set_pointer () const { return NULL; }
-
+	static void register_class_names( const vector < string > &);
+	static int position_in_registry( const string & );
 };
 
 
@@ -383,12 +385,12 @@ public:
 
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute {
-	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns, const map<string, std::pair<string, unsigned int> >& asgtree);
+	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
 private:
 
 
 	static const string class_name;	// an implementation is required for each class in the cpp file.
-	static unsigned int column_index_in_query;
+	//static unsigned int column_index_in_query;
 	static const string interactive_column_names[];
 	static const unsigned int num_of_interactive_columns;
 	static vector <unsigned int> interactive_column_indice_in_query;
@@ -403,8 +405,6 @@ private:
 	static pthread_rwlock_t attrib_pool_structure_lock;
 	static pthread_mutex_t attrib_pool_count_lock;
 
-
-
 protected:
 
 public:
@@ -414,8 +414,12 @@ public:
 
 	cAttribute_Intermediary(const char * source = NULL )
 		:	cAttribute(source) {
-		if (! is_enabled() ) 
-			throw cException_Attribute_Disabled(class_name.c_str()); 
+		if (! bool_is_enabled ) {
+			if ( position_in_registry(class_name) == -1 )
+				throw cException_Attribute_Disabled(class_name.c_str());
+			else
+				bool_is_enabled = true;
+		}
 	}
 	static const Derived * static_add_attrib( const Derived & d , const unsigned int n ) {
 		pthread_rwlock_rdlock(& attrib_pool_structure_lock);
@@ -482,7 +486,7 @@ public:
 
     const string & get_class_name() const { return class_name;}
     static const string & static_get_class_name() {return class_name;}
-   	static void set_column_index_in_query(const unsigned int i ) {column_index_in_query = i;}
+   	//static void set_column_index_in_query(const unsigned int i ) {column_index_in_query = i;}
    	//THIS IS THE DEFAULT COMPARISON FUNCTION. ANY ATTRIBUTE THAT HAS REAL COMPARISION FUNCTIONS SHOULD OVERRIDE IT.
    	//ANY ATTRIBUTE THAT HAS NO REAL COMPARISION FUNCTIONS SHOULD JUST LEAVE IT.
    	unsigned int compare(const cAttribute & rhs) const {
@@ -504,7 +508,7 @@ public:
 	void check_interactive_consistency(const vector <string> & query_columns) { static_check_interactive_consistency(query_columns);}
    	bool has_checked_interactive_consistency() const {return bool_interactive_consistency_checked;}
 	static bool is_enabled() { return bool_is_enabled; }
-	static void enable() { bool_is_enabled = true;}
+	//static void enable() { bool_is_enabled = true;}
 	static bool static_is_comparator_activated() {return bool_comparator_activated;}
 	bool is_comparator_activated() const { return bool_comparator_activated;}
 	static void activate_comparator() {
