@@ -12,7 +12,6 @@
 using std::list;
 using std::string;
 
-const vector <const cAttribute *> cAttribute::empty_interactive(0);
 const cSimilarity_Compare::cException_Different_Similarity_Dimensions cSimilarity_Compare::default_sp_exception("Error: Different Similarity profile dimensions");
 vector <string> cAttribute::Derived_Class_Name_Registry;
 
@@ -30,6 +29,7 @@ vector <string> cAttribute::Derived_Class_Name_Registry;
 
 bool cAttribute::split_string(const char* recdata) {
 	static const string emptystring ("");
+	vector < const string * > & data = this->get_data_modifiable();
 	const char * p = recdata;
 	const char * pend = p + strlen(recdata);
 	if ( pend == p ) {

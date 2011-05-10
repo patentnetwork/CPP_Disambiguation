@@ -201,30 +201,32 @@ public:
 /*
  * cAttribute
  * 	- template <> cAttribute_Intermediary
- * 		-- template <> cAttribute_Set_Mode
- * 			--- cClass
- * 			--- cCoauthor
- * 		-- template <> cAttribute_Vector_Mode
- * 		-- template <> cAttribute_Single_Mode
- * 			--- cFirstname
- * 			--- cMiddlename
- * 			--- cLastname
- * 			--- template <> cAttribute_Single_Interactive_Mode
- * 				---- cLatitude
- * 			--- cLongitude
- * 			--- cCity
- * 			--- cCountry
- * 			--- cAssignee
- * 			--- cAsgNum
- * 			--- cUnique_Record_ID
- * 			--- cPatent
- * 			--- cApplyYear
- *			--- cStreet
+ * 		-- template <> cAttribute_Set_Intermediary
+ * 			--- template <> cAttribute_Set_Mode
+ * 				---- cClass
+ * 				---- cCoauthor
+ * 		-- template <> cAttribute_Vector_Intermediary
+ * 			--- template <> cAttribute_Vector_Mode
+ * 			--- template <> cAttribute_Single_Mode
+ * 				---- cFirstname
+ * 				---- cMiddlename
+ * 				---- cLastname
+ * 				---- template <> cAttribute_Single_Interactive_Mode
+ * 					----- cLatitude
+ * 				---- cLongitude
+ * 				---- cCity
+ * 				---- cCountry
+ * 				---- cAssignee
+ * 				---- cAsgNum
+ * 				---- cUnique_Record_ID
+ * 				---- cPatent
+ * 				---- cApplyYear
+ *				---- cStreet
  *
  *	This is the base abstract class of all concrete attributes. Interfaces are designed, but the implementations are generally left for child classes.
  *	Usually the pointer of cAttribute class is used, in order to achieve customized behaviors for each concrete classes ( Polymorphism ).
- *	The hierarchy of inheritance is shown above. Any newly introduced concrete class should inherit the second layer class ( cAttribute_Intermediary),
- *	or the third layers ( cAttribute_XXX_Mode ), or the fourth Single_Interactive_Mode layer.
+ *	The hierarchy of inheritance is shown above. Any newly introduced concrete class should at most inherit the second layer class ( cAttribute_Intermediary),
+ *	or the third layers ( cAttribute_XXX_Intermediary ), or the fourth/fifth more detailed layer.
  *  Most concrete attributes fall into the 4 third layer template classes, so it is convenient to simply choose one of the mode and inherit it when a
  *  concrete class is introduced.
  *	All the concrete classes are declared in the file "DisambigCustomizedDefs.h" and implemented in "DisambigCustomizedDefs.cpp".
@@ -232,7 +234,7 @@ public:
  *
  *	Member Functions:
  *	Protected:
- *		1. vector < const string * > & get_data_modifiable(): get the data. should only be used within derived classes
+ *		1. virtual vector < const string * > & get_data_modifiable() = 0: get the data. should only be used within derived classes. Implemented in child classes.
  *		2. virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const: get the attribute pointer into which the two attributes are supposed to merge
  *	Public:
  *		3. virtual unsigned int compare(const cAttribute & rhs) const = 0 ; Comparison function between two attributes to get a similarity score. Should be inplemented by child classes.
@@ -240,7 +242,7 @@ public:
  *		5. virtual bool operator == ( const cAttribute & rhs) const: exact comparison between two attributes. Has a default implementation but overidable.
  *		6. void reset_data(const char * inputstring): reset the attribute based on the inputstring. calls the polymorphic "split_string" function.
  *		7. virtual void config_interactive (const vector <const cAttribute *> &inputvec ): handles the attribute with other linked ones. Returns the pointer of a configured attribute. Default implementation is throwing an error. Overide if necessary.
- *		8. const vector <const string*> & get_data() const: The most commonly used function. Get the vector of string pointers.
+ *		8. virtual const vector <const string*> & get_data() const = 0: The most commonly used function. Get the vector of string pointers. Implemented in child classes.
  *		9. virtual const vector <const cAttribute *> & get_interactive_vector(): expected to be implemented in the child class to accommodate access to data that has interactions with the attribute.
  *		10. virtual const string & get_class_name() const : To get the identifier of the class. must be implemented by template child class.
  *		11. virtual bool is_comparator_activated(): To check if the comparison of the attribute is enabled. also must be implemented by template child class.
@@ -266,26 +268,20 @@ public:
 //====================================================================
 class cAttribute {
 private:
-	vector <const string *> data;
 	friend void attrib_merge ( list < const cAttribute **> & l1, list < const cAttribute **> & l2 );
 	static vector <string> Derived_Class_Name_Registry;
 
 protected:
-	static const vector <const cAttribute *> empty_interactive;
-
-
-	vector < const string * > & get_data_modifiable() {return data;}
+	virtual vector < const string * > & get_data_modifiable() = 0;
 	virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const { return NULL;};
-
-
 public:
 	virtual unsigned int compare(const cAttribute & rhs) const = 0 ;
 	virtual bool split_string(const char* );	//can be overridden if necessary.
 	cAttribute (const char * inputstring ) {}
 	virtual bool operator == ( const cAttribute & rhs) const { return this == &rhs ;}
-	void reset_data(const char * inputstring) {data.clear(); /*data_count.clear(); */ split_string(inputstring);}
+	void reset_data(const char * inputstring) { get_data_modifiable().clear(); /*data_count.clear(); */ split_string(inputstring);}
 	virtual const cAttribute*  config_interactive (const vector <const cAttribute *> &inputvec ) const { throw cException_No_Interactives(get_class_name().c_str()); return NULL;};
-	const vector <const string*> & get_data() const {return data;}
+	virtual const vector <const string*> & get_data() const = 0;
 	virtual const vector <const cAttribute *> & get_interactive_vector() const { throw cException_No_Interactives(get_class_name().c_str()); };
 	virtual const string & get_class_name() const = 0;
 	virtual bool is_comparator_activated() const = 0;
@@ -301,9 +297,9 @@ public:
 	virtual int exact_compare( const cAttribute & rhs ) const { return -1; } // -1 means no exact_compare. 0 = not the same 1= exact same
 	virtual const string * add_string( const string & str ) const = 0;
 
-	virtual bool operator < ( const cAttribute & rhs ) const { return this->data < rhs.data;}
+	virtual bool operator < ( const cAttribute & rhs ) const = 0;
 	virtual bool is_informative() const {
-		if (  data.empty() || data.at(0)->empty() )
+		if (  get_data().empty() || get_data().at(0)->empty() )
 			return false;
 		return true;
 	}
@@ -598,8 +594,52 @@ public:
 
 };
 
+/*
+ * cAttribute_Set_Intermediary:
+ * Third layer of the attribute hierarchy. Specifically designed to handle the data storage issue.
+ *
+ * Private:
+ * 		static vector < const string * > temporary_storage: static member temporarily used for data loading.
+ * Protected:
+ * 		vector < const string * > & get_data_modifiable(): still used for data loading only.
+ * Public:
+ * 		const vector < const string * > & get_data() const: override the base function and throw an error,
+ * 			indicating that this function should be forbidden for this class and its child classes.
+ */
 
+template < typename AttribType >
+class cAttribute_Set_Intermediary : public cAttribute_Intermediary<AttribType> {
+private:
+	static vector < const string * > temporary_storage;
+protected:
+	vector < const string * > & get_data_modifiable() { return temporary_storage; }
+public:
+	const vector < const string * > & get_data() const { throw cException_Invalid_Function("Function Disabled"); }
+};
 
+/*
+ * cAttribute_Vector_Intermediary:
+ * Third layer of the attribute hierarchy to handle the data storage, too.
+ * Private:
+ * 		vector < const string * > vector_string_pointers: the real data member.
+ * protected:
+ * 		vector < const string * > & get_data_modifiable(): for data loading only.
+ * Public:
+ * 		const vector < const string * > & get_data() const: for external call.
+ * 		bool operator < ( const cAttribute & rhs ) const: sorting function used in map/set only. should not call explicitly.
+ */
+template < typename AttribType >
+class cAttribute_Vector_Intermediary: public cAttribute_Intermediary<AttribType> {
+	friend class cAttribute;
+	friend class cAttribute_Intermediary<AttribType> ;
+private:
+	vector < const string * > vector_string_pointers;
+protected:
+	vector < const string * > & get_data_modifiable() { return vector_string_pointers;}
+public:
+	const vector < const string * > & get_data() const { return vector_string_pointers;}
+	bool operator < ( const cAttribute & rhs ) const { return this->get_data() < rhs.get_data(); }
+};
 
 /*
  * template < Concreate Class Name > cAttribute_Set_Mode
@@ -626,7 +666,7 @@ public:
 
 
 template < typename AttribType >
-class cAttribute_Set_Mode : public cAttribute_Intermediary < AttribType > {
+class cAttribute_Set_Mode : public cAttribute_Set_Intermediary < AttribType > {
 protected:
 	set < const string * > attrib_set;
 	const cAttribute * attrib_merge ( const cAttribute & right_hand_side) const {
@@ -684,7 +724,7 @@ public:
 		}
 		//const string raw(inputdata);
 		this->attrib_set.clear();
-		for ( vector < const string *>::const_iterator p = this->get_data().begin(); p != this->get_data().end(); ++p ) {
+		for ( vector < const string *>::const_iterator p = this->get_data_modifiable().begin(); p != this->get_data_modifiable().end(); ++p ) {
 			if ( (*p)->empty() )
 				continue;
 			this->attrib_set.insert(*p);
@@ -735,7 +775,7 @@ public:
  */
 
 template < typename AttribType >
-class cAttribute_Single_Mode : public cAttribute_Intermediary<AttribType> {
+class cAttribute_Single_Mode : public cAttribute_Vector_Intermediary<AttribType> {
 public:
 	unsigned int compare(const cAttribute & right_hand_side) const {
 		// ALWAYS CHECK THE ACTIVITY OF COMPARISON FUNCTION !!
@@ -776,7 +816,7 @@ public:
 
 
 template < typename AttribType >
-class cAttribute_Vector_Mode : public cAttribute_Intermediary<AttribType> {
+class cAttribute_Vector_Mode : public cAttribute_Vector_Intermediary<AttribType> {
 public:
 	unsigned int compare(const cAttribute & right_hand_side) const {
 		//ALWAYS CHECK THE COMPARATOR!
@@ -915,6 +955,7 @@ public:
 
 //declaration of static member
 template <typename Derived>  map < vector<const cAttribute *> , unsigned int > cAttribute_Single_Interactive_Mode<Derived>::Interactive_Pool;
+template < typename AttribType> vector < const string * > cAttribute_Set_Intermediary<AttribType>::temporary_storage;
 template <typename Derived> bool cAttribute_Single_Interactive_Mode<Derived>::has_reconfiged = false;
 
 #endif /* DISAMBIGLIB_HPP_ */
