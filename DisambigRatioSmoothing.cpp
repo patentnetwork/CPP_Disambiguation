@@ -1377,3 +1377,31 @@ void cRatios::smooth() {
 	smoothing( final_ratios, similarity_map, x_counts, m_counts, this->get_attrib_names(), should_do_name_range_check);
 	std::cout << "Ratios smoothing done. " << std::endl;
 }
+
+
+
+
+
+//==============================================
+bool cSimilarity_With_Monotonicity_Dimension::compare_without_primary( const cSimilarity_Profile * p1, const cSimilarity_Profile * p2 ) const {
+	const unsigned int size = psim->size();
+	unsigned int i;
+	for (  i = 0; i < size; ++i ) {
+		if ( i == monotonic_dimension )
+			continue;
+		if ( p2->at(i) < p1->at(i) )
+			return false;
+		else if ( p1->at(i) < p2->at(i) )
+			return true;
+	}
+	return ( i != size );
+}
+
+bool cSimilarity_With_Monotonicity_Dimension::operator < ( const cSimilarity_With_Monotonicity_Dimension & rhs) const {
+	if ( this->monotonic_dimension < rhs.monotonic_dimension )
+		return false;
+	else if ( rhs.monotonic_dimension < this->monotonic_dimension )
+		return true;
+	else
+		return compare_without_primary( psim, rhs.psim );
+}

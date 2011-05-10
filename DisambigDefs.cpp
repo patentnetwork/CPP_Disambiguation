@@ -145,7 +145,7 @@ void cAttribute::register_class_names( const vector < string > & input) {
 
 int cAttribute::position_in_registry( const string & s ) {
 	int i = 0;
-	for ( i = 0; i < Derived_Class_Name_Registry.size(); ++i ) {
+	for ( i = 0; i < static_cast<int> (Derived_Class_Name_Registry.size()); ++i ) {
 		if ( s == Derived_Class_Name_Registry.at(i))
 			return i;
 	}

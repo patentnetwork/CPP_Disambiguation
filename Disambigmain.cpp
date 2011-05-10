@@ -27,9 +27,9 @@ int fullrun_iterative_v4();
 int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile);
 
 int main() {
-	//fullrun_iterative_v4();
-	unique_inventors_per_period ( 1975, 3, "/home/ysun/cpps/Disambiguation/invpat.txt",
-							"/home/ysun/cpps/Disambiguation/final.txt", "/home/ysun/cpps/Disambiguation/uy.txt");
+	fullrun_iterative_v4();
+	//unique_inventors_per_period ( 1975, 3, "/home/ysun/cpps/Disambiguation/invpat.txt",
+	//						"/home/ysun/cpps/Disambiguation/final.txt", "/home/ysun/cpps/Disambiguation/uy.txt");
 	return 0;
 }
 
@@ -387,7 +387,7 @@ int fullrun_iterative_v4() {
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
 
 	//train patent info
-	cRatioComponent patentinfo(all_records, uid_dict, string("Patent") );
+	cRatioComponent patentinfo(uid_dict, string("Patent") );
 	//patentinfo.prepare(training_stable_vec.at(0).c_str(),
 		//			   training_stable_vec.at(1).c_str() );
 
@@ -439,7 +439,7 @@ int fullrun_iterative_v4() {
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
 		all_rec_pointers.push_back(&(*p));
 
-	cRatioComponent personalinfo(all_records, uid_dict, string("Personal") );
+	cRatioComponent personalinfo(uid_dict, string("Personal") );
 
 	const unsigned int num_coauthors_to_group = 2;
 	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group );
@@ -449,8 +449,8 @@ int fullrun_iterative_v4() {
 	const cReconfigurator_AsianNames corrector_asiannames;
 	const cReconfigurator_Latitude_Interactives corrector_lat_interactives;
 
-	std::for_each(all_rec_pointers.begin(), all_rec_pointers.begin(), corrector_asiannames);
-	std::for_each(all_rec_pointers.begin(), all_rec_pointers.begin(), corrector_lat_interactives);
+	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_asiannames);
+	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_lat_interactives);
 	cReconfigurator_Coauthor corrector_coauthor ( blocker_coauthor.get_patent_tree());
 	std::for_each(all_rec_pointers.begin(), all_rec_pointers.end(), corrector_coauthor);
 
@@ -804,10 +804,10 @@ std::pair < const cRecord *, set < const cRecord * > > ones_temporal_unique_coau
 		const map < const cRecord *, cGroup_Value, cSort_by_attrib >::const_iterator tempi = complete_patent_tree.find(*pqsa);
 		if ( tempi == complete_patent_tree.end() )
 			throw cException_Other("patent not in patent tree.");
-		if ( tempi->first == *pqsa)
-			continue;
 		const cGroup_Value & coauthor_per_patent = tempi->second;
 		for ( cGroup_Value::const_iterator pp = coauthor_per_patent.begin(); pp != coauthor_per_patent.end(); ++pp ) {
+			if ( *pp == *pqsa)
+				continue;
 			map < const cRecord *, const cRecord *>::const_iterator tempi2 = complete_uid2uinv.find(*pp);
 			if ( tempi2 == complete_uid2uinv.end() )
 				throw cException_Other("uid not in uid tree.");

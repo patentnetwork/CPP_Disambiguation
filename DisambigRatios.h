@@ -1,9 +1,9 @@
 /*
  *  DisambigRatios.h
- *  mydisambiguation
  *
- *  Created by Katelin on 10-12-27.
- *  Copyright 2010 Dartmouth College. All rights reserved.
+ *
+ *  Created by Ye Sun on 10-12-27.
+ *  Copyright 2010 Ye Sun@Harvard. All rights reserved.
  *
  */
 
@@ -19,10 +19,28 @@ using std::string;
 using std::set;
 using std::map;
 
-
+/*
+ * The classes associated with ratios are relatively hard to understand yet very important.
+ */
 
 typedef vector < unsigned int > cSimilarity_Profile;
 
+
+/*
+ * cMonotonic_Similarity_Compare:
+ * For two given similarity profiles, it only compares the scores at a certain position.
+ * This class should ONLY serve as a comparison functor for associated containers, i.e., map or set.
+ *
+ * Private:
+ * 		unsigned int compare_entry: the position of interest.
+ * Public:
+ * 		bool operator() ( const cSimilarity_Profile * p1, const cSimilarity_Profile * p2 ) const:
+ * 			to compare the two similarity profiles at the position of compare_entry.
+ * 		cMonotonic_Similarity_Compare( const unsigned int entry): constructor
+ * 		void reset_entry( const unsigned int entry): reset the variable compare_entry to the input entry.
+ *
+ *
+ */
 struct cMonotonic_Similarity_Compare {
 private:
 	unsigned int compare_entry;
@@ -34,60 +52,84 @@ public:
 	void reset_entry( const unsigned int entry) { compare_entry = entry;}
 };
 
+/*
+ * monotonic_set:
+ * members in this set is sorted by a given similarity entry in an ascending way.
+ */
+
 typedef set< const cSimilarity_Profile *, cMonotonic_Similarity_Compare> monotonic_set;
 
 
+/*
+ * cSimilarity_With_Monotonicity_Dimension:
+ * This class wraps a similarity profile for a map or set structure. The primary purpose of the class
+ * is to allow comparison of similarity profiles skipping a certain entry in the profile.
+ *
+ * Private:
+ * 		const cSimilarity_Profile * psim: pointer to a similarity profile.
+ * 		unsigned int monotonic_dimension: an entry in which comparison of similarity profiles will skip.
+ * 		bool compare_without_primary( const cSimilarity_Profile * p1, const cSimilarity_Profile * p2 ) const:
+ * 			compare the similarity profiles in all dimensions except the "monotonic_dimension" dimension.
+ * Public:
+ *		bool operator < ( const cSimilarity_With_Monotonicity_Dimension & rhs) const:
+ *			comparison function that is used only in map/set.
+ *		const unsigned int get_monotonic_dimension() const: return the monotunic_dimension
+ *		cSimilarity_With_Monotonicity_Dimension( const cSimilarity_Profile * p, const unsigned int dm ):
+ *				constructor.
+ *
+ * Use of the above classes is primarily in the DisambigRatioSmoothing.cpp.
+ * It is not expected to have a very solid understanding of the above classes, unless smoothing, interpolation
+ * and extrapolation of similarity profiles are supposed to change.
+ *
+ */
 struct cSimilarity_With_Monotonicity_Dimension {
 private:
 	const cSimilarity_Profile * psim;
 	unsigned int monotonic_dimension;
-	const unsigned int size;
-
-	bool compare_without_primary( const cSimilarity_Profile * p1, const cSimilarity_Profile * p2 ) const {
-		unsigned int i;
-		for (  i = 0; i < size; ++i ) {
-			if ( i == monotonic_dimension )
-				continue;
-			if ( p2->at(i) < p1->at(i) )
-				return false;
-			else if ( p1->at(i) < p2->at(i) )
-				return true;
-		}
-		return ( i != size );
-	}
-
+	bool compare_without_primary( const cSimilarity_Profile * p1, const cSimilarity_Profile * p2 ) const;
 public:
-	bool operator < ( const cSimilarity_With_Monotonicity_Dimension & rhs) const {
-		if ( this->monotonic_dimension < rhs.monotonic_dimension )
-			return false;
-		else if ( rhs.monotonic_dimension < this->monotonic_dimension )
-			return true;
-		else
-			return compare_without_primary( psim, rhs.psim );
-	}
+	bool operator < ( const cSimilarity_With_Monotonicity_Dimension & rhs) const;
 	const unsigned int get_monotonic_dimension() const {return monotonic_dimension;}
 	explicit cSimilarity_With_Monotonicity_Dimension( const cSimilarity_Profile * p, const unsigned int dm )
-		: psim ( p ), monotonic_dimension(dm), size ( p->size()) {}
+		: psim ( p ), monotonic_dimension(dm) {}
 };
 
 
 
 
 //=================================================
+
+/*
+ * cRatioComponent:
+ * This class is used as intermediate steps to finalize a cRatio object. In the current engine, a complete similarity
+ * profile is composed of two parts, and each part has several components:
+ * Personal: cFirstname, cMiddlename, cLastname
+ * Patent: cLatitude, cAssignee, cCoauthor, cClass
+ * A cRatioComponent object usually take care of one part of the similarity profiles, and a cRatio object ( will be
+ * introduced below ) reads all the necessary cRatioComponent objects to finalize, after which the cRatioComponents are
+ * useless.
+ *
+ * Private:
+ * 		static const unsigned int laplace_base: a value used for laplacian operations of obtained similarity profiles to get a ratio.
+ * 		map < vector <unsigned int>, double, cSimilarity_Compare > ratio_map: a ratio map for the current component.
+ * 			Key = similarity profile, Value = ratio, Comparator = cSimilarity_Compare
+ * 		vector < unsigned int > positions_in_ratios: positions of the current components in the complete similarity profile.
+ * 		vector < unsigned int > positions_in_record: position of the current components in the cRecord::column_names.
+ *
+ *
+ */
+
 class cRatioComponent {
-private:	
-	static const unsigned int laplace_base;
 	class cException_Partial_SP_Missing : public cAbstract_Exception {
 	public:
 		cException_Partial_SP_Missing(const char* errmsg): cAbstract_Exception(errmsg){};
 	};
-	
-	
+private:
+	static const unsigned int laplace_base;
 	map < vector <unsigned int>, double, cSimilarity_Compare > ratio_map;
 	vector < unsigned int > positions_in_ratios;
 	vector < unsigned int > positions_in_record;
-	const list <cRecord> * psource;
-	//const string unique_identifier;
+	//const list <cRecord> * psource;
 	const string attrib_group;
 	const map < string, const cRecord *> * puid_tree;
 	map < cSimilarity_With_Monotonicity_Dimension, monotonic_set > similarity_map;
@@ -104,8 +146,8 @@ public:
 		cException_Ratios_Not_Ready(const char* errmsg): cAbstract_Exception(errmsg){};
 	};
 	
-	explicit cRatioComponent( const list <cRecord> & source, const map < string, const cRecord * > & uid_tree, const string & groupname);
-	
+	//explicit cRatioComponent( const list <cRecord> & source, const map < string, const cRecord * > & uid_tree, const string & groupname);
+	explicit cRatioComponent( const map < string, const cRecord * > & uid_tree, const string & groupname);
 	void prepare(const char* x_flie, const char * m_file);
 	const map < vector < unsigned int >, double, cSimilarity_Compare > & get_ratios_map() const {
 		if ( is_ready )

@@ -72,6 +72,7 @@ class cBlocking_Operation_By_Coauthors;
  *		static void update_active_similarity_names(): update the static member "active_similarity_names" by checking the comparator of each attribute.
  *		static const vector < string > & get_similarity_names(): get the names of the active similarity profile attributes.
  *		static unsigned int get_similarity_index_by_name(const string & inputstr): get the index of an attribute in the ACTIVE similarity profile.
+ *		static const cRecord & get_sample_record(): return the sample record object for external use.
  *
  */
 class cRecord {
@@ -106,6 +107,7 @@ public:
 	static void update_active_similarity_names();
 	static const vector < string > & get_similarity_names() { return active_similarity_names;}
 	static unsigned int get_similarity_index_by_name(const string & inputstr);
+	static const cRecord & get_sample_record() { return *sample_record_pointer;}
 };
 
 //================================================

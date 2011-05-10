@@ -211,6 +211,13 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 	}
 }
 
+
+/*
+ * Aim: to read the previous disambiguation results and configure them to conform to the new blocking mechanism.
+ * Algorithm: call the retrieve_last comparison_info function. Afterwards, reconfigure the middle names. Then count
+ * 			the total number of records and save it.
+ *
+ */
 void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const char * const past_comparision_file) {
 
 	total_num = 0;
@@ -229,6 +236,10 @@ void cCluster_Info::reset_blocking(const cBlocking_Operation & blocker, const ch
 	}
 }
 
+/*
+ * Aim: to consolidate records which have the same blocking id together. It should be a very strict consolidation, so
+ * 		the blocker should be very strict.
+ */
 void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocker, const list < const cRecord *> & all_rec_list) {
 	std::cout << "Preliminary consolidation ... ..." << std::endl;
 	total_num = 0;
@@ -259,12 +270,14 @@ void cCluster_Info::preliminary_consolidation(const cBlocking_Operation & blocke
 
 	for ( map <string, cRecGroup>::const_iterator p  = cluster_by_block.begin(); p != cluster_by_block.end(); ++p ) {
 		for ( cRecGroup::const_iterator cp = p->second.begin(); cp != p->second.end(); ++cp )
-			//total_num += cp->second.size();
 			total_num += cp->get_fellows().size();
 	}
 
 }
 
+/*
+ * Aim: to output "*this" cCluster_Info to an external file.
+ */
 
 void cCluster_Info::output_current_comparision_info( const char * const outputfile ) const {
 	std::ofstream of (outputfile);
@@ -273,37 +286,27 @@ void cCluster_Info::output_current_comparision_info( const char * const outputfi
 	std::cout << outputfile << " has been created or updated. "<< std::endl;
 }
 
-
+/*
+ * Aim: to output "*this" cCluster_Info to an ostream object. Callable internally only.
+ * Algorithm: for each cluster, output: cluster delegate###cohesion###member1,member2,member3,...
+ * 			where ### is the the primary delimiter and , is the secondary delimiter.
+ *
+ */
 
 void cCluster_Info::print(std::ostream & os) const {
 	if ( is_matching && (! is_consistent() ))
 		throw cException_Duplicate_Attribute_In_Tree("Not Consistent!");
-	//if ( is_matching && past_comparision.size() != cohesion_map.size() )
-		//throw cException_Cluster_Error(" Size of comparision map and of cohesion map are different.");
 	std::ostream::sync_with_stdio(false);
 	const string & uid_name = cUnique_Record_ID::static_get_class_name();
 	const unsigned int uid_index = cRecord::get_index_by_name(uid_name);
 	static const cException_Vector_Data except(uid_name.c_str());
-	//map<const string*, map<const cRecord *, double > >::const_iterator pco = cohesion_map_by_block.begin();
 	for ( map <string, cRecGroup >::const_iterator q = cluster_by_block.begin(); q != cluster_by_block.end(); ++q ) {
-		//if ( pco ->first != &q->first)
-			//throw cException_Cluster_Error("Comparision map and cohesion map are not consistent.");
-		//map < const cRecord *, double >::const_iterator pcohesion = pco->second.begin();
-		//const map < const cRecord *, double > & cohesion_alias = cohesion_map_by_block.find(&q->first)->second;
 		for ( cRecGroup::const_iterator p = q->second.begin(); p != q->second.end(); ++p ) {
-			//if ( is_matching && p->first.get_precord() != pcohesion->first )
-			//	throw cException_Cluster_Error("Comparision map and cohesion map are not consistent.");
-			//const cAttribute * key_pattrib = p->first.get_precord()->get_attrib_pointer_by_index(uid_index);
-			//const cAttribute * key_pattrib = p->first->get_attrib_pointer_by_index(uid_index);
 			const cAttribute * key_pattrib = p->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index);
-			//if ( key_pattrib->get_data().size() != 1 )
-			//	throw except;
 			os << * key_pattrib->get_data().at(0) << primary_delim;
 
 			double cohesion_value;
 			if ( is_matching )
-				//cohesion_value = pcohesion->second;
-				//cohesion_value = cohesion_alias.find(p->first)->second;
 				cohesion_value = p->get_cluster_head().m_cohesion;
 			else
 				cohesion_value = 0;
@@ -312,20 +315,19 @@ void cCluster_Info::print(std::ostream & os) const {
 
 			for ( cGroup_Value::const_iterator q = p->get_fellows().begin(); q != p->get_fellows().end(); ++q ) {
 				const cAttribute * value_pattrib = (*q)->get_attrib_pointer_by_index(uid_index);
-				//if ( value_pattrib->get_data().size() != 1 )
-				//	throw except;
 				os << * value_pattrib->get_data().at(0) << secondary_delim;
 			}
 			os << '\n';
-
-			//if ( is_matching)
-			//	++pcohesion;
 		}
-		//if (is_matching)
-		//	++pco;
 	}
 }
 
+/*
+ * Aim: to set the activity for certain blocks, according to the input file.
+ * Algorithm: read the data from the input file, convert them to blocking id strings, and set the corresponding blocks
+ * 			to be active. Others remain inactive. If the input file is invalid or empty, all the blocks will be set active.
+ *
+ */
 
 unsigned int cCluster_Info::reset_block_activity( const char * const filename ) {
 	const char * const delim = cCluster_Info::secondary_delim;
@@ -371,105 +373,16 @@ unsigned int cCluster_Info::reset_block_activity( const char * const filename ) 
 	return cnt;
 }
 
-
 /*
-void cCluster_Info:: update_comparision( const cRecord* key_to_add, const set< const cRecord * > & set_to_add,
-										const cRecord * key_to_delete, const double cohesion_to_update, const string * bid) {
-	comparision_insert(key_to_add, set_to_add, bid);
-	cohesion_update(key_to_add, cohesion_to_update, bid);
-	comparision_erase(key_to_delete, bid);
-	cohesion_erase(key_to_delete, bid);
-};
-
-void cCluster_Info:: comparision_insert(const cRecord* key, const cRecord* one_more_value, const string * bid) {
-	static const cGroup_Value empty_set;
-	map < const string *, map < const cRecord *, cGroup_Value::iterator q = cluster_by_block.find(bid);
-	if ( q == cluster_by_block.end())
-		throw cException_Attribute_Not_In_Tree(bid->c_str());
-	map < const cRecord*, cGroup_Valuesecond.find(key);
-	if ( p == q->second.end() )
-		p = q->second.insert(std::pair< const cRecord *, cGroup_Value(key, empty_set) ).first;
-	p->second.insert(one_more_value);
-}
-*/
-
+ * Aim: set up the prior value for all the blocks.
+ * Algorithm: if in debug mode, only configure the relevant blocks. Otherwise, configure all the blocks.
+ * 		NOTE: the actual determination of priori values is by the function "get_prior_value".
+ */
 
 void cCluster_Info::config_prior()  {
 	prior_data.clear();
 
 	std::cout << "Creating prior values ..." << std::endl;
-
-#if 0
-	const cString_Remain_Same nochange;
-	vector <string> cnames;
-	cnames.push_back(cFirstname::static_get_class_name());
-	cnames.push_back(cLastname::static_get_class_name());
-	cnames.push_back(cAssignee::static_get_class_name());
-	const vector < const cString_Manipulator *> sm(cnames.size(), &nochange);
-	cBlocking_Operation_Multiple_Column_Manipulate prior_blocking(sm, cnames);
-#if 0
-	unsigned int max_size = 0;
-	unsigned int min_size = 100000;
-	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
-		max_size = max_val < unsigned int >( max_size, cpm->second.size() );
-		min_size = min_val < unsigned int > ( min_size, cpm->second.size() );
-	}
-	// PrM( max_size) = 0.1, PrM( min_size ) = 0.9
-	const double PrM_max = 0.9;
-	const double PrM_min = 0.1;
-
-	const double slope = (PrM_min - PrM_max)/(max_size - min_size);
-	const double y_intercept = PrM_max - slope * min_size;
-
-	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
-		/*
-		double temp_prior = 1 - static_cast<double> (cpm->second.size())/max_size;
-		if ( temp_prior > 0.9 )
-			temp_prior = 0.9;
-		else if ( temp_prior < 0.01 )
-			temp_prior = 0.01;
-			*/
-
-		double temp_prior = slope * cpm->second.size() + y_intercept;
-		prior_data.insert(std::pair<const string*, double> (& (cpm->first), temp_prior));
-	}
-#endif
-	const double prior_max = 0.9;
-	const double prior_min = 1e-20;
-	for ( map<string, cRecGroup >::const_iterator cpm = cluster_by_block.begin(); cpm != cluster_by_block.end(); ++ cpm) {
-		map < string, unsigned int > count_map;
-		map < string, unsigned int > ::iterator pcount;
-		for ( cRecGroup::const_iterator cp = cpm->second.begin(); cp != cpm->second.end(); ++cp ) {
-			const cGroup_Value & alias = cp->get_fellows();
-			for ( cGroup_Value::const_iterator g = alias.begin(); g != alias.end(); ++g ) {
-				string temp ( prior_blocking.extract_blocking_info(*g));
-				pcount = count_map.find(temp);
-				if ( pcount == count_map.end())
-					count_map.insert(std::pair<string, unsigned int >(temp, 1));
-				else
-					++ (pcount->second);
-			}
-		}
-		double numerator = 0;
-		unsigned int tt = 0;
-		for ( map < string , unsigned int >::const_iterator q = count_map.begin(); q != count_map.end(); ++q ) {
-			const unsigned int c = q->second;
-			numerator += 1.0 * c * ( c - 1 );
-			tt += c;
-		}
-		double denominator = 1.0 * tt * ( tt - 1 );
-		if ( denominator == 0 )
-			denominator = 1e10;
-		double prior = numerator / denominator ;
-		if ( prior > prior_max )
-			prior = prior_max;
-		else if ( prior < prior_min )
-			prior = prior_min;
-
-		prior_data.insert(std::pair<const string*, double> (& (cpm->first), prior));
-
-	}
-#endif
 
 	map < const string *, bool >::const_iterator pmdebug;
 	list <double> empty_list;
@@ -495,6 +408,9 @@ void cCluster_Info::config_prior()  {
 	std::cout << "Prior values map is created." << std::endl;
 }
 
+/*
+ * Aim: to output the prior values of each block to an external file. This is perfect for both analysis and debugging.
+ */
 
 void cCluster_Info::output_prior_value( const char * const outputfile ) const {
 	std::ofstream of(outputfile);
@@ -507,7 +423,19 @@ void cCluster_Info::output_prior_value( const char * const outputfile ) const {
 	std::cout << "Prior values are saved in " << outputfile << std::endl;
 }
 
-//#if 0
+/*
+ * Aim: the determine the priori probability for a certain block, given its name and its components.
+ * Algorithm: according to the definition of prior values, it is "the probability of match given two records that are
+ * randomly selected within the block". We believe records in the same cluster to be a match, and those in different clusters
+ * to be a non-match. So the priori probabiliy is:
+ * prior = sum ( N choose 2 ) / ( ( sum N ) choose 2 ), where N is the number of members in each cluster.
+ * However, we also want to penalize those frequent names and offer bonus credit to rare names.
+ * So we multiple the prior by log ( frequency of the most frequent part / frequency of the part ) and set it to be the new prior.
+ * NOTE: the adjustment function is purely arbitrary and based on intuition. So one can definitely change it.
+ * However, it should be noted that the adjustment is crude yet very useful and effective.
+ * Those commented-out notes are legacy codes of adjustment, for reference purpose only.
+ *
+ */
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
@@ -536,6 +464,8 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 
 	if ( prior == 0 )
 		prior = prior_default;
+
+	//adding frequency factor.
 	//decompose the block_identifier string so as to get the frequency of each piece
 	size_t pos = 0, prev_pos = 0;
 	unsigned int seq = 0;
@@ -567,9 +497,6 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 		factor_history.push_back(factor);
 	    	//factor = 1.0 + 0.5 * ( log (  max_occurrence.at(seq) ) + log(min_occurrence.at(seq) ) ) - log ( this->column_stat.at(seq)[piece] );
 	    }
-
-
-
 	    if ( debug_mode ) {
 	    	(*pfs) << '\n'
 	    			<< "Part: " << seq
@@ -580,10 +507,6 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	    }
 
 	    final_factor = max_val( final_factor,  factor );
-
-
-
-
 	    ++seq;
 	}
 
@@ -612,71 +535,11 @@ double cCluster_Info::get_prior_value( const string & block_identifier, const li
 	return prior;
 }
 
-//#endif
-#if 0
-double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
-	static const double pi = 3.1415926;
-	const double x_contraction = 20.0;
-	static const double prior_max = 0.999;
-	static const double prior_min = 1e-6;
-	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
 
-	double prior = 1.0;
-	double max  = 1.0;
-	double final_prior = 0;
-	//decompose the block_identifier string so as to get the frequency of each piece
-	size_t pos = 0, prev_pos = 0;
-	unsigned int seq = 0;
-	while ( true ) {
-	    pos = block_identifier.find(cBlocking_Operation::delim, prev_pos );
-	    if ( pos == string::npos )
-	        break;
-
-	    string piece = block_identifier.substr( prev_pos, pos - prev_pos );
-	    prev_pos = pos + cBlocking_Operation::delim.size();
-
-	    if ( seq == uninvolved_index ) {
-	    	++seq;
-	    	continue;
-	    }
-	    double factor = 1.0;
-	    double max_factor = 1.0;
-	    if ( max_occurrence.at(seq) != 0 ) {
-	    	factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / this->column_stat.at(seq)[piece] );
-	    	max_factor = 1.0 + log ( 1.0 * max_occurrence.at(seq) / min_occurrence.at(seq) );
-	    }
-	    prior = factor - 1.0;
-	    max = max_factor - 1.0;
-	    ++seq;
-
-	    const double half_max = max / 2;
-	    double temp_prior = 0.5 + 1.0/pi * atan( x_contraction * ( prior / half_max - 1.0 ) ) ;
-
-	    if ( temp_prior > final_prior )
-	    	final_prior = temp_prior;
-	}
-
-	//prior -= 1.0;
-	//max -= 1.0;
-	//const double half_max = max / 2;
-
-	//now prior is in [ 0, max ]
-	//find a function in which dy/dx ~0 when x ->0 and x->max.
-	//use arctan here.
-	// y - 0.5 = 1/pi * atan( x_contraction * (x-half_max)/half_max )
-
-	//const double x_contraction = 20.0;
-	//double final_prior = 0.5 + 1.0/pi * atan( x_contraction * ( prior / half_max - 1.0 ) );
-
-	if ( final_prior < prior_min )
-		final_prior = prior_min;
-	else if ( final_prior > prior_max )
-		final_prior = prior_max;
-
-	return final_prior;
-}
-
-#endif
+/*
+ * Aim: to start the disambiguation.
+ * Algorithm: create several thread workers and multi-thread the process.
+ */
 
 void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_threads, const char * const debug_block_file, const char * const prior_to_save) {
 	if ( is_matching_cluster() != true )
@@ -697,26 +560,10 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 	// now starting disambiguation.
 	// here can be multithreaded.
 	// variables to sync: match, nonmatch, prior_iterator, cnt.
-	//map < const string*, double, cString_Pointer_Compare > ::const_iterator prior_map_iterator = prior_data.begin();
 	std::cout << "There are "<< size_to_disambig << " blocks to disambiguate." << std::endl;
-	/*
-	unsigned int cnt = 0;
-	const unsigned int base = 10000;
-	for ( pdisambiged = disambiguated_data.begin(); pdisambiged != disambiguated_data.end(); ++pdisambiged ) {
-		if (  prior_map_iterator->first  != pdisambiged->first ||
-				match.get_comparision_map().size() != match.get_cohesion_map().size() )
-			throw cBlocking::cException_Tree_Key_Mismatch( prior_map_iterator->first->c_str() );
-		disambiguate_by_block(pdisambiged->second, match, nonmatch, prior_map_iterator->second, ratiosmap);
-		++ prior_map_iterator;
-		++cnt;
-		//std::cout << cnt << "th block compared."<<std::endl;
-	}
-	*/
-	//ppdisambiged(&input_pdisambiged), match_alias(match), nonmatch_alias(nonmatch), Prior_map_alias(Prior_map), ratiosmap_alias(ratiosmap), Data_map_alias(source_data)
 	pdisambiged = cluster_by_block.begin();
 	cWorker_For_Disambiguation sample(pdisambiged, ratio, *this);
 
-	//const unsigned int num_threads = 4;
 	vector < cWorker_For_Disambiguation > worker_vector( num_threads, sample);
 
 	for ( unsigned int i = 0; i < num_threads; ++i )
@@ -754,44 +601,41 @@ void cCluster_Info::disambiguate(const cRatios & ratio, const unsigned int num_t
 }
 
 
+/*
+ * Aim: thread worker of disambiguation.
+ * Algorithm:
+ * Given the address of the cursor ( iterator ) of the disambiguation progress, save the cursor locally and
+ * more the cursor forward. Then run the disambiguation for the block to which the cursor points. Finally, update
+ * the disambiguated record number.
+ * PAY ATTENTION TO THE SYNCRONIZATION!
+ */
 void cWorker_For_Disambiguation::run() {
-	//try {
-		const unsigned int base = 10000;
-		map < string, cCluster_Info::cRecGroup >::iterator pthis;
-		while ( true) {
-			pthread_mutex_lock(&iter_lock);
-			if ( *ppdisambiged == cluster_ref.get_cluster_map().end() ) {
-				pthread_mutex_unlock(&iter_lock);
-				break;
-			}
-			pthis = *ppdisambiged;
-			++(*ppdisambiged);
+	const unsigned int base = 10000;
+	map < string, cCluster_Info::cRecGroup >::iterator pthis;
+	while ( true) {
+		pthread_mutex_lock(&iter_lock);
+		if ( *ppdisambiged == cluster_ref.get_cluster_map().end() ) {
 			pthread_mutex_unlock(&iter_lock);
-
-			bool is_success = disambiguate_wrapper(pthis, cluster_ref, *pratios);
-			pthread_mutex_lock(&iter_lock);
-			if ( is_success )
-				++count;
-			if ( count % base == 0 && count != 0 ) {
-				std::cout << count << " blocks have been disambiguated." << std::endl;
-			}
-			pthread_mutex_unlock(&iter_lock);
+			break;
 		}
-	//}
-	/*
-	catch ( const cAbstract_Exception & ex) {
-		std::cout << "Caught user defined error: " << ex.what() << " . --Reported by thread " << getThreadID() << std::endl;
-		throw;
-	}
-	*/
+		pthis = *ppdisambiged;
+		++(*ppdisambiged);
+		pthread_mutex_unlock(&iter_lock);
 
-	//catch ( ... ) {
-	//	std::cout << "Caught UNKNOWN error (USUALLY CRITICAL). Need to handle this! "<< " . --Reported by thread " << getThreadID()  << std::endl;
-	//	throw;
-	//}
+		bool is_success = disambiguate_wrapper(pthis, cluster_ref, *pratios);
+		pthread_mutex_lock(&iter_lock);
+		if ( is_success )
+			++count;
+		if ( count % base == 0 && count != 0 ) {
+			std::cout << count << " blocks have been disambiguated." << std::endl;
+		}
+		pthread_mutex_unlock(&iter_lock);
+	}
 }
 
-
+/*
+ * Aim: a function that controls the loop of disambiguation for a certain block. Used in cWorker_For_Disambiguation.
+ */
 
 bool disambiguate_wrapper(const map<string, cCluster_Info::cRecGroup>::iterator & p,cCluster_Info & cluster,
 							const cRatios & ratio ) {
@@ -827,160 +671,23 @@ bool disambiguate_wrapper(const map<string, cCluster_Info::cRecGroup>::iterator 
 
 }
 
+/*
+ * Aim: set the thresholds for overall disambiguation.
+ */
 const vector < double > & cCluster_Info::set_thresholds ( const vector < double > & input ) {
 	this->thresholds =  input;
 	return this->thresholds;
 }
 
-#if 0
-unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
-							const cRatios & ratio, const string * const bid, const double threshold ) {
-	//const bool debug_mode = true;
-	//const bool update_prior = false;
-	//divide and conquer
-
-
-	const unsigned int group_size = to_be_disambiged_group.size();
-	if ( group_size == 1 )
-		return group_size;
-	cRecGroup::iterator split_cursor = to_be_disambiged_group.begin();
-	for ( unsigned int i = 0; i < group_size / 2 ; ++i )
-		++ split_cursor;
-	cRecGroup secondpart ( split_cursor, to_be_disambiged_group.end());
-	to_be_disambiged_group.erase( split_cursor, to_be_disambiged_group.end() );
-
-	disambiguate_by_block( to_be_disambiged_group, prior_list, ratio, bid, threshold );
-	disambiguate_by_block( secondpart, prior_list, ratio, bid , threshold);
-
-	const double prior_value = prior_list.back();
-	// now compare the two disambiguated parts;
-
-	cRecGroup::iterator first_iter, second_iter;
-
-	//const double threshold_list[] = {	0.90 };
-
-	//for ( unsigned int round = 0; round < sizeof(threshold_list)/sizeof(double); ++ round) {
-
-		for ( first_iter = to_be_disambiged_group.begin(); first_iter != to_be_disambiged_group.end(); ) {
-			bool should_increment_first = true;
-			//double first_cohesion = match.find_cohesion( first_iter->first.get_precord() )->second;
-			//double first_cohesion = match.find_cohesion( first_iter->first.get_precord(), bid)->second;
-			//map < const cRecord *, double >  & cohesion_alias = this->get_cohesion_map(bid);
-			//double & first_cohesion = cohesion_alias.find(first_iter->first.get_precord())->second;
-			//double first_cohesion = cohesion_alias.find(first_iter->first)->second;
-			//double first_cohesion = first_iter->get_cluster_head().m_cohesion;
-			for ( second_iter = secondpart.begin(); second_iter != secondpart.end(); ) {
-				bool should_increment_second = true;
-				//const double second_cohesion = match.find_cohesion( second_iter->first.get_precord(), bid )->second;
-				//double second_cohesion = cohesion_alias.find(second_iter->first)->second;
-				//double second_cohesion = second_iter->get_cluster_head().m_cohesion;
-
-				//std::pair<const cRecord *, double> result =  disambiguate_by_set(first_iter->first, first_iter->second,
-				//		first_cohesion, second_iter->first, second_iter->second, second_cohesion, prior_value, ratio, 0 );
-
-				cCluster_Head result = first_iter->disambiguate(*second_iter, prior_value, threshold);
-				if ( debug_mode && result.m_delegate != NULL) {
-					std::cout << "**************************" << std::endl;
-					first_iter->get_cluster_head().m_delegate->print(std::cout);
-					std::cout << "The first cluster has " << first_iter->get_fellows().size() << " members." << std::endl;
-					second_iter->get_cluster_head().m_delegate->print(std::cout);
-					std::cout << "The second cluster has " << second_iter->get_fellows().size() << " members." << std::endl;
-					std::cout << "Prior value = "<< prior_value << " Probability = " << result.m_cohesion << std::endl;
-					std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl << std::endl;
-				}
-				// check result now.
-				// if result != NULL, the pointer is the representative of the merged group;
-				// the two sets should merge in the disambiguated_data map.
-				// matched cluster should be modified to accomodate the merge of the two sets.
-				// and a merged score should also be added to the cluster.
-
-
-				if ( result.m_delegate != NULL ) {
-					//now merge in the disambiguated_data.
-					if ( result.m_delegate == second_iter->get_cluster_head().m_delegate ) {
-						/*
-						// merge outer to inner
-						second_iter->second.insert(second_iter->second.end(), first_iter->second.begin(), first_iter->second.end() );
-						// modifying clusters.
-						cohesion_alias.find(second_iter->first)->second = result.second;
-						second_cohesion = result.second;
-						cohesion_alias.erase(first_iter->first);
-						*/
-
-						second_iter->merge(*first_iter, result);
-
-						to_be_disambiged_group.erase(first_iter++);
-						should_increment_first = false;
-						break;
-					}
-					/*
-					else if ( result.m_delegate == first_iter->get_cluster_head().m_delegate){
-						// merge inner to outer;
-						first_iter->merge(*second_iter, result);
-
-						//first_iter->second.insert(first_iter->second.end(), second_iter->second.begin(), second_iter->second.end() );
-						// modify cluster
-						//cohesion_alias.erase(second_iter->first);
-						secondpart.erase( second_iter++ );
-						should_increment_second = false;
-						//cohesion_alias.find(first_iter->first)->second = result.second;
-						//first_cohesion = result.m_cohesion;
-					}
-					*/
-					else {
-						// merge inner to outer and change the outer key
-						first_iter->merge(*second_iter, result);
-						//first_iter->second.insert(first_iter->second.end(), second_iter->second.begin(), second_iter->second.end() );
-						//const cRecord * key_to_delete = first_iter->first;
-						//cGroup_Key & firstkey_to_change = const_cast< cGroup_Key& > ( first_iter->first);
-						//firstkey_to_change = result.first ;
-						//cohesion_alias.erase(key_to_delete);
-						//cohesion_alias.erase(second_iter->first);
-						//cohesion_alias.insert(std::pair<const cRecord *, double>(result.first, result.second));
-						secondpart.erase( second_iter++ );
-						should_increment_second = false;
-						//first_cohesion = result.m_cohesion;
-					}
-
-
-				}
-				// the two sets should not merge.
-				// simply add information to the nonmatch cluster
-				else {
-					//nonmatch.comparision_insert(first_iter->first.get_precord(), second_iter->first.get_precord());
-					//nonmatch.comparision_insert(second_iter->first.get_precord(), first_iter->first.get_precord());
-				}
-				if ( should_increment_second)
-					++ second_iter;
-			}
-			if ( should_increment_first)
-				++ first_iter;
-		}
-	//}
-		// now merge the two.
-
-	to_be_disambiged_group.insert(to_be_disambiged_group.end(), secondpart.begin(), secondpart.end());
-
-	//if ( update_prior )
-	const double new_prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
-	if ( new_prior_value != prior_value )
-		prior_list.push_back(new_prior_value);
-
-	return to_be_disambiged_group.size();
-
-}
-
-#endif
-
-
+/*
+ * Aim: to disambiguate clusters within a given block. Probably also update the prior values.
+ * Algorithm: call the cCluster::disambiguate method and, if necessary, the cCluster::merge method.
+ */
 
 unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambiged_group,  list <double> & prior_list,
 							const cRatios & ratio, const string * const bid, const double threshold ) {
-	//const bool debug_mode = true;
-	//const bool update_prior = false;
-	//divide and conquer
 
-
+	const bool should_update_prior = false;
 	cRecGroup::iterator first_iter, second_iter;
 	const double prior_value = prior_list.back();
 
@@ -1007,10 +714,11 @@ unsigned int cCluster_Info:: disambiguate_by_block ( cRecGroup & to_be_disambige
 		}
 	}
 
-	//if ( update_prior )
-	const double new_prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
-	if ( new_prior_value != prior_value )
-		prior_list.push_back(new_prior_value);
+	if ( should_update_prior ) {
+		const double new_prior_value = this->get_prior_value(*bid, to_be_disambiged_group );
+		if ( new_prior_value != prior_value )
+			prior_list.push_back(new_prior_value);
+	}
 
 	return to_be_disambiged_group.size();
 

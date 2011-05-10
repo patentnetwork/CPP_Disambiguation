@@ -226,15 +226,16 @@ void cRatioComponent::prepare(const char* x_file, const char * m_file) {
 }
 
 
-cRatioComponent:: cRatioComponent( const list <cRecord> & source, const map < string, const cRecord * > & uid_tree, const string & groupname)
-			: psource(&source),  attrib_group(groupname), puid_tree(&uid_tree), is_ready(false) {
+cRatioComponent:: cRatioComponent( const map < string, const cRecord * > & uid_tree, const string & groupname)
+			: attrib_group(groupname), puid_tree(&uid_tree), is_ready(false) {
 };
 
 void cRatioComponent::get_similarity_info() {
 	positions_in_ratios.clear();
 	positions_in_record.clear();
 	attrib_names.clear();
-	const cRecord & sample_record = psource->front();
+	//const cRecord & sample_record = psource->front();
+	const cRecord & sample_record = cRecord::get_sample_record();
 	static const string useless_group_label = "None";
 	unsigned int ratios_pos = 0, record_pos = 0;
 	for ( vector<const cAttribute*>::const_iterator p = sample_record.vector_pdata.begin(); p != sample_record.vector_pdata.end(); ++p) {
