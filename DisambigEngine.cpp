@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstring>
 
+
 using std::map;
 using std::set;
 
@@ -581,33 +582,27 @@ void cReconfigurator_AsianNames::reconfigure( const cRecord * p ) const {
 }
 
 
-/*
- * Aim: constructor of cReconfigurator_Latitude_Interactives.
- */
-cReconfigurator_Latitude_Interactives::cReconfigurator_Latitude_Interactives():
-		latitude_index(cRecord::get_index_by_name(cLatitude::static_get_class_name())),
-									longitude_index(cRecord::get_index_by_name(cLongitude::static_get_class_name())),
-									street_index(cRecord::get_index_by_name(cStreet::static_get_class_name())),
-									country_index(cRecord::get_index_by_name(cCountry::static_get_class_name())) {}
 
+cReconfigurator_Interactives::cReconfigurator_Interactives( const string & my_name,
+		const vector < string > & relevant_attribs ) {
+	my_index = cRecord::get_index_by_name(my_name);
+	for ( vector<string>::const_iterator p = relevant_attribs.begin(); p != relevant_attribs.end(); ++p ) {
+		unsigned int idx = cRecord::get_index_by_name(*p);
+		relevant_indice.push_back(idx);
+	}
+}
 
-/*
- * Aim: reconfigure the cRecord object so that the latitude attribute contains information about its interactive attributes.
- *
- */
-void cReconfigurator_Latitude_Interactives::reconfigure ( const cRecord * p ) const {
-	//watch out sequence here !!!
-	if ( ! cLatitude::is_enabled() )
-		return;
+void cReconfigurator_Interactives::reconfigure ( const cRecord * p ) const {
 
 	vector < const cAttribute * > interact;
-	interact.push_back(p->get_attrib_pointer_by_index(this->longitude_index));
-	interact.push_back(p->get_attrib_pointer_by_index(this->street_index));
-	interact.push_back(p->get_attrib_pointer_by_index(this->country_index));
-	const cAttribute * const & tp = p->get_attrib_pointer_by_index(this->latitude_index);
+	for ( vector < unsigned int >::const_iterator i = relevant_indice.begin(); i != relevant_indice.end(); ++i ) {
+		interact.push_back(p->get_attrib_pointer_by_index(*i));
+	}
+	const cAttribute * const & tp = p->get_attrib_pointer_by_index(my_index);
 	const cAttribute * & cp = const_cast< const cAttribute * &> (tp);
 	cp = tp->config_interactive(interact);
 }
+
 
 /*
  * Aim: constructor of cReconfigurator_Coauthor
@@ -1736,6 +1731,8 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		delete pointer_array[i];
 	delete [] pointer_array;
 
+	for ( list< cRecord>::iterator ci = source.begin(); ci != source.end(); ++ci )
+		ci->reconfigure_record_for_interactives();
 	return true;
 }
 
@@ -1796,5 +1793,20 @@ cAttribute * create_attribute_instance ( const string & id ) {
 }
 
 
+const cRecord_Reconfigurator * generate_interactive_reconfigurator( const cAttribute * pAttrib) {
+	vector <string > linked_attribs (pAttrib->get_interactive_class_names());
+	string my_name = pAttrib->get_class_name();
+	//ATTENTION: OBJECT IS ON HEAP.
+	const cRecord_Reconfigurator * preconfig = new cReconfigurator_Interactives( my_name, linked_attribs );
+	return preconfig;
+}
 
+void cRecord::reconfigure_record_for_interactives() const {
+	for ( vector <const cAttribute *>::const_iterator cipa = vector_pdata.begin(); cipa != vector_pdata.end(); ++cipa ) {
+		(*cipa)->reconfigure_for_interactives( this);
+	}
+}
 
+void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord * pRec) {
+	pc->reconfigure(pRec);
+}

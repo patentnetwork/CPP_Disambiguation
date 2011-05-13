@@ -29,6 +29,7 @@
 #include <string>
 #include <pthread.h>
 #include <typeinfo>
+#include <memory>
 
 #define INERT_ATTRIB_GROUP_IDENTIFIER "NONE"			// the attribute group specifier that is not the component of similarity profiles
 
@@ -42,6 +43,10 @@ using std::set;
 class cRecord;
 class cRecord_Reconfigurator;
 void cRecord_update_active_similarity_names();
+class cAttribute;
+class cRecord_Reconfigurator;
+const cRecord_Reconfigurator * generate_interactive_reconfigurator( const cAttribute * pAttrib);
+void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord * pRec);
 
 
 
@@ -268,9 +273,10 @@ public:
 //====================================================================
 class cAttribute {
 private:
+	friend class cRecord;
 	friend void attrib_merge ( list < const cAttribute **> & l1, list < const cAttribute **> & l2 );
 	static vector <string> Derived_Class_Name_Registry;
-
+	virtual void reconfigure_for_interactives( const cRecord * pRec) const {};
 protected:
 	virtual vector < const string * > & get_data_modifiable() = 0;
 	virtual const cAttribute * attrib_merge ( const cAttribute & rhs) const { return NULL;};
@@ -310,6 +316,8 @@ public:
 	virtual const set < const string *> * get_attrib_set_pointer () const { return NULL; }
 	static void register_class_names( const vector < string > &);
 	static int position_in_registry( const string & );
+	virtual vector < string > get_interactive_class_names() const = 0;
+
 };
 
 
@@ -404,6 +412,8 @@ private:
 protected:
 
 public:
+
+
 	static void clear_data_pool() {data_pool.clear();}
 	static void clear_attrib_pool() {attrib_pool.clear();}
 
@@ -592,6 +602,13 @@ public:
 		return static_add_attrib( dynamic_cast< const Derived &> (*this), n);
 	}
 
+	static vector < string > static_get_interactive_column_names() {
+		vector < string > res ( interactive_column_names, interactive_column_names + num_of_interactive_columns);
+		return res;
+	}
+	vector < string > get_interactive_class_names() const {
+		return static_get_interactive_column_names();
+	}
 };
 
 /*
@@ -883,8 +900,14 @@ public:
 
 template < typename AttribType >
 class cAttribute_Single_Interactive_Mode: public cAttribute_Single_Mode < AttribType > {
+	friend class cReconfigurator_Interactives;
 	typedef vector<const cAttribute *> Inter_Vector;
-protected:
+private:
+	static std::auto_ptr < const cRecord_Reconfigurator > preconfig;
+	static void obtain_interactive_reconfigurator( const cAttribute * p) {
+		std::auto_ptr < const cRecord_Reconfigurator > tmp_ptr (generate_interactive_reconfigurator(p));
+		preconfig = tmp_ptr;
+	}
 
 private:
 	static map < Inter_Vector, unsigned int > Interactive_Pool;
@@ -918,7 +941,23 @@ private:
 			return &(p->first);
 	}
 
+	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const {
+		if ( pInteractive != NULL ) {
+			std::cout << "=====REFUSE to reset interactives. Pointer was initialized before." << std::endl;
+			return NULL;
+		}
+		AttribType temp(dynamic_cast< const AttribType &>(*this) );
 
+		temp.cAttribute_Single_Interactive_Mode::pInteractive = temp.cAttribute_Single_Interactive_Mode::add_interactive_vector(inputvec, 1);
+		const cAttribute * pattrib_in_pool = temp.add_attrib(1);
+		has_reconfiged = true;
+		return pattrib_in_pool;
+	}
+	void reconfigure_for_interactives( const cRecord * pRec) const {
+		if ( preconfig.get() == NULL )
+			obtain_interactive_reconfigurator(this);
+		reconfigure_interactives ( preconfig.get(), pRec);
+	}
 
 public:
 	cAttribute_Single_Interactive_Mode(const char * source = NULL ) : pInteractive(NULL) {}
@@ -932,18 +971,7 @@ public:
 			return & (this->get_interactive_vector() ) < & ( rhs.get_interactive_vector() );
 	}
 
-	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const {
-		if ( pInteractive != NULL ) {
-			std::cout << "=====REFUSE to reset interactives. Pointer was initialized before." << std::endl;
-			return NULL;
-		}
-		AttribType temp(dynamic_cast< const AttribType &>(*this) );
 
-		temp.cAttribute_Single_Interactive_Mode::pInteractive = temp.cAttribute_Single_Interactive_Mode::add_interactive_vector(inputvec, 1);
-		const cAttribute * pattrib_in_pool = temp.add_attrib(1);
-		has_reconfiged = true;
-		return pattrib_in_pool;
-	}
 	static bool check_if_reconfigured() {
 		if ( ! has_reconfiged )
 			throw cException_Other("Interactive class has not been reconfigured yet.");
@@ -957,5 +985,6 @@ public:
 template <typename Derived>  map < vector<const cAttribute *> , unsigned int > cAttribute_Single_Interactive_Mode<Derived>::Interactive_Pool;
 template < typename AttribType> vector < const string * > cAttribute_Set_Intermediary<AttribType>::temporary_storage;
 template <typename Derived> bool cAttribute_Single_Interactive_Mode<Derived>::has_reconfiged = false;
+template <typename Derived> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_Single_Interactive_Mode<Derived>::preconfig;
 
 #endif /* DISAMBIGLIB_HPP_ */

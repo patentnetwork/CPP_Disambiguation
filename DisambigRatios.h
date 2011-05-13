@@ -115,7 +115,27 @@ public:
  * 			Key = similarity profile, Value = ratio, Comparator = cSimilarity_Compare
  * 		vector < unsigned int > positions_in_ratios: positions of the current components in the complete similarity profile.
  * 		vector < unsigned int > positions_in_record: position of the current components in the cRecord::column_names.
+ *		const string attrib_group: the attribute GROUP identifier for which the cRatioComponent object represents.
+ *		const map < string, const cRecord *> * puid_tree: the pointer to a map of unique record id string to its correspoinding record pointer.
+ *		map < cSimilarity_With_Monotonicity_Dimension, monotonic_set > similarity_map:
+ *			a map of similarity profiles and their monotonic set for a certain dimension.
+ *		vector < string > attrib_names: attribute names that belong the the atribute group.
+ *		bool is_ready: a boolean value indicating the readiness of the object. The object is usable only if is_ready is true.
+ *		map < vector < unsigned int > , unsigned int, cSimilarity_Compare > x_counts, m_counts:
+ *			maps of similarity profiles to their occurrences in non-match and match training sets.
  *
+ *		void sp_stats (const list<std::pair<string, string> > & trainpairs,
+				   map < vector < unsigned int > , unsigned int, cSimilarity_Compare > & sp_counts ) const:
+ *                      read a list of pairs of unique record numbers that are selected as training sets, and do pairwise comparison in the specified
+ *                      attribute group. Then the statistics of the appearing similarity profiles ( part of a complete similarity profile ) are stored
+ *                      in the map of similarity profiles to their occurrences "sp_counts".
+ *		void read_train_pairs ( list < std::pair < string, string > & trainpairs, const char * txt_file ) const:
+ *              read the list of pairs of unique record numbers ( training sets ) from the specified "txt_file" into the list "trainpairs".
+ *		void get_similarity_info(): to get the information of similarity profiles of the attribute group.
+ *
+ * Public: 
+ * 		cRatioComponent ( const map < string, const cRecord * > uid_tree, const string & groupname ):
+ * 			constructor. uid_tree = map of unique record id string to its record pointer. groupname = attribute group name.
  *
  */
 
@@ -129,13 +149,13 @@ private:
 	map < vector <unsigned int>, double, cSimilarity_Compare > ratio_map;
 	vector < unsigned int > positions_in_ratios;
 	vector < unsigned int > positions_in_record;
-	//const list <cRecord> * psource;
 	const string attrib_group;
 	const map < string, const cRecord *> * puid_tree;
 	map < cSimilarity_With_Monotonicity_Dimension, monotonic_set > similarity_map;
 	vector < string > attrib_names;
 	bool is_ready;
 	map < vector < unsigned int > , unsigned int, cSimilarity_Compare > x_counts, m_counts;
+
 	void sp_stats (const list<std::pair<string, string> > & trainpairs, 
 				   map < vector < unsigned int > , unsigned int, cSimilarity_Compare > & sp_counts ) const;
 	void read_train_pairs(list<std::pair<string, string> > & trainpairs, const char * txt_file) const;
@@ -146,7 +166,6 @@ public:
 		cException_Ratios_Not_Ready(const char* errmsg): cAbstract_Exception(errmsg){};
 	};
 	
-	//explicit cRatioComponent( const list <cRecord> & source, const map < string, const cRecord * > & uid_tree, const string & groupname);
 	explicit cRatioComponent( const map < string, const cRecord * > & uid_tree, const string & groupname);
 	void prepare(const char* x_flie, const char * m_file);
 	const map < vector < unsigned int >, double, cSimilarity_Compare > & get_ratios_map() const {

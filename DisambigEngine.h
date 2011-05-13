@@ -108,6 +108,7 @@ public:
 	static const vector < string > & get_similarity_names() { return active_similarity_names;}
 	static unsigned int get_similarity_index_by_name(const string & inputstr);
 	static const cRecord & get_sample_record() { return *sample_record_pointer;}
+	void reconfigure_record_for_interactives() const;
 };
 
 //================================================
@@ -642,29 +643,28 @@ public:
 
 
 /*
- * cReconfigurator_Latitude_Interactives:
- * This class is used to modify the cLatitude object to connect with its associated other cAttribute objects.
+ * cReconfigurator_Interactives:
+ * This class is used to modify the objects to connect with its associated other cAttribute objects.
  *
  * Example:
- * cReconfigurator_Latitude_Interactives rliobj;	// get an instance
- * rliobj ( & recobj );	// internal modification is done.
- *
+ * vector < string > links;
+ * links.push_back("Longitude");
+ * links.push_back("Street");
+ * links.push_back("Country");
+ * cReconfigurator_Interactives obj ("Latitude", links);	// get an instance
+ * obj ( & recobj );	// internal modification is done.
+ * obj.reconfigure ( & recobj ); //the same as above;
  */
 
 
-class cReconfigurator_Latitude_Interactives: public cRecord_Reconfigurator {
+class cReconfigurator_Interactives: public cRecord_Reconfigurator {
 private:
-	//watch out the sequence! It is not important here but watch out in the reconfiugre function.
-	const unsigned int latitude_index;
-	const unsigned int longitude_index;
-	const unsigned int street_index;
-	const unsigned int country_index;
-
+	unsigned int my_index;
+	vector < unsigned int > relevant_indice;
 public:
-	cReconfigurator_Latitude_Interactives();
-	void reconfigure( const cRecord * ) const;
+	cReconfigurator_Interactives(const string & my_name, const vector <string> & relevant_attributes);
+	void reconfigure ( const cRecord *) const;
 };
-
 
 /*
  * cReconfigurator_Coauthor:
