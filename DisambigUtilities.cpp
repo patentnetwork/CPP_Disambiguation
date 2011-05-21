@@ -25,10 +25,10 @@ bool make_changable_training_sets_by_patent(const list <const cRecord*> & record
 	const bool is_class_active = cClass::static_is_comparator_activated();
 
 	if ( ! is_coauthor_active )
-		cCoauthor::activate_comparator();
+		cCoauthor::static_activate_comparator();
 
 	if ( ! is_class_active )
-		cClass::activate_comparator();
+		cClass::static_activate_comparator();
 
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	cBlocking_For_Training bft (record_pointers, blocking_column_names, pstring_oper, uid_identifier, limit);
@@ -77,10 +77,10 @@ bool make_changable_training_sets_by_patent(const list <const cRecord*> & record
 	std::cout << "Done" << std::endl;
 
 	if ( ! is_coauthor_active )
-		cCoauthor::deactivate_comparator();
+		cCoauthor::static_deactivate_comparator();
 
 	if ( ! is_class_active )
-		cClass::deactivate_comparator();
+		cClass::static_deactivate_comparator();
 
 	return true;
 }
@@ -312,3 +312,188 @@ bool make_stable_training_sets_by_patent(const list <const cRecord*> & record_po
 }
 
 #endif
+
+
+//====================
+
+
+std::pair < const cRecord *, set < const cRecord * > > ones_temporal_unique_coauthors ( const cCluster & record_cluster,
+		const map < const cRecord *, const cRecord *> & complete_uid2uinv,
+		const map < const cRecord *, cGroup_Value, cSort_by_attrib > & complete_patent_tree,
+		const unsigned int begin_year, const unsigned int end_year, const unsigned int year_index ) {
+	//[ begin_year, end_year )
+
+	const cRecord * ret1 = NULL;
+	set < const cRecord * > ret2;
+
+	const cGroup_Value & same_author = record_cluster.get_fellows();
+
+	cGroup_Value qualified_same_author;
+	for ( cGroup_Value::const_iterator psa = same_author.begin(); psa != same_author.end(); ++psa ) {
+		//check year range
+		const cAttribute * pAttrib = (*psa)->get_attrib_pointer_by_index(year_index);
+		const unsigned int checkyear = atoi (pAttrib->get_data().at(0)->c_str());
+		if ( checkyear >= begin_year && checkyear < end_year )
+			qualified_same_author.push_back(*psa);
+		//end of year range check
+	}
+	for ( cGroup_Value::const_iterator pqsa = qualified_same_author.begin(); pqsa != qualified_same_author.end(); ++pqsa) {
+		const map < const cRecord *, cGroup_Value, cSort_by_attrib >::const_iterator tempi = complete_patent_tree.find(*pqsa);
+		if ( tempi == complete_patent_tree.end() )
+			throw cException_Other("patent not in patent tree.");
+		const cGroup_Value & coauthor_per_patent = tempi->second;
+		for ( cGroup_Value::const_iterator pp = coauthor_per_patent.begin(); pp != coauthor_per_patent.end(); ++pp ) {
+			if ( *pp == *pqsa)
+				continue;
+			map < const cRecord *, const cRecord *>::const_iterator tempi2 = complete_uid2uinv.find(*pp);
+			if ( tempi2 == complete_uid2uinv.end() )
+				throw cException_Other("uid not in uid tree.");
+			const cRecord * inv = tempi2->second;
+			//finally, got it.
+			ret2.insert(inv);
+		}
+	}
+	if ( ! qualified_same_author.empty())
+		ret1 = qualified_same_author.front();
+
+	return std::pair < const cRecord * ,set < const cRecord * > >(ret1, ret2);
+
+}
+
+int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile) {
+	typedef std::pair< const cRecord *, set < const cRecord *> > cUINV2UCOAUTHOR;
+	list <cRecord> all_records;
+	const string columns[] = {"Unique_Record_ID", "Patent",  "ApplyYear"};
+	const vector <string> column_vec(columns, columns + sizeof(columns)/sizeof(string) );
+
+	bool is_success = fetch_records_from_txt(all_records, wholedatabase, column_vec);
+	if (not is_success) return 1;
+
+	list < const cRecord *> all_rec_pointers;
+	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+		all_rec_pointers.push_back(&(*p));
+
+	cString_Remain_Same manobj;
+	cBlocking_Operation_Column_Manipulate tempblocker (manobj, "ApplyYear");
+	cBlocking_Operation_By_Coauthors bocobj(all_rec_pointers, 1);
+	cCluster::set_reference_patent_tree_pointer(bocobj.get_patent_tree());
+
+	map <string, const cRecord *> uid_dict;
+	create_btree_uid2record_pointer(uid_dict, all_records, cUnique_Record_ID::static_get_class_name());
+
+	cCluster_Info ci( uid_dict, true, true, false);
+	ci.reset_blocking(tempblocker, disambigresult);
+	bocobj.build_uid2uinv_tree(ci);
+
+	cCluster_Set all_clusters;
+	all_clusters.convert_from_ClusterInfo(&ci);
+
+	const map < const cRecord *, const cRecord *> & uid2uinv = bocobj.get_uid2uinv_tree();
+	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree = bocobj.get_patent_tree();
+	const list < cCluster > & full_list = all_clusters.get_set();
+
+
+
+	const string & beginyearstring = ci.get_cluster_map().begin()->first;
+	const string & endyearstring = ci.get_cluster_map().rbegin()->first;
+	const unsigned int endyear = atoi( endyearstring.c_str() );
+
+	const unsigned int appyearindex = cRecord::get_index_by_name(cApplyYear::static_get_class_name());
+	std::cout << "Begin year = "<<beginyearstring << " , End year = " << endyearstring << std::endl;
+
+	map < unsigned int, unsigned int > unique_coauthor_year_chunk;
+	map < unsigned int, unsigned int > unique_inventor_year_chunk;
+	for ( unsigned int y = starting_year; y <= endyear; y += interval ) {
+		unsigned int unique_inventors = 0;
+		unsigned int unique_coauthors = 0;
+		for ( list< cCluster >::const_iterator puinv = full_list.begin() ; puinv != full_list.end(); ++puinv) {
+			std::pair< const cRecord * , set< const cRecord *> > kk =
+					ones_temporal_unique_coauthors ( *puinv, uid2uinv, patent_tree, y, y + interval, appyearindex );
+			if ( kk.first != NULL ) {
+				++ unique_inventors;
+				unique_coauthors += kk.second.size();
+			}
+		}
+		unique_coauthor_year_chunk.insert(std::pair<unsigned int, unsigned int>(y, unique_coauthors));
+		unique_inventor_year_chunk.insert(std::pair<unsigned int, unsigned int>(y, unique_inventors));
+		std::cout << "Year " << y << " done." << std::endl;
+	}
+
+	std::ostream & os = std::cout;
+	const string space_delim = "          ";
+	os << "Year Chunk:" << space_delim << "Number of Unique Inventors:" << space_delim << "Number of Unique Coauthors:" << std::endl;
+	for ( map < unsigned int, unsigned int >::const_iterator p = unique_inventor_year_chunk.begin(); p != unique_inventor_year_chunk.end(); ++p ) {
+		os << p->first << space_delim << p->second << space_delim << unique_coauthor_year_chunk.find(p->first)->second << std::endl;
+	}
+
+	return 0;
+}
+
+
+//====================
+
+
+void one_step_prostprocess( const list < cRecord > & all_records, const char * last_disambig_result, const char * outputfile) {
+	map <string, const cRecord *> uid_dict;
+	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
+	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
+
+	list < const cRecord *> all_rec_pointers;
+	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+		all_rec_pointers.push_back(&(*p));
+
+	cCluster_Info match ( uid_dict, true, true, false);
+
+	const unsigned int num_coauthors_to_group = 2;
+	cBlocking_Operation_By_Coauthors blocker_coauthor( all_rec_pointers, num_coauthors_to_group );
+
+	cString_NoSpace_Truncate operator_truncate_firstname;
+	cString_NoSpace_Truncate operator_truncate_lastname;
+	cString_NoSpace_Truncate operator_truncate_middlename;
+
+	vector <const cString_Manipulator*> pstring_oper;
+	pstring_oper.push_back(& operator_truncate_firstname);
+	pstring_oper.push_back(& operator_truncate_middlename);
+	pstring_oper.push_back(& operator_truncate_lastname);
+
+	const string blocking_names[] = {cFirstname::static_get_class_name(), cMiddlename::static_get_class_name(), cLastname::static_get_class_name()};
+	vector < string > blocking_column_names(blocking_names, blocking_names + sizeof(blocking_names)/sizeof(string) );
+	vector < unsigned int > blocking_column_data_indice ( blocking_column_names.size(), 0 );
+	//blocking_column_data_indice.at(0) = 1;
+	//blocking_column_data_indice.at(1) = 1;
+	cBlocking_Operation_Multiple_Column_Manipulate blocker(pstring_oper, blocking_column_names, blocking_column_data_indice);
+
+	operator_truncate_firstname.set_truncater(0, 0, true);
+	operator_truncate_middlename.set_truncater(0, 0, false);
+	operator_truncate_lastname.set_truncater(0, 0, true);
+
+	match.reset_blocking( blocker , last_disambig_result );
+
+	blocker_coauthor.build_uid2uinv_tree(match);
+	cCluster_Set cs;
+	cs.convert_from_ClusterInfo(&match);
+	const char * suffix = ".pplog";
+	const string logfile = string(outputfile) + suffix ;
+	post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), logfile);
+	cs.output_results(outputfile);
+}
+
+
+string remove_headtail_space( const string & s ) {
+	string::const_iterator istart = s.begin() , iend = s.end();
+	while( istart != iend ) {
+		if( *istart != ' ' )
+			break;
+		++istart;
+	}
+	while( iend != istart )
+	{
+		--iend;
+		if( *iend != ' ' ) {
+			++iend;
+			break;
+		}
+	}
+	string str_result(istart,iend);
+	return str_result;
+}

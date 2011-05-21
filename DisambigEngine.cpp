@@ -18,6 +18,7 @@
 #include <sstream>
 #include <cmath>
 #include <cstring>
+#include <numeric>
 
 
 using std::map;
@@ -201,6 +202,21 @@ unsigned int cRecord::get_similarity_index_by_name(const string & inputstr) {
 	throw cException_ColumnName_Not_Found(inputstr.c_str());
 }
 
+void cRecord::activate_comparators_by_name ( const vector < string > & inputvec) {
+	cRecord::active_similarity_names = inputvec;
+	for ( vector < const cAttribute *>::const_iterator p = cRecord::sample_record_pointer->get_attrib_vector().begin();
+			p != cRecord::sample_record_pointer->get_attrib_vector().end(); ++p ) {
+		const string & classlabel = (*p)->get_class_name();
+		if ( std::find( inputvec.begin(), inputvec.end(), classlabel) == inputvec.end() ) {
+			(*p)->deactivate_comparator();
+		}
+		else {
+			(*p)->activate_comparator();
+		}
+	}
+	cRecord::update_active_similarity_names();
+}
+
 /*
  * Aim: to truncate string as desired. See the explanation in the header file for more details
  * Algorithm: simple string manipulation in C.
@@ -290,22 +306,23 @@ string cString_Extract_FirstWord::manipulate( const string & inputstring ) const
  */
 
 cBlocking_Operation_Multiple_Column_Manipulate::cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di )
-	:vsm(inputvsm) {
+	:vsm(inputvsm), attributes_names(columnnames) {
 	if ( inputvsm.size() != columnnames.size() )
 		throw cException_Other("Critical Error in cBlocking_Operation_Multiple_Column_Manipulate: size of string manipulaters is different from size of columns");
 	for ( unsigned int i = 0; i < columnnames.size(); ++i ) {
 		indice.push_back(cRecord::get_index_by_name( columnnames.at(i)));
 		infoless += delim;
-		pdata_indice.push_back(& di.at(i));
+		pdata_indice.push_back( di.at(i));
 	}
 }
 
 cBlocking_Operation_Multiple_Column_Manipulate::cBlocking_Operation_Multiple_Column_Manipulate (const cString_Manipulator * const* pinputvsm, const string * pcolumnnames, const unsigned int  * pdi, const unsigned int num_col ) {
 	for ( unsigned int i = 0; i < num_col; ++i ) {
 		vsm.push_back(*pinputvsm++);
+		attributes_names.push_back(*pcolumnnames);
 		indice.push_back(cRecord::get_index_by_name(*pcolumnnames++));
 		infoless += delim;
-		pdata_indice.push_back(pdi ++);
+		pdata_indice.push_back(*pdi ++);
 	}
 }
 
@@ -316,11 +333,18 @@ cBlocking_Operation_Multiple_Column_Manipulate::cBlocking_Operation_Multiple_Col
 string cBlocking_Operation_Multiple_Column_Manipulate::extract_blocking_info(const cRecord * p) const {
 	string temp;
 	for ( unsigned int i = 0; i < vsm.size(); ++i ) {
-		temp += vsm[i]->manipulate(* p->get_data_by_index(indice[i]).at( * pdata_indice.at(i)));
+		temp += vsm[i]->manipulate(* p->get_data_by_index(indice[i]).at(  pdata_indice.at(i)));
 		temp += delim;
 	}
 	return temp;
 };
+
+void cBlocking_Operation_Multiple_Column_Manipulate::reset_data_indice ( const vector < unsigned int > & indice ) {
+	if ( indice.size() != this->pdata_indice.size() )
+		throw cException_Other("Indice size mismatch. cannot reset.");
+	else
+		this->pdata_indice = indice;
+}
 
 /*
  * Aim: to extract a specific blocking string. look at the header file for mor details.
@@ -328,7 +352,7 @@ string cBlocking_Operation_Multiple_Column_Manipulate::extract_blocking_info(con
 string cBlocking_Operation_Multiple_Column_Manipulate::extract_column_info ( const cRecord * p, unsigned int flag ) const {
 	if ( flag >= indice.size() )
 		throw cException_Other("Flag index error.");
-	return vsm[flag]->manipulate( * p->get_data_by_index(indice[flag]).at( *pdata_indice.at(flag)) );
+	return vsm[flag]->manipulate( * p->get_data_by_index(indice[flag]).at( pdata_indice.at(flag)) );
 }
 
 /*
@@ -1454,7 +1478,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_simplified (
  * 8. Perhaps one may also want to disable the name screening part.
  *
  */
-std::pair<const cRecord *, double> disambiguate_by_set (
+std::pair<const cRecord *, double> disambiguate_by_set_backup (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
 									 const double prior,
@@ -1554,6 +1578,115 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	return std::pair<const cRecord *, double>( key1, probability );
 
 }
+
+std::pair<const cRecord *, double> disambiguate_by_set (
+									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
+									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
+									 const double prior,
+									 const cRatios & ratio,  const double mutual_threshold ) {
+	static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
+	static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
+	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
+	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+
+	static const bool country_check = true;
+
+
+	//prescreening.
+	const bool prescreening = true;
+	if ( prescreening ) {
+		if ( country_check ) {
+			const cAttribute * p1 = key1->get_attrib_pointer_by_index(country_index);
+			const cAttribute * p2 = key2->get_attrib_pointer_by_index(country_index);
+			if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+				return std::pair<const cRecord *, double> (NULL, 0);
+		}
+
+
+		vector < unsigned int > screen_sp = key1->record_compare(*key2);
+		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
+		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
+		if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
+			return std::pair<const cRecord *, double> (NULL, 0);
+	}
+	const bool partial_match_mode = true;
+
+	const double minimum_threshold = 0.7;
+	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
+	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
+
+	const unsigned int match1_size = match1.size();
+	const unsigned int match2_size = match2.size();
+
+	const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
+	const unsigned int candidates_for_averaging = 2 * required_candidates - 1 ;
+	if ( candidates_for_averaging == 0 )
+		throw cException_Other("Computation of size of averaged probability is incorrect.");
+
+	set < double > probs;
+
+	double interactive = 0;
+	//double required_interactives = 0;
+	//unsigned int required_cnt = 0;
+	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
+		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
+
+			if ( country_check ) {
+				const cAttribute * p1 = (*p)->get_attrib_pointer_by_index(country_index);
+				const cAttribute * p2 = (*q)->get_attrib_pointer_by_index(country_index);
+				if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+					return std::pair<const cRecord *, double> (NULL, 0);
+			}
+
+
+
+			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
+				return std::pair<const cRecord *, double> (NULL, 0);
+
+
+			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+			if ( r_value == 0 ) {
+				interactive += 0;
+			}
+			else {
+				const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
+				interactive +=  temp_prob ;
+				if ( probs.size() >= candidates_for_averaging ) {
+					probs.erase(probs.begin());
+				}
+				probs.insert(temp_prob);
+			}
+		}
+	}
+
+	const double interactive_average = interactive / match1_size / match2_size;
+	const double probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
+
+	if ( interactive_average > 1 )
+		throw cException_Invalid_Probability("Cohesion value error.");
+
+	if ( partial_match_mode && probs_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, probs_average);
+	if ( ( ! partial_match_mode ) && interactive_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, interactive_average);
+
+
+	double inter = 0;
+	if ( partial_match_mode )
+		inter = probs_average;
+	else
+		inter = interactive;
+
+	const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
+								+ cohesion2 * match2_size * ( match2_size - 1 )
+								+ 2.0 * inter ) / ( match1_size + match2_size) / (match1_size + match2_size - 1 );
+	//ATTENSION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
+	return std::pair<const cRecord *, double>( key1, probability );
+
+}
+
 
 
 /*
@@ -1725,7 +1858,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	std::cout << std::endl;
 	std::cout << size << " records have been fetched from "<< txt_file << std::endl;
 	cRecord::sample_record_pointer = & source.front();
-	source.front().update_active_similarity_names();
+	//source.front().update_active_similarity_names();
 
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		delete pointer_array[i];

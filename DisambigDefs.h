@@ -317,6 +317,8 @@ public:
 	static void register_class_names( const vector < string > &);
 	static int position_in_registry( const string & );
 	virtual vector < string > get_interactive_class_names() const = 0;
+	virtual void activate_comparator() const = 0;
+	virtual void deactivate_comparator() const = 0;
 
 };
 
@@ -517,20 +519,25 @@ public:
 	//static void enable() { bool_is_enabled = true;}
 	static bool static_is_comparator_activated() {return bool_comparator_activated;}
 	bool is_comparator_activated() const { return bool_comparator_activated;}
-	static void activate_comparator() {
+	static void static_activate_comparator() {
 		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
-			throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
+			return;
+			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
 		bool_comparator_activated = true;
 		std::cout << static_get_class_name() << " comparison is active now." << std::endl;
 		cRecord_update_active_similarity_names() ;
 	}
-	static void deactivate_comparator() {
+	static void static_deactivate_comparator() {
 		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
-			throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
+			return;
+			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
 		bool_comparator_activated = false;
 		std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;
 		cRecord_update_active_similarity_names() ;
 	}
+
+	void activate_comparator() const { this->static_activate_comparator(); }
+	void deactivate_comparator() const { this->static_deactivate_comparator();}
 	void print( std::ostream & os ) const {
 		vector < const string * >::const_iterator p = this->get_data().begin();
 		os << class_name << ": ";

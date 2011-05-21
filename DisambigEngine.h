@@ -109,6 +109,7 @@ public:
 	static unsigned int get_similarity_index_by_name(const string & inputstr);
 	static const cRecord & get_sample_record() { return *sample_record_pointer;}
 	void reconfigure_record_for_interactives() const;
+	static void activate_comparators_by_name ( const vector < string > &);
 };
 
 //================================================
@@ -162,9 +163,12 @@ public:
  */
 
 class cString_Manipulator{
+private:
+
 public:
 	virtual string manipulate(const string & inputstring) const = 0;
 	virtual ~cString_Manipulator() {};
+	virtual cString_Manipulator * clone () const = 0;
 };
 
 /*
@@ -174,8 +178,11 @@ public:
  */
 
 class cString_Remain_Same : public cString_Manipulator {
+private:
+	cString_Manipulator * clone () const { return new cString_Remain_Same(*this);}
 public:
 	string manipulate(const string & inputstring ) const { return inputstring;}
+
 };
 
 
@@ -189,6 +196,7 @@ public:
 class cString_Remove_Space : public cString_Manipulator {
 private:
 	static const char delimiter = ' ';
+	cString_Manipulator * clone () const { return new cString_Remove_Space(*this);}
 public:
 	string manipulate( const string & inputstring ) const {
 		string result = inputstring;
@@ -248,7 +256,7 @@ private:
 	public:
 		cException_String_Truncation (const char * errmsg) : cAbstract_Exception(errmsg) {};
 	};
-
+	cString_Manipulator * clone () const { return new cString_Truncate(*this);}
 public:
 	explicit cString_Truncate(): is_usable (false) {};
 	void set_truncater( const int inputbegin, const unsigned int inputnchar, const bool inputforward) {
@@ -270,6 +278,7 @@ public:
 class cString_NoSpace_Truncate: public cString_Truncate {
 private:
 	const cString_Remove_Space ns;
+	cString_Manipulator * clone () const { return new cString_NoSpace_Truncate(*this);}
 public:
 	string manipulate ( const string & inputstring ) const {
 		string temp = ns.manipulate(inputstring);
@@ -292,6 +301,7 @@ class cExtract_Initials : public cString_Manipulator {
 private:
 	const unsigned int starting_word;
 	static const char delimiter = ' ';
+	cString_Manipulator * clone () const { return new cExtract_Initials(*this);}
 public:
 	string manipulate (const string & inputstring ) const;
 	explicit cExtract_Initials (const unsigned int start ): starting_word(start) {};
@@ -309,6 +319,7 @@ public:
 class cString_Extract_FirstWord : public cString_Manipulator {
 private:
 	static const char delimiter = ' ';
+	cString_Manipulator * clone () const { return new cString_Extract_FirstWord(*this);}
 public:
 	string manipulate (const string & inputstring ) const;
 };
@@ -468,7 +479,8 @@ class cBlocking_Operation_Multiple_Column_Manipulate : public cBlocking_Operatio
 private:
 	vector < const cString_Manipulator * > vsm;
 	vector < unsigned int > indice;
-	vector < const unsigned int * > pdata_indice;
+	vector < string > attributes_names;
+	vector < unsigned int > pdata_indice;
 
 public:
 	cBlocking_Operation_Multiple_Column_Manipulate (const vector < const cString_Manipulator * > & inputvsm, const vector<string> & columnnames, const vector < unsigned int > & di );
@@ -476,6 +488,9 @@ public:
 	string extract_blocking_info(const cRecord * p) const;
 	string extract_column_info ( const cRecord * p, unsigned int flag ) const;
 	unsigned int num_involved_columns() const { return vsm.size();}
+	void reset_data_indice( const vector < unsigned int > & indice );
+	const vector < string > & get_blocking_attribute_names() const { return attributes_names;}
+	const vector < const cString_Manipulator * > & get_blocking_string_manipulators() const { return vsm;}
 };
 
 class cCluster_Info;	//forward declaration.

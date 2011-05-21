@@ -87,6 +87,11 @@ private:
 	cCluster & operator = ( const cCluster &);
 	void find_representative();
 
+
+	unsigned int first_patent_year;
+	unsigned int last_patent_year;
+	void update_year_range();
+	unsigned int patents_gap( const cCluster & rhs) const;
 public:
 	cCluster(const cCluster_Head & info, const cGroup_Value & fellows);
 	~cCluster();

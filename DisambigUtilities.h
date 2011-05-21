@@ -24,5 +24,7 @@ bool make_stable_training_sets_by_personal ( const list <cRecord> & all_records,
 bool make_changable_training_sets_by_assignee(const list <const cRecord*> & record_pointers, const vector<string >& blocking_column_names,
 						const vector < const cString_Manipulator *> & pstring_oper, const unsigned int limit, const vector <string> & training_filenames);
 int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile);
+void one_step_prostprocess( const list < cRecord > & all_records, const char * last_disambig_result, const char * outputfile);
+string remove_headtail_space( const string & s );
 
 #endif /* DISAMBIGUTILITIES_H_ */

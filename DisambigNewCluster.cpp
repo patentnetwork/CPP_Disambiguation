@@ -11,6 +11,7 @@
 const cRatios * cCluster::pratio = NULL;
 const map < const cRecord *, cGroup_Value, cSort_by_attrib > * cCluster::reference_pointer = NULL;
 
+
 /*
  * Aim: constructor of cCluster objects.
  */
@@ -19,6 +20,9 @@ cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
 	if ( NULL == reference_pointer )
 		throw cException_Other("Critical Error: Patent tree reference pointer is not set yet.");
+	this->first_patent_year = 100000;
+	this->last_patent_year = 0;
+	this->update_year_range();
 }
 
 /*
@@ -54,6 +58,7 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	mergee.m_fellows.clear();
 
 	this->find_representative();
+	this->update_year_range();
 	mergee.m_mergeable = false;
 }
 
@@ -114,8 +119,9 @@ cCluster::~cCluster() {}
 
 
 //copy constructor
-cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true)
-{	if ( rhs.m_mergeable == false )
+cCluster::cCluster( const cCluster & rhs ) : m_info(rhs.m_info), m_fellows(rhs.m_fellows), m_mergeable(true),
+		first_patent_year ( rhs.first_patent_year ), last_patent_year ( rhs.last_patent_year ){
+	if ( rhs.m_mergeable == false )
 		throw cException_Other("cCluster Copy Constructor error.");
 }
 
@@ -152,10 +158,23 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 		}
 	}
 
+	unsigned int gap = this->patents_gap(rhs);
+	static const unsigned int max_gap = 10;
+	if ( gap > max_gap )
+		gap = max_gap;
+
+	double prior_to_use = prior;
+	double threshold_to_use = threshold;
+
+	threshold_to_use = threshold + ( 1.0 - threshold ) * gap / max_gap;
+	if ( threshold_to_use == 1.0 )
+	  threshold_to_use = 0.999;
+	if ( prior_to_use == 0 )
+		prior_to_use = 0.01;
 
 	std::pair<const cRecord *, double > ans ( disambiguate_by_set ( this->m_info.m_delegate, this->m_fellows, this->m_info.m_cohesion,
 												rhs.m_info.m_delegate, rhs.m_fellows, rhs.m_info.m_cohesion,
-													prior, *pratio, threshold) );
+													prior_to_use, *pratio, threshold_to_use) );
 
 	return cCluster_Head(ans.first, ans.second);
 
@@ -195,6 +214,7 @@ void cCluster::self_repair() {
 		}
 	}
 	//if it has not been merged before and m_usable is false, reset to usable.
+	this->update_year_range();
 	if ( m_usable == false && ! m_fellows.empty())
 		m_usable = true;
 }
@@ -253,3 +273,28 @@ void cCluster::find_representative()  {
 
 }
 
+void cCluster::update_year_range() {
+	static const unsigned int appyearindex = cRecord::get_index_by_name(cApplyYear::static_get_class_name());
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		const cAttribute * pAttribYear = (*p)->get_attrib_pointer_by_index(appyearindex);
+		const string * py = pAttribYear->get_data().at(0);
+		unsigned int year = atoi ( py->c_str());
+		if ( year > 2100 || year < 1500 )
+			continue;
+
+		if ( year > this->last_patent_year )
+			this->last_patent_year = year;
+		if ( year < this->first_patent_year )
+			this->first_patent_year = year;
+	}
+
+}
+
+unsigned int cCluster::patents_gap( const cCluster & rhs) const {
+	if ( this->first_patent_year > rhs.last_patent_year )
+		return ( this->first_patent_year - rhs.last_patent_year );
+	else if  ( this->last_patent_year < rhs.first_patent_year )
+		return ( rhs.first_patent_year - this->last_patent_year );
+	else
+		return 0;
+}
