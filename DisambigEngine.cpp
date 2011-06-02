@@ -1626,6 +1626,8 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	set < double > probs;
 
 	double interactive = 0;
+	double cumulative_interactive = 0;
+	unsigned int qualified_count = 0;
 	//double required_interactives = 0;
 	//unsigned int required_cnt = 0;
 	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
@@ -1653,16 +1655,22 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			else {
 				const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
 				interactive +=  temp_prob ;
-				if ( probs.size() >= candidates_for_averaging ) {
+				if ( partial_match_mode && probs.size() >= candidates_for_averaging ) {
 					probs.erase(probs.begin());
 				}
 				probs.insert(temp_prob);
+				if ( partial_match_mode && temp_prob >= threshold ) {
+					cumulative_interactive += temp_prob;
+					++qualified_count;
+				}
 			}
 		}
 	}
 
 	const double interactive_average = interactive / match1_size / match2_size;
-	const double probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
+	double probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
+	if ( qualified_count > probs.size() )
+		probs_average = cumulative_interactive / qualified_count;
 
 	if ( interactive_average > 1 )
 		throw cException_Invalid_Probability("Cohesion value error.");
@@ -1675,7 +1683,7 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 
 	double inter = 0;
 	if ( partial_match_mode )
-		inter = probs_average;
+		inter = probs_average * match1_size * match2_size;
 	else
 		inter = interactive;
 

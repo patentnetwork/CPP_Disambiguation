@@ -362,15 +362,14 @@ bool EngineConfiguration::config_engine(const char * filename, std::ostream & os
 		return false;
 }
 
-int main() {
+int main( int argc, char * argv[]) {
 	std::cout << std::endl;
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
 
 	Full_Disambiguation("/media/data/edwardspace/workplace/testcpp/Disambiguation/EngineConfig.txt",
 			"/media/data/edwardspace/workplace/testcpp/Disambiguation/BlockingConfig.txt");
-	//unique_inventors_per_period ( 1975, 3, "/home/ysun/cpps/Disambiguation/invpat.txt",
-	//						"/home/ysun/cpps/Disambiguation/final.txt", "/home/ysun/cpps/Disambiguation/uy.txt");
+
 	std::cout << std::endl;
 	std::cout << "====================== END OF DISAMBIGUATION =============================" << std::endl;
 	std::cout << std::endl;
@@ -803,6 +802,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 		cCluster::set_ratiomap_pointer(*ratio_pointer);
 		// now disambiguate
 		cRecord::clean_member_attrib_pool();
+
 		match.disambiguate(*ratio_pointer, num_threads, debug_block_file, prior_save_file);
 
 		delete ratio_pointer;
