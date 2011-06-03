@@ -170,15 +170,20 @@ public:
 	}
 };
 
-class cAssignee : public cAttribute_Single_Mode <cAssignee> {
+class cAsgNum;
+
+class cAssignee : public cAttribute_Single_Interactive_Mode <cAssignee> {
 public:
 	static const unsigned int max_value = Jaro_Wrinkler_Max + 1;
 private:
-	static const map<string, std::pair<string, unsigned int>  > * assignee_tree_pointer; // this is a static membmer used in the comparison function.
+	//static const map<string, std::pair<string, unsigned int>  > * assignee_tree_pointer; // this is a static membmer used in the comparison function.
+	static map < const cAsgNum*, unsigned int > asgnum2count_tree;
+	static bool is_ready;
 public:
 	cAssignee(const char * source = NULL ) {}
 	unsigned int compare(const cAttribute & rhs) const;
-	static void set_assignee_tree_pointer(const map<string, std::pair<string, unsigned int>  >& asgtree) {assignee_tree_pointer = & asgtree;}
+	//static void set_assignee_tree_pointer(const map<string, std::pair<string, unsigned int>  >& asgtree) {assignee_tree_pointer = & asgtree;}
+	static void configure_assignee( const list <const cRecord *> & );
 	unsigned int get_attrib_max_value() const {
 		if ( ! is_comparator_activated() )
 			cAttribute::get_attrib_max_value();

@@ -439,6 +439,8 @@ void cCluster_Info::output_prior_value( const char * const outputfile ) const {
 double cCluster_Info::get_prior_value( const string & block_identifier, const list <cCluster> & rg ) {
 	static const double prior_max = 0.95;
 	static const double prior_default = 1e-6;
+	//attention. the uninvolved index is subject to the blocking configuration.
+	//so even if mid name is not a blocking part, it should be in the configuration file.
 	const unsigned int uninvolved_index = 1; //index for middlename, which is not involved in the adjustment. change to other trash value if disabled.
 
 	std::ofstream * pfs = NULL;

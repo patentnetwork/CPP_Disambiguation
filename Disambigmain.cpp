@@ -389,7 +389,6 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 
 	const bool train_stable = EngineConfiguration::generate_stable_training_sets;
 	const bool use_available_ratios = EngineConfiguration::use_available_ratios_database;
-	//const string sourcecsv_dir = "/media/data/edwardspace/workplace/testcpp/Disambiguation";
 	const string working_dir = EngineConfiguration::working_dir;
 	const string final_file = working_dir + "/final.txt";
 	const vector < double > threshold_vec = EngineConfiguration::thresholds ;
@@ -405,18 +404,14 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	list <cRecord> all_records;
 	char filename2[buff_size];
 	sprintf(filename2, "%s", EngineConfiguration::source_csv_file.c_str());
-
-	map <string, asgdetail> assignee_tree;
-
-	char assignee_file[buff_size];
-	sprintf(assignee_file, "%s/asg.txt", working_dir.c_str());
-
-	read_asgtree_file(assignee_tree, assignee_file);
-
 	bool is_success = fetch_records_from_txt(all_records, filename2, column_vec);
 	if (not is_success) return 1;
 
-	cAssignee::set_assignee_tree_pointer (assignee_tree);
+
+	list < const cRecord *> all_rec_pointers;
+	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+		all_rec_pointers.push_back(&(*p));
+	cAssignee::configure_assignee(all_rec_pointers);
 
 	//patent stable
 	const string training_stable [] = { working_dir + "/xset03_stable.txt",
@@ -439,16 +434,9 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 	cCluster_Info match ( uid_dict, matching_mode, frequency_adjust_mode, debug_mode);
 	match.set_thresholds( threshold_vec);
 
-	cString_Remove_Space operator_no_space;
-
-	cString_Remain_Same operator_no_change;
-
-
-
 	char xset01[buff_size], tset05[buff_size], ratiofile[buff_size], matchfile[buff_size], stat_patent[buff_size], stat_personal[buff_size];
 	char oldmatchfile[buff_size], debug_block_file[buff_size], network_file[buff_size], postprocesslog[buff_size], prior_save_file[buff_size];
 	char roundstr[buff_size];
-	//sprintf(oldmatchfile, "%s/match_cons.txt", working_dir.c_str() );
 	sprintf(oldmatchfile,"%s", EngineConfiguration::previous_disambiguation_result.c_str() );
 
 
@@ -459,9 +447,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 
 	unsigned int round = starting_round;
 
-	list < const cRecord *> all_rec_pointers;
-	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
-		all_rec_pointers.push_back(&(*p));
+
 
 	cRatioComponent personalinfo(uid_dict, string("Personal") );
 
@@ -520,6 +506,7 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 			case 1:
 			{
 				vector <string> presort_columns;
+				cString_Remain_Same operator_no_change;
 				presort_columns.push_back(cFirstname::static_get_class_name());
 				presort_columns.push_back(cLastname::static_get_class_name());
 				presort_columns.push_back(cAssignee::static_get_class_name());
@@ -541,223 +528,6 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 		}
 		cFirstname::set_truncation( firstname_prev_truncation, BlockingConfiguration::firstname_cur_truncation);
 		firstname_prev_truncation = BlockingConfiguration::firstname_cur_truncation;
-
-
-
-#if 0
-		switch (round) {
-		case 1:
-			//======preliminary consolidation. very strict conditions.
-		{
-			vector <string> presort_columns;
-			presort_columns.push_back(cFirstname::static_get_class_name());
-			presort_columns.push_back(cLastname::static_get_class_name());
-			presort_columns.push_back(cAssignee::static_get_class_name());
-			presort_columns.push_back(cStreet::static_get_class_name());
-			presort_columns.push_back(cCity::static_get_class_name());
-			presort_columns.push_back(cCountry::static_get_class_name());
-
-			//presort_columns.push_back(cClass::static_get_class_name());
-
-			const vector < const cString_Manipulator *> presort_strman( presort_columns.size(), &operator_no_change);
-			const vector < unsigned int > presort_data_indice( presort_columns.size(), 0);
-
-			const cBlocking_Operation_Multiple_Column_Manipulate presort_blocker(presort_strman, presort_columns, presort_data_indice);
-			match.preliminary_consolidation(presort_blocker, all_rec_pointers);
-			match.output_current_comparision_info(oldmatchfile);
-		}
-
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_activate_comparator();
-			cAssignee::static_deactivate_comparator();
-			cClass::static_deactivate_comparator();
-			cCoauthor::static_deactivate_comparator();
-
-			operator_truncate_firstname.set_truncater(0, 0, true);
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 0, true);
-
-			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
-			//					 training_changable_vec.at(1).c_str() );
-			break;
-		case 2:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_activate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-			firstname_cur_truncation = 0;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-
-			operator_truncate_middlename.set_truncater(0, 0, true);
-			operator_truncate_lastname.set_truncater(0, 0, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//if ( ! use_available_ratios )
-			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
-			break;
-		case 3:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_activate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-			firstname_cur_truncation = 5;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-			operator_truncate_middlename.set_truncater(0, 1, true);
-			operator_truncate_lastname.set_truncater(0, 8, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//if ( ! use_available_ratios )
-			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
-			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
-			//					 training_changable_vec.at(1).c_str() );
-			break;
-		case 4:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_activate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-			firstname_cur_truncation = 3;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 5, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//if ( ! use_available_ratios )
-			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
-			//prev_train_vec = training_changable_vec;
-			//personalinfo.prepare(training_changable_vec.at(0).c_str(),
-			//					 training_changable_vec.at(1).c_str() );
-			break;
-
-
-		case 5:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_activate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-
-			firstname_cur_truncation = 1;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 5, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//if ( ! use_available_ratios )
-			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
-			break;
-
-		case 6:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_deactivate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-
-			firstname_cur_truncation = 1;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 5, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );
-			sprintf( tset05, "%s/tset05_%d.txt", working_dir.c_str(), round - 1 );
-			prev_train_vec.clear();
-			prev_train_vec.push_back(string(xset01));
-			prev_train_vec.push_back(string(tset05));
-
-			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
-				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
-			}
-
-			std::cout << "=============== WARNING: STEP " << round << " IS SKIPPED ! ================="  << std::endl;
-			continue;
-
-			break;
-
-
-		case 7:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_activate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-
-			firstname_cur_truncation = 1;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 3, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			//if ( ! use_available_ratios )
-			//	make_changable_training_sets_by_names( all_rec_pointers, blocking_column_names, pstring_oper, limit,  training_changable_vec);
-			break;
-
-		case 8:
-			cFirstname::static_activate_comparator();
-			cMiddlename::static_activate_comparator();
-			cLastname::static_activate_comparator();
-			cLatitude::static_deactivate_comparator();
-			cAssignee::static_deactivate_comparator();
-			cClass::static_activate_comparator();
-			cCoauthor::static_activate_comparator();
-
-			firstname_cur_truncation = 1;
-			cFirstname::set_truncation( firstname_prev_truncation, firstname_cur_truncation);
-			operator_truncate_firstname.set_truncater(0, firstname_cur_truncation, true);
-			operator_truncate_middlename.set_truncater(0, 0, false);
-			operator_truncate_lastname.set_truncater(0, 3, true);
-			//match.reset_blocking(blocker, oldmatchfile);
-			sprintf( xset01, "%s/xset01_%d.txt", working_dir.c_str(), round - 1 );
-			sprintf( tset05, "%s/tset05_%d.txt", working_dir.c_str(), round - 1 );
-			prev_train_vec.clear();
-			prev_train_vec.push_back(string(xset01));
-			prev_train_vec.push_back(string(tset05));
-
-			for ( unsigned int i = 0; i < training_changable_vec.size(); ++i ) {
-				copyfile(training_changable_vec.at(i).c_str(), prev_train_vec.at(i).c_str());
-			}
-
-			std::cout << "=============== WARNING: STEP " << round << " IS SKIPPED ! ================="  << std::endl;
-			continue;
-
-			break;
-
-
-		default:
-			throw cException_Other("Invalid round.");
-		}
-#endif
-
 		
 		match.reset_blocking( * BlockingConfiguration::active_blocker_pointer, oldmatchfile);
 		if ( network_clustering ) {

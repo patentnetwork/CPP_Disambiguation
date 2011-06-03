@@ -1951,3 +1951,19 @@ void cRecord::reconfigure_record_for_interactives() const {
 void reconfigure_interactives ( const cRecord_Reconfigurator * pc, const cRecord * pRec) {
 	pc->reconfigure(pRec);
 }
+
+
+
+void cAssignee::configure_assignee( const list < const cRecord *> & recs) {
+	static const unsigned int asgnumidx = cRecord::get_index_by_name(cAsgNum::static_get_class_name());
+
+	for ( list< const cRecord *>::const_iterator p = recs.begin(); p != recs.end(); ++p ) {
+		const cAsgNum * pasgnum = dynamic_cast < const cAsgNum *> ( (*p)->get_attrib_pointer_by_index(asgnumidx) );
+		if ( ! pasgnum ) {
+			throw cException_Other("Cannot perform dynamic cast to cAsgNum.");
+		}
+		++cAssignee::asgnum2count_tree[pasgnum];
+	}
+
+	cAssignee::is_ready = true;
+}

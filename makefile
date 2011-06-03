@@ -10,7 +10,7 @@ OOQPINCLUDEDIR=/usr/local/include/ooqp
 
 all:exedisambig
 
-exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o sqlite3op.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o Array.o QuadProg++.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
+exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o Array.o QuadProg++.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
 	$(CXX) -o $@ $? $(CFLAGS) -lsqlite3 -looqpgensparse -looqpsparse -looqpgondzio -looqpbase -lblas -lMA27 -pg 
 
 Disambigmain.o: Disambigmain.cpp

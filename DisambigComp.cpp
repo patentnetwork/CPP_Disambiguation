@@ -540,7 +540,6 @@ int asgcmp(const string & asg1, const string & asg2, const map<string, std::pair
 }
 
 
-
 int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 			   const map<string, std::pair<string, unsigned int> > * const asg_table_pointer){
 	map<string, std::pair<string, unsigned int> >::const_iterator p1, p2;

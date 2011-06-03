@@ -44,7 +44,9 @@ template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group = "Pat
 template <> const string cAttribute_Intermediary<cAssignee>::class_name = "Assignee";
 template <> const string cAttribute_Intermediary<cAssignee>::interactive_column_names[] = {"AsgNum"};
 template <> const unsigned int cAttribute_Intermediary<cAssignee>::num_of_interactive_columns = 1;
-const map<string, std::pair<string, unsigned int>  > * cAssignee::assignee_tree_pointer;
+//const map<string, std::pair<string, unsigned int>  > * cAssignee::assignee_tree_pointer;
+map < const cAsgNum*, unsigned int > cAssignee:: asgnum2count_tree;
+bool cAssignee::is_ready = false;
 template <> const string cAttribute_Intermediary<cAssignee>::attrib_group = "Patent";
 
 template <> const string cAttribute_Intermediary<cAsgNum>::class_name = "AsgNum";
@@ -316,6 +318,7 @@ unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
 }
 
 
+
 /*
  * cAssignee::compare:
  * Comparison of assignee includes two steps:
@@ -330,13 +333,34 @@ unsigned int cCountry::compare(const cAttribute & right_hand_side) const {
 unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 	if ( ! is_comparator_activated () )
 		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	if ( ! cAssignee::is_ready )
+		throw cException_Other("Trees for assignee comparison are not set up yet. Run cAssignee::configure_assignee first.");
 	try {
-		if ( this == & right_hand_side )
-			return max_value;
 
 		const cAssignee & rhs = dynamic_cast< const cAssignee & > (right_hand_side);
 		//unsigned int res = asgcmp(this->get_data(), rhs.get_data(), assignee_tree_pointer);
-		unsigned int res = asgcmp ( * this->get_data().at(0), * rhs.get_data().at(0), assignee_tree_pointer);
+		//unsigned int res = asgcmp ( * this->get_data().at(0), * rhs.get_data().at(0), assignee_tree_pointer);
+		unsigned int res = 0;
+		const cAsgNum * p = dynamic_cast < const cAsgNum *> (this->get_interactive_vector().at(0));
+		if ( ! p )
+			throw cException_Other("Cannot dynamic cast to cAsgNum *.");
+
+		const cAsgNum * q = dynamic_cast < const cAsgNum *> (rhs.get_interactive_vector().at(0));
+		if ( ! q )
+			throw cException_Other("Cannot dynamic cast rhs to cAsgNum *.");
+
+		if ( p != q ) {
+			res = jwcmp(* this->get_data().at(0), * rhs.get_data().at(0));
+		}
+		else {
+			res = Jaro_Wrinkler_Max;
+			map < const cAsgNum *, unsigned int>::const_iterator t = cAssignee::asgnum2count_tree.find(p);
+			if ( t == cAssignee::asgnum2count_tree.end() )
+				throw cException_Other("AsgNum pointer is not in tree.");
+			if ( t->second < 100 )
+				++res;
+		}
+
 		if ( res > max_value )
 			res = max_value;
 		return res;
