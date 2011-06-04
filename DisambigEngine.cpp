@@ -1478,6 +1478,8 @@ std::pair<const cRecord *, double> disambiguate_by_set_simplified (
  * 8. Perhaps one may also want to disable the name screening part.
  *
  */
+
+#if 0
 std::pair<const cRecord *, double> disambiguate_by_set_backup (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
@@ -1578,7 +1580,7 @@ std::pair<const cRecord *, double> disambiguate_by_set_backup (
 	return std::pair<const cRecord *, double>( key1, probability );
 
 }
-
+#endif
 std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
@@ -1619,7 +1621,8 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	const unsigned int match2_size = match2.size();
 
 	const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
-	const unsigned int candidates_for_averaging = 2 * required_candidates - 1 ;
+	//const unsigned int candidates_for_averaging = 2 * required_candidates - 1 ;
+	const unsigned int candidates_for_averaging = required_candidates ;
 	if ( candidates_for_averaging == 0 )
 		throw cException_Other("Computation of size of averaged probability is incorrect.");
 

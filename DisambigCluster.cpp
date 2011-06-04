@@ -151,6 +151,7 @@ void cCluster_Info::retrieve_last_comparision_info ( const cBlocking_Operation &
 				}
 				cCluster_Head th(key, val);
 				cCluster tempc(th, tempv);
+				tempc.self_repair();
 
 				if ( prim_iter != cluster_by_block.end()) {
 					prim_iter->second.push_back(tempc);
