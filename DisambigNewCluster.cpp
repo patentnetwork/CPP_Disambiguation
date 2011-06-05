@@ -20,8 +20,8 @@ cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 		: m_info(info), m_fellows(fellows), m_mergeable(true), m_usable(true) {
 	if ( NULL == reference_pointer )
 		throw cException_Other("Critical Error: Patent tree reference pointer is not set yet.");
-	this->first_patent_year = 100000;
-	this->last_patent_year = 0;
+	this->first_patent_year = invalid_year;
+	this->last_patent_year = invalid_year;
 	this->update_year_range();
 }
 
@@ -159,7 +159,7 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 	}
 
 	unsigned int gap = this->patents_gap(rhs);
-	static const unsigned int max_gap = 10;
+	static const unsigned int max_gap = 20;
 	if ( gap > max_gap )
 		gap = max_gap;
 
@@ -279,22 +279,43 @@ void cCluster::update_year_range() {
 		const cAttribute * pAttribYear = (*p)->get_attrib_pointer_by_index(appyearindex);
 		const string * py = pAttribYear->get_data().at(0);
 		unsigned int year = atoi ( py->c_str());
-		if ( year > 2100 || year < 1500 )
+		if ( year > 2100 || year < 1500 ) {
+			//(*p)->print();
+			//throw cException_Other("Application year error.");
 			continue;
+		}
 
-		if ( year > this->last_patent_year )
-			this->last_patent_year = year;
-		if ( year < this->first_patent_year )
+		if ( this->is_valid_year() ) {
+			if ( year > this->last_patent_year )
+				this->last_patent_year = year;
+			if ( year < this->first_patent_year )
+				this->first_patent_year = year;
+		}
+		else {
 			this->first_patent_year = year;
+			this->last_patent_year = year;
+		}
 	}
 
 }
 
-unsigned int cCluster::patents_gap( const cCluster & rhs) const {
-	if ( this->first_patent_year > rhs.last_patent_year )
-		return ( this->first_patent_year - rhs.last_patent_year );
-	else if  ( this->last_patent_year < rhs.first_patent_year )
-		return ( rhs.first_patent_year - this->last_patent_year );
+bool cCluster::is_valid_year() const {
+	if (this->first_patent_year == invalid_year || this->last_patent_year == invalid_year )
+		return false;
 	else
+		return true;
+}
+
+unsigned int cCluster::patents_gap( const cCluster & rhs) const {
+	if ( ! this->is_valid_year() || ! rhs.is_valid_year() )
 		return 0;
+	unsigned int x = 0;
+	if ( this->first_patent_year > rhs.last_patent_year )
+		x = this->first_patent_year - rhs.last_patent_year ;
+	else if  ( this->last_patent_year < rhs.first_patent_year )
+		x = rhs.first_patent_year - this->last_patent_year ;
+
+	if ( x > 500 )
+		throw cException_Other("Patent gap error.");
+	return x;
 }

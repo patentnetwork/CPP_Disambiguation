@@ -76,6 +76,7 @@ public:
 
 class cCluster {
 private:
+	static const unsigned int invalid_year = 0;
 	cCluster_Head m_info;
 	cGroup_Value m_fellows;
 	bool m_mergeable;
@@ -92,6 +93,7 @@ private:
 	unsigned int last_patent_year;
 	void update_year_range();
 	unsigned int patents_gap( const cCluster & rhs) const;
+	bool is_valid_year() const;
 public:
 	cCluster(const cCluster_Head & info, const cGroup_Value & fellows);
 	~cCluster();
