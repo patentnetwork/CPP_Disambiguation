@@ -1581,6 +1581,8 @@ std::pair<const cRecord *, double> disambiguate_by_set_backup (
 
 }
 #endif
+
+
 std::pair<const cRecord *, double> disambiguate_by_set (
 									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
 									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
@@ -1699,6 +1701,164 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 }
 
 
+#if 0
+std::pair<const cRecord *, double> disambiguate_by_set (
+									const cRecord * key1, const cGroup_Value & match1, const double cohesion1,
+									 const cRecord * key2, const cGroup_Value & match2, const double cohesion2,
+									 const double prior_obsolete,
+									 const cRatios & ratio,  const double mutual_threshold ) {
+	static const unsigned int firstname_index = cRecord::get_similarity_index_by_name(cFirstname::static_get_class_name());
+	static const unsigned int midname_index = cRecord::get_similarity_index_by_name(cMiddlename::static_get_class_name());
+	static const unsigned int lastname_index = cRecord::get_similarity_index_by_name(cLastname::static_get_class_name());
+	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
+
+	static const bool country_check = true;
+
+
+	double prior = 0.5;
+	const double prior_max = 0.99;
+	const double prior_min = 0.01;
+
+	//prescreening.
+	const bool prescreening = true;
+	if ( prescreening ) {
+		if ( country_check ) {
+			const cAttribute * p1 = key1->get_attrib_pointer_by_index(country_index);
+			const cAttribute * p2 = key2->get_attrib_pointer_by_index(country_index);
+			if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+				return std::pair<const cRecord *, double> (NULL, 0);
+		}
+
+
+		vector < unsigned int > screen_sp = key1->record_compare(*key2);
+		const double screen_r = fetch_ratio(screen_sp, ratio.get_ratios_map());
+		const double screen_p = 1.0 / ( 1.0 + ( 1.0 - prior )/ prior / screen_r );
+		if ( screen_p < 0.3 || screen_sp.at(firstname_index) == 0 || screen_sp.at(midname_index) == 0 || screen_sp.at(lastname_index) == 0 )
+			return std::pair<const cRecord *, double> (NULL, 0);
+	}
+	const bool partial_match_mode = true;
+
+	const double minimum_threshold = 0.7;
+	const double threshold = max_val <double> (minimum_threshold, mutual_threshold * cohesion1 * cohesion2);
+	static const cException_Unknown_Similarity_Profile except(" Fatal Error in Disambig by set.");
+
+	const unsigned int match1_size = match1.size();
+	const unsigned int match2_size = match2.size();
+
+	const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
+	//const unsigned int candidates_for_averaging = 2 * required_candidates - 1 ;
+	const unsigned int candidates_for_averaging = required_candidates ;
+	if ( candidates_for_averaging == 0 )
+		throw cException_Other("Computation of size of averaged probability is incorrect.");
+
+	set < double > probs;
+
+	double interactive = 0;
+	double cumulative_interactive = 0;
+	unsigned int qualified_count = 0;
+	//double required_interactives = 0;
+	//unsigned int required_cnt = 0;
+
+	unsigned int ok_matches = 0;
+	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
+		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
+
+			if ( country_check ) {
+				const cAttribute * p1 = (*p)->get_attrib_pointer_by_index(country_index);
+				const cAttribute * p2 = (*q)->get_attrib_pointer_by_index(country_index);
+				if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+					return std::pair<const cRecord *, double> (NULL, 0);
+			}
+
+			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
+				return std::pair<const cRecord *, double> (NULL, 0);
+
+			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+			if ( r_value == 0 )
+				throw cException_Other("Invalid R-value.");
+			const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
+			if ( temp_prob >= threshold )
+				++ok_matches;
+		}
+	}
+
+	prior = 1.0 * ok_matches / match1_size / match2_size;
+
+	if ( prior > 1 || prior < 0 )
+		throw cException_Other("Invalid prior values.");
+
+	if ( prior > prior_max )
+		prior = prior_max;
+	else if ( prior < prior_min )
+		prior = prior_min;
+
+
+	for ( cGroup_Value::const_iterator p = match1.begin(); p != match1.end(); ++p ) {
+		for ( cGroup_Value::const_iterator q = match2.begin(); q != match2.end(); ++q ) {
+
+			if ( country_check ) {
+				const cAttribute * p1 = (*p)->get_attrib_pointer_by_index(country_index);
+				const cAttribute * p2 = (*q)->get_attrib_pointer_by_index(country_index);
+				if ( p1 != p2 && p1->is_informative() && p2->is_informative() )
+					return std::pair<const cRecord *, double> (NULL, 0);
+			}
+
+
+
+			vector< unsigned int > tempsp = (*p)->record_compare(* *q);
+			if ( tempsp.at(firstname_index) == 0 || tempsp.at(midname_index) == 0 || tempsp.at(lastname_index) == 0 )
+				return std::pair<const cRecord *, double> (NULL, 0);
+
+
+			double r_value = fetch_ratio(tempsp, ratio.get_ratios_map());
+
+			if ( r_value == 0 ) {
+				interactive += 0;
+			}
+			else {
+				const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
+				interactive +=  temp_prob ;
+				if ( partial_match_mode && probs.size() >= candidates_for_averaging ) {
+					probs.erase(probs.begin());
+				}
+				probs.insert(temp_prob);
+				if ( partial_match_mode && temp_prob >= threshold ) {
+					cumulative_interactive += temp_prob;
+					++qualified_count;
+				}
+			}
+		}
+	}
+
+	const double interactive_average = interactive / match1_size / match2_size;
+	double probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
+	if ( qualified_count > probs.size() )
+		probs_average = cumulative_interactive / qualified_count;
+
+	if ( interactive_average > 1 )
+		throw cException_Invalid_Probability("Cohesion value error.");
+
+	if ( partial_match_mode && probs_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, probs_average);
+	if ( ( ! partial_match_mode ) && interactive_average < threshold )
+		return std::pair<const cRecord *, double> (NULL, interactive_average);
+
+
+	double inter = 0;
+	if ( partial_match_mode )
+		inter = probs_average * match1_size * match2_size;
+	else
+		inter = interactive;
+
+	const double probability = ( cohesion1 * match1_size * ( match1_size - 1 )
+								+ cohesion2 * match2_size * ( match2_size - 1 )
+								+ 2.0 * inter ) / ( match1_size + match2_size) / (match1_size + match2_size - 1 );
+	//ATTENSION: RETURN A NON-NULL POINTER TO TELL IT IS A MERGE. NEED TO FIND A REPRESENTATIVE IN THE MERGE PART.
+	return std::pair<const cRecord *, double>( key1, probability );
+
+}
+#endif
 
 /*
  * Aim: Copy file.
