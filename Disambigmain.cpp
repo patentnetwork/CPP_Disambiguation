@@ -8,8 +8,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include <sqlite3.h>
-#include "sqlite3op.h"
 #include "DisambigDefs.h"
 #include "DisambigEngine.h"
 #include "DisambigFileOper.h"

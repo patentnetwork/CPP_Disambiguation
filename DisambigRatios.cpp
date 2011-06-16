@@ -16,6 +16,18 @@ const char * cRatios::primary_delim = "#";
 const char * cRatios::secondary_delim = ",";
 const unsigned int cRatioComponent::laplace_base = 5;
 
+
+vector < unsigned int > get_max_similarity(const vector < string > & attrib_names)  {
+	vector < unsigned int > sp;
+	for ( vector < string > :: const_iterator p = attrib_names.begin(); p != attrib_names.end(); ++p ) {
+		const cAttribute * pAttrib = cRecord::get_sample_record().get_attrib_pointer_by_index(cRecord::get_index_by_name(*p));
+		const unsigned int max_entry = pAttrib->get_attrib_max_value();
+		sp.push_back(max_entry);
+	}
+	return sp;
+}
+
+
 void cRatioComponent::sp_stats (const list<std::pair<string, string> > & trainpairs, 
 						map < vector < unsigned int > , unsigned int, cSimilarity_Compare > & sp_counts ) const{
 	const vector < unsigned int > & component_indice_in_record = get_component_positions_in_record();
@@ -193,23 +205,41 @@ void cRatioComponent::prepare(const char* x_file, const char * m_file) {
 			p->second += laplace_base;
 	}
 	std::cout << "AFTER LAPLACE CORRECTION:" << std::endl;
+	std::cout << "Non-match unique profile number = " << x_counts.size() << std::endl;
+	std::cout << "Match unique profile number = " << m_counts.size() << std::endl;
 	//ratios = count of match / count of non-match;
 	
 	
 	unsigned int num_xcount_without_mcount = 0;
-	unsigned int num_mcount_without_xcount = m_counts.size();
+	unsigned int num_mcount_without_xcount = 0;
 	for ( p = x_counts.begin(); p != x_counts.end(); ++p ) {
 		q = m_counts.find( p->first );
 		if ( q == m_counts.end() ) 
-			++ num_xcount_without_mcount;
+			continue;
 		else {
-			ratio_map.insert(std::pair< vector < unsigned int>, double >(p->first, static_cast<double> (q->second)/ p->second) );
-			//m_counts.erase(q);
-			--num_mcount_without_xcount;
+			ratio_map.insert(std::pair< vector < unsigned int>, double >(p->first, 1.0 * q->second / p->second) );
 		}
 	}
-	// now all the members in m_counts are not available in x_counts;
-	
+
+	for ( map < vector < unsigned int >, unsigned int, cSimilarity_Compare >::iterator pp = x_counts.begin(); pp != x_counts.end();  ) {
+		if ( ratio_map.find( pp->first ) == ratio_map.end() ) {
+			x_counts.erase ( pp++ );
+			++num_xcount_without_mcount;
+		}
+		else
+			++pp;
+	}
+	for ( map < vector < unsigned int >, unsigned int, cSimilarity_Compare >::iterator qq = m_counts.begin(); qq != m_counts.end();  ) {
+		if ( ratio_map.find( qq->first ) == ratio_map.end() ) {
+			m_counts.erase ( qq++ );
+			++num_mcount_without_xcount;
+		}
+		else
+			++qq;
+	}
+
+	std::cout << num_xcount_without_mcount << " non-match similarity profiles and "
+			<< num_mcount_without_xcount << " match similarity profiles are discarded." << std::endl;
 
 	if ( num_xcount_without_mcount > 5 || num_mcount_without_xcount > 5 ) {
 		std::cout << "WARNING: THIS STEP IS SKIPPED FOR DEBUG BUT SHALL BE ENABLED IN THE REAL PROGRAM, UNLESS SMOOTHING AND INTER-EXTRA-POLATIONS ARE AVAILABLE."<<std::endl;
@@ -323,9 +353,9 @@ cRatios:: cRatios(const vector < const cRatioComponent *> & component_pointer_ve
 
 	// smoothing here
 	smooth();
-	const vector < unsigned int > max_similarity = get_max_similarity(rec);
-	const vector < unsigned int > min_similarity ( max_similarity.size(), 0);
-	inter_extra_polation(max_similarity, min_similarity);
+	//const vector < unsigned int > max_similarity = get_max_similarity( this->attrib_names);
+	//const vector < unsigned int > min_similarity ( max_similarity.size(), 0);
+	//inter_extra_polation(max_similarity, min_similarity);
 
 	write_ratios_file(filename);
 	x_counts.clear();
@@ -335,16 +365,6 @@ cRatios:: cRatios(const vector < const cRatioComponent *> & component_pointer_ve
 
 cRatios:: cRatios(const char * filename) {
 	read_ratios_file(filename);
-}
-
-vector < unsigned int > cRatios::get_max_similarity(const cRecord & rec) const {
-	vector < unsigned int > sp;
-	for ( vector < string > :: const_iterator p = attrib_names.begin(); p != attrib_names.end(); ++p ) {
-		const cAttribute * pAttrib = rec.get_attrib_pointer_by_index(cRecord::get_index_by_name(*p));
-		const unsigned int max_entry = pAttrib->get_attrib_max_value();
-		sp.push_back(max_entry);
-	}
-	return sp;
 }
 
 

@@ -215,10 +215,10 @@ public:
 	//unsigned int get_final_order () const {return final_root_order;}
 	void inter_extra_polation( const vector < unsigned int >& max_similarity, const vector < unsigned int > & min_similarity);
 	void smooth();
-	vector < unsigned int > get_max_similarity( const cRecord & rec) const ;
 	const vector < string > & get_attrib_names() const { return attrib_names;}
 };
 
+vector < unsigned int > get_max_similarity(const vector < string > & attrib_names) ;
 //====================
 
 

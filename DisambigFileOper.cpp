@@ -9,13 +9,13 @@
 
 #include "DisambigFileOper.h"
 #include "DisambigEngine.h"
-#include "sqlite3op.h"
+//#include "sqlite3op.h"
 #include "DisambigCluster.h"
 #include <fstream>
 #include <cstring>
 
 
-const char cSql3query::nullchar;
+
 
 const cRecord * retrieve_record_pointer_by_unique_id(const string & uid, const map <string, const cRecord*> & uid_tree) {
 	map <string, const cRecord *>::const_iterator cpm = uid_tree.find(uid);
@@ -42,8 +42,9 @@ void create_btree_uid2record_pointer(map<string, const cRecord *> & uid_tree, co
 	}
 }
 
+#if 0
 //================================================
-
+const char cSql3query::nullchar;
 bool dump_match ( const char * sqlite3_target, const char * tablename, const char * txt_source, const string & unique_record_name, const string & unique_inventor_name) {
 
 
@@ -135,7 +136,7 @@ bool dump_match ( const char * sqlite3_target, const char * tablename, const cha
 	return true;
 }
 
-
+#endif
 #if 0
 //================================================================== OBSOLETE ======================
 bool fetch_records_from_sqlite3(list <cRecord> & source, const char * sql_file, const char * statement, const map<string, asgdetail>& asgtree){
