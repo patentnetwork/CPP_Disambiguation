@@ -222,11 +222,14 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		}
 
 
-		/*
+		
 		//latitude interacts with		{"Longitude", "Street", "Country"}; the sequence is important.
-		vector <const string* >::const_iterator p, q;
+		//vector <const string* >::const_iterator p, q;
 
 		// Comparing country
+		if ( this == &rhs )
+			return max_value;
+
 		unsigned int country_score = 0;
 		if ( this->get_interactive_vector().at(2) == rhs.get_interactive_vector().at(2) )
 			country_score = 1;
@@ -245,7 +248,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		else
 			res = latlon_score;
 
-		 */
+		 #if 0
 
 		//obsolete now.
 		const string * p1 = this->get_data().front();
@@ -259,7 +262,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 			res = 2;
 		else
 			res = 1;
-
+		#endif
 
 		if ( res > max_value )
 			res = max_value;
@@ -350,7 +353,7 @@ unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 			throw cException_Other("Cannot dynamic cast rhs to cAsgNum *.");
 
 		if ( p != q ) {
-			res = jwcmp(* this->get_data().at(0), * rhs.get_data().at(0));
+			res = asgcmp(* this->get_data().at(0), * rhs.get_data().at(0));
 		}
 		else {
 			res = Jaro_Wrinkler_Max;

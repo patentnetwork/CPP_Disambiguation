@@ -90,7 +90,7 @@ public:
 
 class cLatitude : public cAttribute_Single_Interactive_Mode <cLatitude> {
 public:
-	static const unsigned int max_value = 2;
+	static const unsigned int max_value = 5;
 public:
 	cLatitude(const char * source = NULL ) {}
 	unsigned int compare(const cAttribute & rhs) const;	//override to customize
@@ -174,7 +174,7 @@ class cAsgNum;
 
 class cAssignee : public cAttribute_Single_Interactive_Mode <cAssignee> {
 public:
-	static const unsigned int max_value = Jaro_Wrinkler_Max + 1;
+	static const unsigned int max_value = 6;
 private:
 	//static const map<string, std::pair<string, unsigned int>  > * assignee_tree_pointer; // this is a static membmer used in the comparison function.
 	static map < const cAsgNum*, unsigned int > asgnum2count_tree;

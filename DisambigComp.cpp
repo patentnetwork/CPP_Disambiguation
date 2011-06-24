@@ -223,6 +223,8 @@ int jwcmp_old(const string & str1, const string& str2){
 }
 
 int jwcmp(const string & str1, const string& str2) {
+	if ( str1.empty() || str2.empty() )
+		return 0;
 	double cmpres = strcmp95_modified(str1.c_str(), str2.c_str());
 	register int score = 0;
 	if ( cmpres > 0.7 )
@@ -539,6 +541,23 @@ int asgcmp(const string & asg1, const string & asg2, const map<string, std::pair
 	return score;
 }
 
+
+int asgcmp ( const string & s1, const string &s2) {
+	if ( s1.empty() || s2.empty() )
+		return 1;
+
+	double cmpres = strcmp95_modified(s1.c_str(), s2.c_str());
+	if ( cmpres > 0.95 )
+		return 5;
+	else if ( cmpres > 0.9 )
+		return 4;
+	else if ( cmpres > 0.8 )
+		return 3;
+	else if ( cmpres > 0.7 )
+		return 2;
+	else
+		return 0;
+}
 
 int asgcmp_to_test(const vector <string> & asg1, const vector <string> & asg2,
 			   const map<string, std::pair<string, unsigned int> > * const asg_table_pointer){
