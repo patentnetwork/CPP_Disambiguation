@@ -101,7 +101,7 @@ void cRecord::print( std::ostream & os ) const {
  */
 
 vector <unsigned int> cRecord::record_compare(const cRecord & rhs) const {
-	static const bool detail_debug = true;
+	static const bool detail_debug = false;
 	vector <unsigned int > rec_comp_result;
 	if ( detail_debug ) {
 		static const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());

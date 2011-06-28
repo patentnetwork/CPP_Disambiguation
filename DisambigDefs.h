@@ -716,8 +716,6 @@ public:
 		if ( ! this->is_comparator_activated () )
 			throw cException_No_Comparision_Function(this->static_get_class_name().c_str());
 		try {
-			if ( this == & right_hand_side )
-				return this->get_attrib_max_value();
 
 			unsigned int res = 0;
 			const AttribType & rhs = dynamic_cast< const AttribType & > (right_hand_side);
@@ -727,13 +725,6 @@ public:
 										 rhs.attrib_set.begin(), rhs.attrib_set.end(),
 										 mv);
 
-			//if ( res > 0 ) {
-			//	this->print(std::cout);
-			//	rhs.print(std::cout);
-			//	res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
-			//								 rhs.attrib_set.begin(), rhs.attrib_set.end(),
-			//								 mv);
-			//}
 			if ( res > mv )
 				res = mv;
 			return res;

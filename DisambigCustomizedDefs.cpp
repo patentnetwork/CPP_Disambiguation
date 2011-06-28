@@ -227,7 +227,7 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 		//vector <const string* >::const_iterator p, q;
 
 		// Comparing country
-		if ( this == &rhs )
+		if ( this == &rhs || this->is_informative())
 			return max_value;
 
 		unsigned int country_score = 0;

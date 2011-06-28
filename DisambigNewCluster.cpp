@@ -165,9 +165,9 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 
 	unsigned int gap = this->patents_gap(rhs);
 	bool location_penalize = false;
-	//const unsigned int common_locs = num_common_elements(this->locs.begin(), this->locs.end(), rhs.locs.begin(), rhs.locs.end(), 1 );
-	//if ( gap == 0 && common_locs == 0 )
-	//	location_penalize = true;
+	const unsigned int common_locs = num_common_elements(this->locs.begin(), this->locs.end(), rhs.locs.begin(), rhs.locs.end(), 1 );
+	if ( gap == 0 && common_locs == 0 )
+		location_penalize = true;
 	static const unsigned int max_gap = 20;
 	if ( gap > max_gap )
 		gap = max_gap;
