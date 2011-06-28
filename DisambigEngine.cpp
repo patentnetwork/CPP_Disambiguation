@@ -101,7 +101,22 @@ void cRecord::print( std::ostream & os ) const {
  */
 
 vector <unsigned int> cRecord::record_compare(const cRecord & rhs) const {
+	static const bool detail_debug = true;
 	vector <unsigned int > rec_comp_result;
+	if ( detail_debug ) {
+		static const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());
+		const string debug_string = "06476708-1";
+		const string * ps = this->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+		const string * qs = rhs.get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+		if ( *ps == debug_string || * qs == debug_string ) {
+			std::cout << "Before record compare: "<< std::endl;
+			std::cout << "-----------" << std::endl;
+			this->print();
+			std::cout << "===========" << std::endl;
+			rhs.print();
+			std::cout << std::endl << std::endl;
+		}
+	}
 	try{
 		for ( unsigned int i = 0; i < this->vector_pdata.size(); ++i ) {
 			try {
@@ -117,6 +132,28 @@ vector <unsigned int> cRecord::record_compare(const cRecord & rhs) const {
 		std::cout << "Skipped" << std::endl;
 		rec_comp_result.clear();
 	}
+
+	//for debug only.
+	if ( detail_debug ) {
+		static const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());
+		const string debug_string = "06476708-1";
+		const string * ps = this->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+		const string * qs = rhs.get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+		if ( *ps == debug_string || * qs == debug_string ) {
+			std::cout << "After record compare: "<< std::endl;
+			std::cout << "-----------" << std::endl;
+			this->print();
+			std::cout << "===========" << std::endl;
+			rhs.print();
+			std::cout << "..........." << std::endl;
+			std::cout << "Similarity Profile =";
+			for ( vector < unsigned int >::const_iterator t = rec_comp_result.begin(); t != rec_comp_result.end(); ++t )
+				std::cout << *t << ",";
+			std::cout << std::endl << std::endl;
+		}
+	}
+
+
 	return rec_comp_result;
 }
 

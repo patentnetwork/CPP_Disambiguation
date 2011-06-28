@@ -23,6 +23,7 @@ cCluster::cCluster(const cCluster_Head & info, const cGroup_Value & fellows)
 	this->first_patent_year = invalid_year;
 	this->last_patent_year = invalid_year;
 	this->update_year_range();
+	this->update_locations();
 }
 
 /*
@@ -56,9 +57,11 @@ void cCluster::merge( cCluster & mergee, const cCluster_Head & info ) {
 	this->m_info = info;
 	this->m_fellows.insert(m_fellows.end(), mergee.m_fellows.begin(), mergee.m_fellows.end());
 	mergee.m_fellows.clear();
+	mergee.locs.clear();
 
 	this->find_representative();
 	this->update_year_range();
+	this->update_locations();
 	mergee.m_mergeable = false;
 }
 
@@ -137,6 +140,8 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 	static const unsigned int country_index = cRecord::get_index_by_name(cCountry::static_get_class_name());
 	static const string asian_countries[] = {"JP"};
 	static const double asian_threshold = 0.99;
+	static const double max_threshold = 0.999;
+
 
 	if ( pratio == NULL)
 		throw cException_Other("Critical: ratios map is not set yet.");
@@ -159,6 +164,10 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 	}
 
 	unsigned int gap = this->patents_gap(rhs);
+	bool location_penalize = false;
+	//const unsigned int common_locs = num_common_elements(this->locs.begin(), this->locs.end(), rhs.locs.begin(), rhs.locs.end(), 1 );
+	//if ( gap == 0 && common_locs == 0 )
+	//	location_penalize = true;
 	static const unsigned int max_gap = 20;
 	if ( gap > max_gap )
 		gap = max_gap;
@@ -166,11 +175,17 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 	double prior_to_use = prior;
 	double threshold_to_use = threshold;
 
-	threshold_to_use = threshold + ( 1.0 - threshold ) * gap / max_gap;
-	if ( threshold_to_use == 1.0 )
-	  threshold_to_use = 0.999;
+	threshold_to_use = threshold + ( max_threshold - threshold ) * gap / max_gap;
+
 	if ( prior_to_use == 0 )
 		prior_to_use = 0.01;
+
+	if ( location_penalize ) {
+		const double t = threshold_to_use + ( max_threshold - threshold_to_use ) / 2;
+		threshold_to_use = t;
+	}
+	if ( threshold_to_use > max_threshold )
+		threshold_to_use = max_threshold;
 
 	std::pair<const cRecord *, double > ans ( disambiguate_by_set ( this->m_info.m_delegate, this->m_fellows, this->m_info.m_cohesion,
 												rhs.m_info.m_delegate, rhs.m_fellows, rhs.m_info.m_cohesion,
@@ -215,6 +230,7 @@ void cCluster::self_repair() {
 	}
 	//if it has not been merged before and m_usable is false, reset to usable.
 	this->update_year_range();
+	this->update_locations();
 	if ( m_usable == false && ! m_fellows.empty())
 		m_usable = true;
 }
@@ -318,4 +334,19 @@ unsigned int cCluster::patents_gap( const cCluster & rhs) const {
 	if ( x > 500 )
 		throw cException_Other("Patent gap error.");
 	return x;
+}
+
+
+void cCluster::update_locations() {
+	locs.clear();
+	static const unsigned int latindex = cRecord::get_index_by_name(cLatitude::static_get_class_name());
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
+		const cLatitude * pAttribLat = dynamic_cast< const cLatitude *> ( (*p)->get_attrib_pointer_by_index(latindex) );
+		if ( pAttribLat == 0 ) {
+			(*p)->print();
+			throw cException_Other("bad cast from cAttrib to cLatitude. cCluster::update_location error.");
+		}
+		if ( pAttribLat->is_informative() )
+			locs.insert(pAttribLat);
+	}
 }

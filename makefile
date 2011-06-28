@@ -70,6 +70,6 @@ DisambigUtilities.o: DisambigUtilities.h DisambigUtilities.cpp
 	$(CXX) -c $? $(CFLAGS)
 
 clean:
-	rm *.o
+	rm *.o *.gch
 
 

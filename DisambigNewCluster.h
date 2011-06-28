@@ -91,6 +91,9 @@ private:
 
 	unsigned int first_patent_year;
 	unsigned int last_patent_year;
+	set < const cLatitude * > locs;
+
+	void update_locations();
 	void update_year_range();
 	unsigned int patents_gap( const cCluster & rhs) const;
 	bool is_valid_year() const;

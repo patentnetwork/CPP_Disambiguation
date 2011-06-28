@@ -352,11 +352,14 @@ unsigned int cAssignee::compare(const cAttribute & right_hand_side) const {
 		if ( ! q )
 			throw cException_Other("Cannot dynamic cast rhs to cAsgNum *.");
 
-		if ( p != q ) {
+		if ( ! this->is_informative() || ! rhs.is_informative() ) {
+			res = 1;
+		}
+		else if ( p != q ) {
 			res = asgcmp(* this->get_data().at(0), * rhs.get_data().at(0));
 		}
 		else {
-			res = Jaro_Wrinkler_Max;
+			res = 5;
 			map < const cAsgNum *, unsigned int>::const_iterator t = cAssignee::asgnum2count_tree.find(p);
 			if ( t == cAssignee::asgnum2count_tree.end() )
 				throw cException_Other("AsgNum pointer is not in tree.");

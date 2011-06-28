@@ -723,12 +723,17 @@ public:
 			const AttribType & rhs = dynamic_cast< const AttribType & > (right_hand_side);
 
 			const unsigned int mv = this->get_attrib_max_value();
-			//this->print(std::cout);
-			//rhs.print(std::cout);
 			res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
 										 rhs.attrib_set.begin(), rhs.attrib_set.end(),
 										 mv);
 
+			//if ( res > 0 ) {
+			//	this->print(std::cout);
+			//	rhs.print(std::cout);
+			//	res = num_common_elements (this->attrib_set.begin(), this->attrib_set.end(),
+			//								 rhs.attrib_set.begin(), rhs.attrib_set.end(),
+			//								 mv);
+			//}
 			if ( res > mv )
 				res = mv;
 			return res;
@@ -766,7 +771,7 @@ public:
 			os << "Empty attribute." << std::endl;
 			return;
 		}
-		os << "No raw data. " << ", Derivatives = ";
+		os << "No raw data. " << "# of Derivatives = " << attrib_set.size() << ", Derivatives = ";
 
 		const string * qq;
 		for ( ; p != attrib_set.end(); ++p ) {

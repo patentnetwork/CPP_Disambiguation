@@ -58,9 +58,12 @@ public:
 
 
 template < typename Iter1, typename Iter2 >
-unsigned int num_common_elements ( Iter1 p1b, Iter1 p1e , Iter2 p2b, Iter2 p2e, const unsigned int max) {// containers must be sorted before use.
+unsigned int num_common_elements ( const Iter1 & p1begin, const Iter1 & p1e ,
+									const Iter2 & p2begin, const Iter2 & p2e, const unsigned int max) {// containers must be sorted before use.
 	// it has to be a sorted version container, like set, or sorted vector or list
 	unsigned int cnt = 0;
+	Iter1 p1b = p1begin;
+	Iter2 p2b = p2begin;
 	while ( p1b != p1e && p2b != p2e ) {
 		if ( *p1b < *p2b ) {
 			++p1b;

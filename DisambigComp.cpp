@@ -484,8 +484,10 @@ int latloncmp(const string & inputlat1, const string & inputlon1,
 
 
     if ( dist < 1.0 )
-    	return 4;
+    	return 5;
     else if ( dist < 10 )
+    	return 4;
+    else if ( dist < 25)
     	return 3;
     else if ( dist < 50 )
     	return 2;
@@ -547,9 +549,7 @@ int asgcmp ( const string & s1, const string &s2) {
 		return 1;
 
 	double cmpres = strcmp95_modified(s1.c_str(), s2.c_str());
-	if ( cmpres > 0.95 )
-		return 5;
-	else if ( cmpres > 0.9 )
+	if ( cmpres > 0.9 )
 		return 4;
 	else if ( cmpres > 0.8 )
 		return 3;
