@@ -360,6 +360,8 @@ std::pair < const cRecord *, set < const cRecord * > > ones_temporal_unique_coau
 
 }
 
+#if 0
+
 int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile) {
 	typedef std::pair< const cRecord *, set < const cRecord *> > cUINV2UCOAUTHOR;
 	list <cRecord> all_records;
@@ -375,22 +377,20 @@ int unique_inventors_per_period ( unsigned int starting_year, unsigned int inter
 
 	cString_Remain_Same manobj;
 	cBlocking_Operation_Column_Manipulate tempblocker (manobj, "ApplyYear");
-	cBlocking_Operation_By_Coauthors bocobj(all_rec_pointers, 1);
-	cCluster::set_reference_patent_tree_pointer(bocobj.get_patent_tree());
 
 	map <string, const cRecord *> uid_dict;
 	create_btree_uid2record_pointer(uid_dict, all_records, cUnique_Record_ID::static_get_class_name());
 
-	cCluster_Info ci( uid_dict, true, true, false);
-	ci.reset_blocking(tempblocker, disambigresult);
-	bocobj.build_uid2uinv_tree(ci);
 
 	cCluster_Set all_clusters;
-	all_clusters.convert_from_ClusterInfo(&ci);
-
-	const map < const cRecord *, const cRecord *> & uid2uinv = bocobj.get_uid2uinv_tree();
-	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree = bocobj.get_patent_tree();
+	//all_clusters.convert_from_ClusterInfo(&ci);
+	all_clusters.read_from_file(disambigresult, uid_dict);
+	map < const cRecord *, const cRecord *> uid2uinv;
 	const list < cCluster > & full_list = all_clusters.get_set();
+	for ( list < cCluster >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
+		t->add_uid2uinv(uid2uinv);
+	const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree = bocobj.get_patent_tree();
+
 
 
 
@@ -429,6 +429,7 @@ int unique_inventors_per_period ( unsigned int starting_year, unsigned int inter
 	return 0;
 }
 
+#endif
 
 //====================
 
@@ -437,7 +438,9 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	map <string, const cRecord *> uid_dict;
 	const string uid_identifier = cUnique_Record_ID::static_get_class_name();
 	create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
-
+	map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree(cSort_by_attrib(cPatent::static_get_class_name()));
+	build_patent_tree(  patent_tree , all_records );
+#if 0
 	list < const cRecord *> all_rec_pointers;
 	for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
 		all_rec_pointers.push_back(&(*p));
@@ -470,11 +473,18 @@ void one_step_prostprocess( const list < cRecord > & all_records, const char * l
 	match.reset_blocking( blocker , last_disambig_result );
 
 	blocker_coauthor.build_uid2uinv_tree(match);
+#endif
 	cCluster_Set cs;
-	cs.convert_from_ClusterInfo(&match);
+	//cs.convert_from_ClusterInfo(&match);
+	cs.read_from_file(last_disambig_result, uid_dict);
+	map < const cRecord *, const cRecord *> uid2uinv;
+	const list < cCluster > & full_list = cs.get_set();
+	for ( list < cCluster >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
+		t->add_uid2uinv(uid2uinv);
 	const char * suffix = ".pplog";
 	const string logfile = string(outputfile) + suffix ;
-	post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), logfile);
+	//post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), logfile);
+	post_polish( cs, uid2uinv, patent_tree, logfile);
 	cs.output_results(outputfile);
 }
 
@@ -497,3 +507,78 @@ string remove_headtail_space( const string & s ) {
 	string str_result(istart,iend);
 	return str_result;
 }
+
+map < string, double > out_of_cluster_density( const cCluster_Set & upper, const cCluster_Set & lower, const cRatios & ratio ) {
+	static const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());
+	const unsigned int base = 100000;
+	std:: cout << "Processing out-of-cluster density ... ..." << std::endl;
+	map < const cRecord *, const cRecord *> upper_uid2uinv;
+	const list < cCluster > & full_list = upper.get_set();
+	for ( list < cCluster >::const_iterator t = full_list.begin(); t != full_list.end(); ++t )
+		t->add_uid2uinv(upper_uid2uinv);
+
+	unsigned int cluster_count = 0;
+	map < string, double > output;
+	for ( list < cCluster >::const_iterator plower = lower.get_set().begin(); plower != lower.get_set().end(); ++plower ) {
+		++ cluster_count;
+		if ( cluster_count % base == 0 )
+			std::cout << cluster_count << " clusters have been process for out-of-cluster density." << std::endl;
+
+		const cGroup_Value & members = plower->get_fellows();
+		const unsigned int member_size = members.size();
+		//get prior values first
+		map < const cRecord *, int > small_cluster_counts;
+		for ( cGroup_Value::const_iterator pm = members.begin(); pm != members.end(); ++pm) {
+			map < const cRecord *, const cRecord *> ::const_iterator puinv = upper_uid2uinv.find( *pm);
+			if ( puinv == upper_uid2uinv.end() )
+				throw cException_Other("Outer of cluster density: cannot find unique record id.");
+			const cRecord * const inv = puinv->second;
+			++small_cluster_counts[inv];
+		}
+		if ( small_cluster_counts.empty() )
+			throw cException_Other("Empty Cluster.");
+		if ( 1 == small_cluster_counts.size() )
+			continue;
+
+
+		double prior = 0;
+		for (map < const cRecord *, int >::const_iterator q = small_cluster_counts.begin(); q != small_cluster_counts.end(); ++q ) {
+			prior += 1.0 * (q->second) * ( q->second - 1)/ member_size / ( member_size - 1);
+		}
+		if ( prior == 0 )
+			prior = 0.1;
+
+		//disambiguate then.
+		unsigned int cnt = 0;
+		double sum_prob = 0;
+		for ( cGroup_Value::const_iterator pmouter = members.begin(); pmouter != members.end(); ++pmouter) {
+			const cRecord * const outerinv = upper_uid2uinv.find( *pmouter)->second;
+			cGroup_Value::const_iterator pminner = pmouter;
+			for ( ++ pminner; pminner != members.end(); ++pminner) {
+				const cRecord * const innerinv = upper_uid2uinv.find( *pminner)->second;
+				if ( outerinv == innerinv )
+					continue;
+				else {
+					//disambiguate between records
+					++cnt;
+					vector < unsigned int > sp = (*pmouter)->record_compare(**pminner);
+					const double r = ratio.get_ratios_map().find(sp)->second;
+					const double probability = 1.0 / ( 1.0 + ( 1.0 - prior ) /  prior / r );
+					sum_prob += probability;
+				}
+			}
+		}
+		if ( cnt == 0 ) {
+			throw cException_Other("Cluster has only one sub-cluster.");
+		}
+		else {
+			const string & key = * plower->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+			const double value = sum_prob / cnt;
+			output.insert( std::pair < string , double >(key, value));
+		}
+	}
+	std::cout << "Totally, " << cluster_count << " clusters have been process for out-of-cluster density." << std::endl;
+	return output;
+}
+
+

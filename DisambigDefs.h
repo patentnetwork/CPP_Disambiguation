@@ -319,7 +319,7 @@ public:
 	virtual vector < string > get_interactive_class_names() const = 0;
 	virtual void activate_comparator() const = 0;
 	virtual void deactivate_comparator() const = 0;
-
+	virtual const cAttribute *  get_effective_pointer() const = 0;
 };
 
 
@@ -388,13 +388,9 @@ public:
  */
 
 
-
 template <typename Derived>
-class cAttribute_Intermediary : public cAttribute {
-	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
+class cAttribute_Basic: public cAttribute {
 private:
-
-
 	static const string class_name;	// an implementation is required for each class in the cpp file.
 	//static unsigned int column_index_in_query;
 	static const string interactive_column_names[];
@@ -404,34 +400,119 @@ private:
 	static bool bool_is_enabled;
 	static bool bool_comparator_activated;
 	static const string attrib_group;	//attribute group used for ratios purpose;
-	static set < string > data_pool;
-
-	static map < Derived, int > attrib_pool;
-
-	static pthread_rwlock_t attrib_pool_structure_lock;
-	static pthread_mutex_t attrib_pool_count_lock;
-
-protected:
-
 public:
 
-
-	static void clear_data_pool() {data_pool.clear();}
-	static void clear_attrib_pool() {attrib_pool.clear();}
-
-
-	cAttribute_Intermediary(const char * source = NULL )
-		:	cAttribute(source) {
+	cAttribute_Basic (const char * source = NULL ): cAttribute(source) {
+#if 0
 		if (! bool_is_enabled ) {
 			if ( position_in_registry(class_name) == -1 )
 				throw cException_Attribute_Disabled(class_name.c_str());
 			else
 				bool_is_enabled = true;
 		}
+#endif
 	}
+    const string & get_class_name() const { return class_name;}
+    static const string & static_get_class_name() {return class_name;}
+   	//static void set_column_index_in_query(const unsigned int i ) {column_index_in_query = i;}
+   	//THIS IS THE DEFAULT COMPARISON FUNCTION. ANY ATTRIBUTE THAT HAS REAL COMPARISION FUNCTIONS SHOULD OVERRIDE IT.
+   	//ANY ATTRIBUTE THAT HAS NO REAL COMPARISION FUNCTIONS SHOULD JUST LEAVE IT.
+   	unsigned int compare(const cAttribute & rhs) const {
+   		throw cException_No_Comparision_Function(class_name.c_str());
+   	};
+   	static const unsigned int get_interactive_column_number() { return num_of_interactive_columns;};
+   	static void static_check_interactive_consistency( const vector <string> & query_columns ) {
+#if 0
+   		if ( interactive_column_indice_in_query.size() != get_interactive_column_number() )
+   			throw cException_Insufficient_Interactives(class_name.c_str());
+   		for ( unsigned int i = 0; i < num_of_interactive_columns; ++i) {
+   			unsigned int temp_index = find(query_columns.begin(), query_columns.end(), interactive_column_names[i]) - query_columns.begin();
+   			if ( temp_index < query_columns.size() )
+   				interactive_column_indice_in_query[i] = temp_index;
+   			else
+   				throw cException_Insufficient_Interactives(class_name.c_str());
+   		}
+#endif
+   		bool_interactive_consistency_checked = true;
+   	}
+	void check_interactive_consistency(const vector <string> & query_columns) { static_check_interactive_consistency(query_columns);}
+   	bool has_checked_interactive_consistency() const {return bool_interactive_consistency_checked;}
+	static bool is_enabled() { return bool_is_enabled; }
+	//static void enable() { bool_is_enabled = true;}
+	static bool static_is_comparator_activated() {return bool_comparator_activated;}
+	bool is_comparator_activated() const { return bool_comparator_activated;}
+	static void static_activate_comparator() {
+		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
+			return;
+			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
+		bool_comparator_activated = true;
+		std::cout << static_get_class_name() << " comparison is active now." << std::endl;
+		cRecord_update_active_similarity_names() ;
+	}
+	static void static_deactivate_comparator() {
+		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
+			return;
+			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
+		bool_comparator_activated = false;
+		std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;
+		cRecord_update_active_similarity_names() ;
+	}
+
+	void activate_comparator() const { this->static_activate_comparator(); }
+	void deactivate_comparator() const { this->static_deactivate_comparator();}
+	void print( std::ostream & os ) const {
+		vector < const string * >::const_iterator p = this->get_data().begin();
+		os << class_name << ": ";
+		os << "Data Type = " << typeid(*this).name() << ", ";
+		if ( p == this->get_data().end() ) {
+			os << "Empty attribute." << std::endl;
+			return;
+		}
+		os << "raw data = " << **p << ", Derivatives = ";
+		for ( ++p; p != this->get_data().end(); ++p )
+			os << **p << " | ";
+		os << std::endl;
+	}
+	static const string & static_get_attrib_group() { return attrib_group; };
+	const string & get_attrib_group() const { return attrib_group;}
+	static vector < string > static_get_interactive_column_names() {
+		vector < string > res ( interactive_column_names, interactive_column_names + num_of_interactive_columns);
+		return res;
+	}
+	vector < string > get_interactive_class_names() const {
+		return static_get_interactive_column_names();
+	}
+
+};
+
+template < typename ConcreteType, typename PooledDataType>
+class cAttribute_SI_Mode;
+
+template <typename Derived>
+class cAttribute_Intermediary : public cAttribute_Basic < Derived > {
+	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
+
+
+private:
+	static set < string > data_pool;
+	static map < Derived, int > attrib_pool;
+	static pthread_rwlock_t attrib_pool_structure_lock;
+	static pthread_mutex_t attrib_pool_count_lock;
+
+protected:
+
+public:
+	const cAttribute *  get_effective_pointer() const { return this; };
+
+	static void clear_data_pool() {data_pool.clear();}
+	static void clear_attrib_pool() {attrib_pool.clear();}
+
+
+	cAttribute_Intermediary(const char * source = NULL )
+		:	cAttribute_Basic<Derived> (source){}
 	static const Derived * static_add_attrib( const Derived & d , const unsigned int n ) {
 		pthread_rwlock_rdlock(& attrib_pool_structure_lock);
-		register typename map < Derived, int >::iterator p = attrib_pool.find( d );
+		typename map < Derived, int >::iterator p = attrib_pool.find( d );
 		const bool is_end = ( p == attrib_pool.end() );
 		pthread_rwlock_unlock(& attrib_pool_structure_lock);
 
@@ -492,66 +573,7 @@ public:
 	}
 
 
-    const string & get_class_name() const { return class_name;}
-    static const string & static_get_class_name() {return class_name;}
-   	//static void set_column_index_in_query(const unsigned int i ) {column_index_in_query = i;}
-   	//THIS IS THE DEFAULT COMPARISON FUNCTION. ANY ATTRIBUTE THAT HAS REAL COMPARISION FUNCTIONS SHOULD OVERRIDE IT.
-   	//ANY ATTRIBUTE THAT HAS NO REAL COMPARISION FUNCTIONS SHOULD JUST LEAVE IT.
-   	unsigned int compare(const cAttribute & rhs) const {
-   		throw cException_No_Comparision_Function(class_name.c_str());
-   	};
-   	static const unsigned int get_interactive_column_number() { return num_of_interactive_columns;};
-   	static void static_check_interactive_consistency( const vector <string> & query_columns ) {
-   		if ( interactive_column_indice_in_query.size() != get_interactive_column_number() )
-   			throw cException_Insufficient_Interactives(class_name.c_str());
-   		for ( unsigned int i = 0; i < num_of_interactive_columns; ++i) {
-   			unsigned int temp_index = find(query_columns.begin(), query_columns.end(), interactive_column_names[i]) - query_columns.begin();
-   			if ( temp_index < query_columns.size() )
-   				interactive_column_indice_in_query[i] = temp_index;
-   			else
-   				throw cException_Insufficient_Interactives(class_name.c_str());
-   		}
-   		bool_interactive_consistency_checked = true;
-   	}
-	void check_interactive_consistency(const vector <string> & query_columns) { static_check_interactive_consistency(query_columns);}
-   	bool has_checked_interactive_consistency() const {return bool_interactive_consistency_checked;}
-	static bool is_enabled() { return bool_is_enabled; }
-	//static void enable() { bool_is_enabled = true;}
-	static bool static_is_comparator_activated() {return bool_comparator_activated;}
-	bool is_comparator_activated() const { return bool_comparator_activated;}
-	static void static_activate_comparator() {
-		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
-			return;
-			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
-		bool_comparator_activated = true;
-		std::cout << static_get_class_name() << " comparison is active now." << std::endl;
-		cRecord_update_active_similarity_names() ;
-	}
-	static void static_deactivate_comparator() {
-		if ( attrib_group == INERT_ATTRIB_GROUP_IDENTIFIER )
-			return;
-			//throw cException_No_Comparision_Function ( ( string("Attribute GROUP is not set properly. Attribute = ") + class_name + string(" Group = ") + attrib_group ).c_str());
-		bool_comparator_activated = false;
-		std::cout << static_get_class_name() << " comparison is deactivated." << std::endl;
-		cRecord_update_active_similarity_names() ;
-	}
 
-	void activate_comparator() const { this->static_activate_comparator(); }
-	void deactivate_comparator() const { this->static_deactivate_comparator();}
-	void print( std::ostream & os ) const {
-		vector < const string * >::const_iterator p = this->get_data().begin();
-		os << class_name << ": ";
-		if ( p == this->get_data().end() ) {
-			os << "Empty attribute." << std::endl;
-			return;
-		}
-		os << "raw data = " << **p << ", Derivatives = ";
-		for ( ++p; p != this->get_data().end(); ++p )
-			os << **p << " | ";
-		os << std::endl;
-	}
-	static const string & static_get_attrib_group() { return attrib_group; };
-	const string & get_attrib_group() const { return attrib_group;}
 
 	static const string * static_add_string ( const string & str ) {
 		register set< string >::iterator p = data_pool.find(str);
@@ -609,13 +631,7 @@ public:
 		return static_add_attrib( dynamic_cast< const Derived &> (*this), n);
 	}
 
-	static vector < string > static_get_interactive_column_names() {
-		vector < string > res ( interactive_column_names, interactive_column_names + num_of_interactive_columns);
-		return res;
-	}
-	vector < string > get_interactive_class_names() const {
-		return static_get_interactive_column_names();
-	}
+
 };
 
 /*
@@ -652,10 +668,15 @@ public:
  * 		const vector < const string * > & get_data() const: for external call.
  * 		bool operator < ( const cAttribute & rhs ) const: sorting function used in map/set only. should not call explicitly.
  */
+
+
+
 template < typename AttribType >
 class cAttribute_Vector_Intermediary: public cAttribute_Intermediary<AttribType> {
 	friend class cAttribute;
 	friend class cAttribute_Intermediary<AttribType> ;
+	template < typename T1, typename T2 > friend  class cAttribute_SI_Mode;
+
 private:
 	vector < const string * > vector_string_pointers;
 protected:
@@ -664,6 +685,10 @@ public:
 	const vector < const string * > & get_data() const { return vector_string_pointers;}
 	bool operator < ( const cAttribute & rhs ) const { return this->get_data() < rhs.get_data(); }
 };
+
+
+
+
 
 /*
  * template < Concreate Class Name > cAttribute_Set_Mode
@@ -984,10 +1009,206 @@ public:
 	unsigned int compare(const cAttribute & rhs) const = 0;		//forcing child class to implement because it is unknown.
 };
 
+
+
+#if 0
+template <typename ConcreteType>
+class cAttribute_SI_Mode : public cAttribute_Single_Mode < cAttribute_SI_Mode< ConcreteType> > {
+private:
+	mutable vector<const cAttribute *> inter_vecs;
+	static std::auto_ptr < const cRecord_Reconfigurator > preconfig;
+	static list < ConcreteType > attrib_list;
+	static bool has_reconfiged;
+public:
+	const vector <const cAttribute *> & get_interactive_vector() const {
+		return inter_vecs;
+	}
+	const cAttribute* clone() const {
+		const cAttribute_SI_Mode< ConcreteType> & alias = dynamic_cast< const cAttribute_SI_Mode< ConcreteType> & > (*this);
+		static_add_attrib(alias, 1);
+		attrib_list.push_back(dynamic_cast<const ConcreteType &>(*this));
+		return & attrib_list.back();
+	}
+
+	void obtain_interactive_reconfigurator() const {
+		std::auto_ptr < const cRecord_Reconfigurator > tmp_ptr (generate_interactive_reconfigurator(this));
+		preconfig = tmp_ptr;
+	}
+	static bool check_if_reconfigured() {
+		if ( ! has_reconfiged )
+			throw cException_Other("Interactive class has not been reconfigured yet.");
+		return has_reconfiged;
+	}
+	void reconfigure_for_interactives( const cRecord * pRec) const {
+		if ( preconfig.get() == NULL )
+			obtain_interactive_reconfigurator();
+		reconfigure_interactives ( preconfig.get(), pRec);
+	}
+	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const {
+		inter_vecs = inputvec;
+		has_reconfiged = true;
+		return this;
+	}
+	void print( std::ostream & os ) const {
+		cAttribute_Single_Mode < cAttribute_SI_Mode< ConcreteType> >::print(os);
+		os << "Interactive attributes are: ";
+		for ( vector<const cAttribute *>::const_iterator p = inter_vecs.begin(); p != inter_vecs.end(); ++p )
+			os << (*p)->get_class_name() << ", ";
+		os << std::endl;
+	}
+	int exact_compare( const cAttribute & right_hand_side ) const {
+		const ConcreteType & rhs = dynamic_cast< const ConcreteType & > (right_hand_side);
+		const vector < const string * > * v1 = & this->get_data();
+		const vector < const string * > * v2 = & rhs.get_data();
+		if ( v1 != v2 )
+			return 0;
+
+		const unsigned int n = this->get_interactive_vector().size();
+		if ( n != rhs.get_interactive_vector().size() )
+			throw cException_Other("Different data dimensions.");
+
+		for ( unsigned int i = 0; i < n; ++i ) {
+			v1 = & this->get_interactive_vector().at(i)->get_data();
+			v2 = & rhs.get_interactive_vector().at(i)->get_data();
+			if ( v1 != v2 )
+				return 0;
+		}
+
+		return 1;
+	}
+};
+#endif
+
+
+template <typename ConcreteType, typename PooledDataType>
+class cAttribute_SI_Mode : public cAttribute_Basic < ConcreteType > {
+private:
+	mutable PooledDataType * pAttrib;
+	mutable vector<const cAttribute *> inter_vecs;
+	static std::auto_ptr < const cRecord_Reconfigurator > preconfig;
+	static list < ConcreteType > attrib_list;
+	static bool has_reconfiged;
+	static std::auto_ptr < PooledDataType > stat_pdata;
+
+	vector < const string * > & get_data_modifiable() {
+		if ( stat_pdata.get() == NULL )
+			stat_pdata = std::auto_ptr < PooledDataType > ( new PooledDataType );
+
+		return stat_pdata->get_data_modifiable();
+	}
+
+public:
+	const cAttribute *  get_effective_pointer() const { return pAttrib;}
+
+	const string * add_string ( const string & str ) const  {
+		return cAttribute_Intermediary<ConcreteType>::static_add_string ( str );
+	}
+	const cAttribute* reduce_attrib(unsigned int n ) const {
+		return pAttrib->template reduce_attrib(n);
+	}
+	const cAttribute* add_attrib(unsigned int n ) const {
+		return pAttrib->template add_attrib(n);
+	}
+	int clean_attrib_pool() const { return 0; }
+
+	cAttribute_SI_Mode ( const char * data = NULL ): pAttrib (NULL) {}
+	bool split_string(const char* recdata) {
+		if ( stat_pdata.get() == NULL )
+			stat_pdata = std::auto_ptr < PooledDataType > ( new PooledDataType );
+		stat_pdata->split_string(recdata);
+		pAttrib = stat_pdata.get();
+		return true;
+	}
+
+	bool operator < (const cAttribute&) const {throw cException_Other("operator less than. Operation forbidden.");}
+	const vector <const cAttribute *> & get_interactive_vector() const {
+		return inter_vecs;
+	}
+	const vector < const string * > & get_data() const { return pAttrib->get_data();}
+
+	const cAttribute* clone() const {
+		const PooledDataType  & alias = *this->pAttrib;
+		const PooledDataType  * p = dynamic_cast < const PooledDataType  * > (alias.add_attrib(1) );
+		if ( p == NULL )
+			throw cException_Other("Clone error. Dynamic cast error.");
+
+		pAttrib = const_cast < PooledDataType  * >(p);
+		attrib_list.push_back(dynamic_cast<const ConcreteType &>(*this));
+		return & attrib_list.back();
+	}
+
+	void obtain_interactive_reconfigurator() const {
+		std::auto_ptr < const cRecord_Reconfigurator > tmp_ptr (generate_interactive_reconfigurator(this));
+		preconfig = tmp_ptr;
+	}
+	static bool check_if_reconfigured() {
+		if ( ! has_reconfiged )
+			throw cException_Other("Interactive class has not been reconfigured yet.");
+		return has_reconfiged;
+	}
+	void reconfigure_for_interactives( const cRecord * pRec) const {
+		if ( preconfig.get() == NULL )
+			obtain_interactive_reconfigurator();
+		reconfigure_interactives ( preconfig.get(), pRec);
+	}
+	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const {
+		inter_vecs = inputvec;
+		has_reconfiged = true;
+		return this;
+	}
+	void print( std::ostream & os ) const {
+		os << cAttribute_Basic<ConcreteType>::static_get_class_name() << " -- ";
+		pAttrib->print(os);
+		os << "Interactive attributes are: ";
+		for ( vector<const cAttribute *>::const_iterator p = inter_vecs.begin(); p != inter_vecs.end(); ++p )
+			os << (*p)->get_class_name() << ", ";
+		os << std::endl;
+	}
+	int exact_compare( const cAttribute & right_hand_side ) const {
+		const ConcreteType & rhs = dynamic_cast< const ConcreteType & > (right_hand_side);
+		if ( this->get_effective_pointer() != rhs.get_effective_pointer() )
+			return 0;
+
+		const unsigned int n = this->get_interactive_vector().size();
+		if ( n != rhs.get_interactive_vector().size() )
+			throw cException_Other("Different data dimensions.");
+
+		for ( unsigned int i = 0; i < n; ++i ) {
+			if ( this->get_interactive_vector().at(i)->get_effective_pointer()
+					!= rhs.get_interactive_vector().at(i)->get_effective_pointer() )
+			return 0;
+		}
+
+		return 1;
+	}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //declaration of static member
 template <typename Derived>  map < vector<const cAttribute *> , unsigned int > cAttribute_Single_Interactive_Mode<Derived>::Interactive_Pool;
 template < typename AttribType> vector < const string * > cAttribute_Set_Intermediary<AttribType>::temporary_storage;
 template <typename Derived> bool cAttribute_Single_Interactive_Mode<Derived>::has_reconfiged = false;
 template <typename Derived> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_Single_Interactive_Mode<Derived>::preconfig;
+template <typename ConcreteType, typename PooledDataType> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_SI_Mode<ConcreteType, PooledDataType>::preconfig;
+template <typename ConcreteType, typename PooledDataType> list < ConcreteType > cAttribute_SI_Mode<ConcreteType, PooledDataType>::attrib_list;
+template <typename ConcreteType, typename PooledDataType> bool cAttribute_SI_Mode<ConcreteType, PooledDataType>::has_reconfiged = false;
+template <typename ConcreteType, typename PooledDataType> std::auto_ptr < PooledDataType > cAttribute_SI_Mode<ConcreteType, PooledDataType>::stat_pdata;
 
 #endif /* DISAMBIGLIB_HPP_ */

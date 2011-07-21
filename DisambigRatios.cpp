@@ -166,6 +166,7 @@ void cRatioComponent::prepare(const char* x_file, const char * m_file) {
 	sp_stats(x_list, x_counts);
 	sp_stats(m_list, m_counts);
 	
+
 	std::cout << "Before LAPLACE CORRECTION: " << std::endl;
 	std::cout << "Size of non-match pair list = " << x_list.size() << std::endl;
 	std::cout << "Size of match pair list = " << m_list.size() << std::endl;
@@ -450,5 +451,7 @@ void cRatios::read_ratios_file(const char * filename) {
 		final_ratios.insert(std::pair<vector<unsigned int>, double >(key, value));
 	}
 	std::cout << filename << " has been loaded as the final ratios file"<< std::endl;
-	
+	std::cout << "Resetting similarity profiles ... ..." << std::endl;
+	cRecord::activate_comparators_by_name(attrib_names);
+	std::cout << "-----Similarity Profiles reset.-------" << std::endl;
 }

@@ -158,7 +158,7 @@ cCluster_Head cCluster::disambiguate( const cCluster & rhs, const double prior, 
 
 	for ( unsigned int i = 0; i < sizeof(asian_countries)/sizeof(string); ++i ) {
 		if ( this_country == rhs_country && * this_country->get_data().at(0) == asian_countries[i] ) {
-			threshold = asian_threshold;
+			threshold = asian_threshold > mutual_threshold ? asian_threshold : mutual_threshold;
 			break;
 		}
 	}
@@ -341,12 +341,25 @@ void cCluster::update_locations() {
 	locs.clear();
 	static const unsigned int latindex = cRecord::get_index_by_name(cLatitude::static_get_class_name());
 	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != this->m_fellows.end(); ++p ) {
-		const cLatitude * pAttribLat = dynamic_cast< const cLatitude *> ( (*p)->get_attrib_pointer_by_index(latindex) );
+		const cAttribute * pA = (*p)->get_attrib_pointer_by_index(latindex);
+		const cLatitude * pAttribLat = dynamic_cast< const cLatitude *> ( pA );
 		if ( pAttribLat == 0 ) {
 			(*p)->print();
+			std::cerr << "Data type is " << typeid(*pA).name() << std::endl;
 			throw cException_Other("bad cast from cAttrib to cLatitude. cCluster::update_location error.");
 		}
 		if ( pAttribLat->is_informative() )
 			locs.insert(pAttribLat);
+	}
+}
+
+void cCluster::add_uid2uinv( map < const cRecord *, const cRecord *> & uid2uinv ) const {
+	map < const cRecord *, const cRecord *>::iterator q;
+	for ( cGroup_Value::const_iterator p = this->m_fellows.begin(); p != m_fellows.end(); ++p ) {
+		q = uid2uinv.find(*p);
+		if ( q != uid2uinv.end() )
+			throw cException_Other("Add uid: already exists.");
+		else
+			uid2uinv.insert(std::pair<const cRecord *, const cRecord *>(*p, this->m_info.m_delegate));
 	}
 }

@@ -87,9 +87,10 @@ public:
 	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
+class cLatitude_Data : public cAttribute_Single_Mode<cLatitude_Data> {};
 
-class cLatitude : public cAttribute_Single_Interactive_Mode <cLatitude> {
-public:
+class cLatitude : public cAttribute_SI_Mode <cLatitude, cLatitude_Data> {
+private:
 	static const unsigned int max_value = 5;
 public:
 	cLatitude(const char * source = NULL ) {}
@@ -99,14 +100,21 @@ public:
 			cAttribute::get_attrib_max_value();
 		return max_value;
 	}
-	int exact_compare( const cAttribute & rhs ) const { return this == & rhs; }
 };
 
+class cLongitude_Data : public cAttribute_Single_Mode<cLongitude_Data> {};
 
-class cLongitude: public cAttribute_Single_Mode <cLongitude> {
+class cLongitude: public cAttribute_SI_Mode <cLongitude, cLongitude_Data > {
+private:
+	static const unsigned int max_value = 1;
 public:
 	cLongitude(const char * source = NULL ) {}
-	//SHOULD NOT OVERRIDE THE COMPARISON FUNCTION SINCE LONGITUDE IS NOT BEING COMPARED. IT IS WITH THE LATITUDE COMPARISION.
+	unsigned int compare(const cAttribute & rhs) const;	//override to customize
+	unsigned int get_attrib_max_value() const {
+		if ( ! is_comparator_activated() )
+			cAttribute::get_attrib_max_value();
+		return max_value;
+	}
 };
 
 class cStreet: public cAttribute_Single_Mode <cStreet> {
@@ -171,8 +179,9 @@ public:
 };
 
 class cAsgNum;
+class cAssignee_Data : public cAttribute_Single_Mode < cAssignee_Data > {};
 
-class cAssignee : public cAttribute_Single_Interactive_Mode <cAssignee> {
+class cAssignee : public cAttribute_SI_Mode <cAssignee, cAssignee_Data> {
 public:
 	static const unsigned int max_value = 6;
 private:
@@ -231,10 +240,10 @@ public:
 // Specialization should be implemented in the cpp file.
 //template <typename Derived> unsigned int cAttribute_Intermediary<Derived>::column_index_in_query;
 //template <typename Derived> string cAttribute_Intermediary<Derived>::column_name_in_query;
-template <typename Derived> vector <unsigned int> cAttribute_Intermediary<Derived>::interactive_column_indice_in_query;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_interactive_consistency_checked = false;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_is_enabled = false;
-template <typename Derived> bool cAttribute_Intermediary<Derived>::bool_comparator_activated = false;
+template <typename Derived> vector <unsigned int> cAttribute_Basic<Derived>::interactive_column_indice_in_query;
+template <typename Derived> bool cAttribute_Basic<Derived>::bool_interactive_consistency_checked = false;
+template <typename Derived> bool cAttribute_Basic<Derived>::bool_is_enabled = false;
+template <typename Derived> bool cAttribute_Basic<Derived>::bool_comparator_activated = false;
 template <typename Derived> set < string > cAttribute_Intermediary<Derived>:: data_pool;
 template <typename Derived> map < Derived, int > cAttribute_Intermediary<Derived>:: attrib_pool;
 template <typename Derived> pthread_rwlock_t cAttribute_Intermediary<Derived>:: attrib_pool_structure_lock = PTHREAD_RWLOCK_INITIALIZER;
@@ -242,24 +251,31 @@ template <typename Derived> pthread_mutex_t cAttribute_Intermediary<Derived>:: a
 
 //declaration ( not definition ) of specialized template
 
-template <> const string cAttribute_Intermediary<cFirstname>::attrib_group;
-template <> const string cAttribute_Intermediary<cLastname>::attrib_group;
-template <> const string cAttribute_Intermediary<cMiddlename>::attrib_group;
-template <> const string cAttribute_Intermediary<cLatitude>::attrib_group;
-template <> const string cAttribute_Intermediary<cAssignee>::attrib_group;
-template <> const string cAttribute_Intermediary<cClass>::attrib_group;
-template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group;
-template <> const string cAttribute_Intermediary<cClass_M2>::attrib_group;
+template <> const string cAttribute_Basic<cFirstname>::attrib_group;
+template <> const string cAttribute_Basic<cLastname>::attrib_group;
+template <> const string cAttribute_Basic<cMiddlename>::attrib_group;
+template <> const string cAttribute_Basic<cLatitude>::attrib_group;
+template <> const string cAttribute_Basic<cLongitude>::attrib_group;
+template <> const string cAttribute_Basic<cAssignee>::attrib_group;
+template <> const string cAttribute_Basic<cClass>::attrib_group;
+template <> const string cAttribute_Basic<cCoauthor>::attrib_group;
+template <> const string cAttribute_Basic<cClass_M2>::attrib_group;
+//template <> const string cAttribute_Basic<cAttribute_Single_Mode<cLatitude> >::attrib_group;
+//template <> const string cAttribute_Basic<cAttribute_Single_Mode<cLongitude> >::attrib_group;
 
-template <typename Derived> const string cAttribute_Intermediary<Derived>::attrib_group = INERT_ATTRIB_GROUP_IDENTIFIER;
+template <typename Derived> const string cAttribute_Basic<Derived>::attrib_group = INERT_ATTRIB_GROUP_IDENTIFIER;
 
-template <> const string cAttribute_Intermediary<cLatitude>::interactive_column_names[];
-template <> const string cAttribute_Intermediary<cAssignee>::interactive_column_names[];
-template <typename Derived> const string cAttribute_Intermediary<Derived>::interactive_column_names[] = {};
+//template <> const string cAttribute_Intermediary<cLatitude>::interactive_column_names[];
+template <> const string cAttribute_Basic<cAssignee>::interactive_column_names[];
+template <> const string cAttribute_Basic<cLatitude >::interactive_column_names[];
+template <> const string cAttribute_Basic<cLongitude >::interactive_column_names[];
+template <typename Derived> const string cAttribute_Basic<Derived>::interactive_column_names[] = {};
 
 
-template <> const unsigned int cAttribute_Intermediary<cLatitude>::num_of_interactive_columns;
-template <> const unsigned int cAttribute_Intermediary<cAssignee>::num_of_interactive_columns;
-template <typename Derived> const unsigned int cAttribute_Intermediary<Derived>::num_of_interactive_columns = 0;
+//template <> const unsigned int cAttribute_Intermediary<cLatitude>::num_of_interactive_columns;
+template <> const unsigned int cAttribute_Basic<cAssignee>::num_of_interactive_columns;
+template <> const unsigned int cAttribute_Basic<cLatitude >::num_of_interactive_columns;
+template <> const unsigned int cAttribute_Basic<cLongitude >::num_of_interactive_columns;
+template <typename Derived> const unsigned int cAttribute_Basic<Derived>::num_of_interactive_columns = 0;
 
 #endif /* DISAMBIGCUSTOMIZEDDEFS_H_ */

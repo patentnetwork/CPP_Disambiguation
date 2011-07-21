@@ -8,11 +8,13 @@
 #include "DisambigPostProcess.h"
 
 #include "DisambigCluster.h"
+#include "DisambigFileOper.h"
+
 extern "C" {
 	# include "strcmp95.h"
 }
 
-
+#if 0
 cCluster_Set & cCluster_Set::convert_from_ClusterInfo( const cCluster_Info * ps) {
 	if ( ps == NULL )
 		throw cException_Other("NULL pointer.");
@@ -27,7 +29,7 @@ cCluster_Set & cCluster_Set::convert_from_ClusterInfo( const cCluster_Info * ps)
 	}
 	return *this;
 }
-
+#endif
 
 void find_associated_nodes(const cCluster & center, const map < const cRecord *, const cRecord *> & uid2uinv,
 							const map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree,
@@ -292,4 +294,52 @@ void cCluster_Set::output_results( const char * dest_file) const {
 	std::ostream::sync_with_stdio(true);
 	std::cout << "Done." << std::endl;
 }
+
+void cCluster_Set::read_from_file( const char * filename, const map <string, const cRecord*> & uid_tree) {
+	unsigned int count = 0;
+	const unsigned int base = 100000;
+	const unsigned int primary_delim_size = strlen(cCluster_Info::primary_delim);
+	const unsigned int secondary_delim_size = strlen(cCluster_Info::secondary_delim);
+	std::ifstream infile ( filename);
+	if (infile.good()) {
+		string filedata;
+		while ( getline(infile, filedata)) {
+			register size_t pos = 0, prev_pos = 0;
+			pos = filedata.find(cCluster_Info::primary_delim, prev_pos);
+			string keystring = filedata.substr( prev_pos, pos - prev_pos);
+			const cRecord * key = retrieve_record_pointer_by_unique_id( keystring, uid_tree );
+			prev_pos = pos + primary_delim_size;
+
+			pos = filedata.find(cCluster_Info::primary_delim, prev_pos);
+			double val = 0;
+			if ( true ) {
+				string cohesionstring = filedata.substr( prev_pos, pos - prev_pos);
+				val = atof(cohesionstring.c_str());
+			}
+			prev_pos = pos + primary_delim_size;
+
+
+			cGroup_Value tempv;
+			while ( ( pos = filedata.find(cCluster_Info::secondary_delim, prev_pos) )!= string::npos){
+				string valuestring = filedata.substr( prev_pos, pos - prev_pos);
+				const cRecord * value = retrieve_record_pointer_by_unique_id( valuestring, uid_tree);
+				tempv.push_back(value);
+				prev_pos = pos + secondary_delim_size;
+			}
+			cCluster_Head th(key, val);
+			cCluster tempc(th, tempv);
+			tempc.self_repair();
+			this->consolidated.push_back(tempc);
+
+			++count;
+			if ( count % base == 0 )
+				std::cout << count << " records have been loaded from the cluster file. " << std::endl;
+		}
+		std::cout << "Totally, " << count << " records have been loaded from " << filename << std::endl;
+	}
+	else {
+		throw cException_File_Not_Found(filename);
+	}
+}
+
 

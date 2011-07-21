@@ -761,5 +761,8 @@ std::pair<const cRecord *, double> disambiguate_by_set (const cRecord * key1, co
 void copyfile(const char * target, const char * source);
 cAttribute * create_attribute_instance ( const string & id );
 
+void build_patent_tree( map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree , const list < cRecord > & all_records );
+void build_patent_tree( map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree , const list < const cRecord * > & all_rec_pointers );
+string check_file_existence(const string & description);
 
 #endif /* DISAMBIGENGINE_H_ */

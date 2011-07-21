@@ -7,7 +7,7 @@
 Firstname: 1 : 0,0 , true
 Middlename: 1 : 0 , 0 , false
 Lastname: 0: 0, 0, true
-ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Assignee, Coauthor
+ACTIVE SIMILARITY ATTRIBUTES: Firstname, Middlename, Lastname, Longitude
 
 [ Round 2 ]
 Firstname: 1 : 0 , 0 , true

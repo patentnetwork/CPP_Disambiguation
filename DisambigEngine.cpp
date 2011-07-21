@@ -1659,9 +1659,11 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	const unsigned int match1_size = match1.size();
 	const unsigned int match2_size = match2.size();
 
-	const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
+	//const unsigned int required_candidates = static_cast< unsigned int > ( 1.0 * sqrt(1.0 * match1_size * match2_size ));
 	//const unsigned int candidates_for_averaging = 2 * required_candidates - 1 ;
-	const unsigned int candidates_for_averaging = required_candidates ;
+	unsigned int candidates_for_averaging = match1_size * match2_size / 4 ;
+	if ( candidates_for_averaging == 0 )
+		candidates_for_averaging = 1;
 	if ( candidates_for_averaging == 0 )
 		throw cException_Other("Computation of size of averaged probability is incorrect.");
 
@@ -1697,10 +1699,12 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 			else {
 				const double temp_prob = 1.0 / ( 1.0 + ( 1.0 - prior )/prior / r_value );
 				interactive +=  temp_prob ;
-				if ( partial_match_mode && probs.size() >= candidates_for_averaging ) {
-					probs.erase(probs.begin());
+				if ( partial_match_mode && qualified_count < candidates_for_averaging ) {
+					if (  probs.size() >= candidates_for_averaging ) {
+						probs.erase(probs.begin());
+					}
+					probs.insert(temp_prob);
 				}
-				probs.insert(temp_prob);
 				if ( partial_match_mode && temp_prob >= threshold ) {
 					cumulative_interactive += temp_prob;
 					++qualified_count;
@@ -1710,9 +1714,12 @@ std::pair<const cRecord *, double> disambiguate_by_set (
 	}
 
 	const double interactive_average = interactive / match1_size / match2_size;
-	double probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
+	double probs_average;
+
 	if ( qualified_count > probs.size() )
 		probs_average = cumulative_interactive / qualified_count;
+	else
+		probs_average = std::accumulate(probs.begin(), probs.end(), 0.0 ) / probs.size();
 
 	if ( interactive_average > 1 )
 		throw cException_Invalid_Probability("Cohesion value error.");
@@ -1991,6 +1998,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		else
 			pointer_array[i] = create_attribute_instance ( cRecord::column_names[i].c_str() );
 
+#if 0
 		if ( cRecord::column_names[i] == cLongitude::class_name ) {
 			cLatitude::interactive_column_indice_in_query.push_back(i);
 		}
@@ -2003,6 +2011,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 		else if ( cRecord::column_names[i] == cAsgNum::class_name ) {
 			cAssignee::interactive_column_indice_in_query.push_back(i);
 		}
+#endif
 
 		if ( pointer_array[i]->get_attrib_group() != string("None") )
 			++position_in_ratios;
@@ -2015,6 +2024,11 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	std::cout << "Involved attributes are: ";
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		std::cout << pointer_array[i]->get_class_name() << ", ";
+	std::cout << std::endl;
+
+	std::cout << "Polymorphic data types are: ";
+	for ( unsigned int i = 0; i < num_cols; ++i )
+		std::cout << typeid(*pointer_array[i]).name()<< ", ";
 	std::cout << std::endl;
 
 	vector <string> string_cache(num_cols);
@@ -2059,6 +2073,7 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 
 		cRecord temprec(temp_vec_attrib);
 		source.push_back( temprec );
+
 		++size;
 		if ( size % base == 0 )
 			std::cout << size << " records obtained." << std::endl;
@@ -2066,7 +2081,6 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 	std::cout << std::endl;
 	std::cout << size << " records have been fetched from "<< txt_file << std::endl;
 	cRecord::sample_record_pointer = & source.front();
-	//source.front().update_active_similarity_names();
 
 	for ( unsigned int i = 0; i < num_cols; ++i )
 		delete pointer_array[i];
@@ -2074,6 +2088,11 @@ bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, cons
 
 	for ( list< cRecord>::iterator ci = source.begin(); ci != source.end(); ++ci )
 		ci->reconfigure_record_for_interactives();
+
+	std::cout << "Sample Record:---------" << std::endl;
+	cRecord::sample_record_pointer->print();
+	std::cout << "-----------------" << std::endl;
+
 	return true;
 }
 
@@ -2166,4 +2185,46 @@ void cAssignee::configure_assignee( const list < const cRecord *> & recs) {
 	}
 
 	cAssignee::is_ready = true;
+}
+
+
+void build_patent_tree( map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree , const list < const cRecord * > & all_rec_pointers ) {
+	map < const cRecord *, cGroup_Value, cSort_by_attrib >::iterator ppatentmap;
+	for ( list < const cRecord * >::const_iterator p = all_rec_pointers.begin(); p != all_rec_pointers.end(); ++p ) {
+		ppatentmap = patent_tree.find(*p);
+		if ( ppatentmap == patent_tree.end() ) {
+			cGroup_Value temp ( 1, *p);
+			patent_tree.insert( std::pair < const cRecord *, cGroup_Value > (*p, temp) );
+		}
+		else {
+			ppatentmap->second.push_back(*p);
+		}
+	}
+}
+
+void build_patent_tree( map < const cRecord *, cGroup_Value, cSort_by_attrib > & patent_tree , const list < cRecord > & all_records ) {
+	list < const cRecord *> all_pointers;
+	for ( list < cRecord >::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+		all_pointers.push_back(&(*p));
+	build_patent_tree(patent_tree, all_pointers);
+}
+
+
+string check_file_existence(const string & description) {
+	std::ifstream infile;
+	while ( true ) {
+		string file;
+		std::cout << "Enter file name for " << description << " : ";
+		std::cin >> file;
+		infile.open(file.c_str(), std::ios::in);
+		if ( infile.good() ) {
+			infile.close();
+			std::cout << file << " accepted." << std::endl;
+			return file;
+		}
+		else {
+			std::cerr << file << " does not exist. Try again." << std::endl;
+			infile.close();
+		}
+	}
 }

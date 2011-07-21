@@ -2,7 +2,7 @@
 #CC=icc
 #CFLAGS=-O3 -g -xsse4.1 -ipo -static-intel -Wall
 
-CXX=g++-4.4
+CXX=g++
 CC=gcc
 CFLAGS=-Os -g -Wall -I/usr/local/include -L/usr/local/lib
 OOQPINCLUDEDIR=/usr/local/include/ooqp
@@ -13,7 +13,7 @@ CONCERTINCLUDE=$(ILOGINSTALLDIR)/concert/include
 CPLEXLIB=$(ILOGINSTALLDIR)/cplex/lib/x86_sles10_4.1/static_pic
 CONCERTLIB=$(ILOGINSTALLDIR)/concert/lib/x86_sles10_4.1/static_pic
 
-all:exedisambig
+all:exedisambig txt2sqlite3
 
 exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o Array.o QuadProg++.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
 	$(CXX) -o $@ $? $(CFLAGS) -lsqlite3 -looqpgensparse -looqpsparse -looqpgondzio -looqpbase -lblas -lMA27 -L$(CPLEXLIB) -lilocplex -lcplex -L$(CONCERTLIB) -lconcert -lm -lpthread -pg
@@ -72,4 +72,5 @@ DisambigUtilities.o: DisambigUtilities.h DisambigUtilities.cpp
 clean:
 	rm *.o *.gch
 
-
+txt2sqlite3: txt2sqlite3.h txt2sqlite3.cpp
+	$(CXX) -o $@ $? $(CFLAGS) -lsqlite3

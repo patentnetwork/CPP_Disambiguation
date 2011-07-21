@@ -365,8 +365,59 @@ int main( int argc, char * argv[]) {
 	std::cout << "====================== STARTING DISAMBIGUATION ===========================" << std::endl;
 	std::cout << std::endl;
 
-	Full_Disambiguation("/media/data/edwardspace/workplace/testcpp/Disambiguation/EngineConfig.txt",
-			"/media/data/edwardspace/workplace/testcpp/Disambiguation/BlockingConfig.txt");
+	int choice;
+	std::cout << "Choose one option: 1. Disambiguation. 2. Calculate Out-Of-Cluster Density. Choice = ";
+	std::cin >> choice;
+
+	string enginefile ;
+	string blockingfile ;
+	switch ( choice ) {
+	case 1:
+		enginefile = check_file_existence("Disambiguation Engine Configuration.");
+		blockingfile = check_file_existence("Disambiguation Blocking Configuration.");
+		Full_Disambiguation(enginefile.c_str(), blockingfile.c_str());
+		break;
+	case 2: {
+		enginefile = check_file_existence("Disambiguation Engine Configuration.");
+		const string upper = check_file_existence("upper bound.");
+		const string lower = check_file_existence("lower bound.");
+		const string ratio = check_file_existence("Ratios database.");
+		string oocd_res;
+		std::cout << "Out-of-cluster density output file :";
+		std::cin >> oocd_res;
+		std::ofstream ofile ( oocd_res.c_str());
+		if ( ! ofile.good() )
+			throw cException_Other("Out-of-cluster density output file error.");
+		if ( ! EngineConfiguration::config_engine(enginefile.c_str(), std::cout ) )
+			throw cException_Other("Engine Configuration is not complete!");
+		list <cRecord> all_records;
+		const vector <string> column_vec = EngineConfiguration::involved_columns;
+		bool is_success = fetch_records_from_txt(all_records, EngineConfiguration::source_csv_file.c_str(), column_vec);
+		if (not is_success) return 1;
+		map <string, const cRecord *> uid_dict;
+		const string uid_identifier = cUnique_Record_ID::static_get_class_name();
+		create_btree_uid2record_pointer(uid_dict, all_records, uid_identifier);
+		map < const cRecord *, cGroup_Value, cSort_by_attrib > patent_tree(cPatent::static_get_class_name());
+		build_patent_tree(  patent_tree , all_records ) ;
+		cCluster::set_reference_patent_tree_pointer( patent_tree);
+		list < const cRecord *> all_rec_pointers;
+		for ( list<cRecord>::const_iterator p = all_records.begin(); p != all_records.end(); ++p )
+			all_rec_pointers.push_back(&(*p));
+		cAssignee::configure_assignee(all_rec_pointers);
+
+		cCluster_Set up, low;
+		up.read_from_file(upper.c_str(), uid_dict);
+		low.read_from_file(lower.c_str(), uid_dict);
+		const cRatios ratiodb ( ratio.c_str());
+		const map < string, double > oocd ( out_of_cluster_density(up, low, ratiodb));
+		for ( map < string, double >::const_iterator ci = oocd.begin(); ci != oocd.end(); ++ci )
+			ofile << ci->first << "," << ci->second << std::endl;
+		break;
+	}
+	default:
+		std::cerr << "Invalid selection. Program exits." << std::endl;
+		return 1;
+	}
 
 	std::cout << std::endl;
 	std::cout << "====================== END OF DISAMBIGUATION =============================" << std::endl;
@@ -531,7 +582,8 @@ int Full_Disambiguation( const char * EngineConfigFile, const char * BlockingCon
 		if ( network_clustering ) {
 			blocker_coauthor.build_uid2uinv_tree(match);
 			cCluster_Set cs;
-			cs.convert_from_ClusterInfo(&match);
+			//cs.convert_from_ClusterInfo(&match);
+			cs.read_from_file(oldmatchfile, uid_dict);
 			post_polish( cs, blocker_coauthor.get_uid2uinv_tree(), blocker_coauthor.get_patent_tree(), string(postprocesslog));
 			cs.output_results(network_file);
 			match.reset_blocking( * BlockingConfiguration::active_blocker_pointer, network_file);

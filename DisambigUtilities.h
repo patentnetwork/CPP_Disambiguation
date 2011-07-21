@@ -10,12 +10,16 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <map>
 using std::vector;
 using std::list;
 using std::string;
+using std::map;
 
 class cRecord;
 class cString_Manipulator;
+class cCluster_Set;
+class cRatios;
 
 
 bool make_changable_training_sets_by_patent(const list <const cRecord*> & record_pointers, const vector<string >& blocking_column_names,
@@ -26,5 +30,7 @@ bool make_changable_training_sets_by_assignee(const list <const cRecord*> & reco
 int unique_inventors_per_period ( unsigned int starting_year, unsigned int interval, const char * wholedatabase, const char * disambigresult, const char * outputfile);
 void one_step_prostprocess( const list < cRecord > & all_records, const char * last_disambig_result, const char * outputfile);
 string remove_headtail_space( const string & s );
+map < string, double > out_of_cluster_density ( const cCluster_Set & upper, const cCluster_Set & lower, const cRatios & ratios );
+
 
 #endif /* DISAMBIGUTILITIES_H_ */

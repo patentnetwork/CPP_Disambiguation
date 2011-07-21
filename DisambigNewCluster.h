@@ -112,6 +112,7 @@ public:
 	static void set_reference_patent_tree_pointer(const map < const cRecord *, cGroup_Value, cSort_by_attrib > & reference_patent_tree ) { reference_pointer = & reference_patent_tree;}
 
 	void change_mid_name();
+	void add_uid2uinv( map < const cRecord *, const cRecord *> & uid2uinv ) const;
 };
 
 /*

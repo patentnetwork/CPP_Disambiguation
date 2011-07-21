@@ -27,12 +27,13 @@ private:
 	Cluster_Container consolidated;
 	cCluster_Set ( const cCluster_Set &);
 public:
-	cCluster_Set & convert_from_ClusterInfo( const cCluster_Info * );
+	//cCluster_Set & convert_from_ClusterInfo( const cCluster_Info * );
 	const Cluster_Container & get_set() const {return consolidated;}
 	Cluster_Container  & get_modifiable_set() { return consolidated; }
 	cCluster_Set () {}
 	~cCluster_Set() {}
 	void output_results( const char * ) const;
+	void read_from_file ( const char * filename, const map <string, const cRecord*> & uid_tree);
 };
 
 void post_polish( cCluster_Set & m, map < const cRecord *, const cRecord *> & uid2uinv,

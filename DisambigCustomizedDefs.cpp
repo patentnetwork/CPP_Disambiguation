@@ -7,57 +7,70 @@
 
 #include "DisambigCustomizedDefs.h"
 
-template <> const string cAttribute_Intermediary<cFirstname>::class_name = "Firstname";
-template <> const string cAttribute_Intermediary<cFirstname>::attrib_group = "Personal";
+template <> const string cAttribute_Basic<cFirstname>::class_name = "Firstname";
+template <> const string cAttribute_Basic<cFirstname>::attrib_group = "Personal";
 
 
-template <> const string cAttribute_Intermediary<cLastname>::class_name = "Lastname";
-template <> const string cAttribute_Intermediary<cLastname>::attrib_group = "Personal";
+template <> const string cAttribute_Basic<cLastname>::class_name = "Lastname";
+template <> const string cAttribute_Basic<cLastname>::attrib_group = "Personal";
 
-template <> const string cAttribute_Intermediary<cMiddlename>::class_name = "Middlename";
-template <> const string cAttribute_Intermediary<cMiddlename>::attrib_group = "Personal";
+template <> const string cAttribute_Basic<cMiddlename>::class_name = "Middlename";
+template <> const string cAttribute_Basic<cMiddlename>::attrib_group = "Personal";
 
-template <> const string cAttribute_Intermediary<cLatitude>::class_name = "Latitude";
-template <> const string cAttribute_Intermediary<cLatitude>::interactive_column_names[] = {"Longitude", "Street", "Country"};
-template <> const unsigned int cAttribute_Intermediary<cLatitude>::num_of_interactive_columns = 3;
-template <> const string cAttribute_Intermediary<cLatitude>::attrib_group = "Patent";
+//template <> const string cAttribute_Basic<cLatitude>::class_name = "Latitude";
+//template <> const string cAttribute_Basic<cLatitude>::interactive_column_names[] = {"Longitude", "Street", "Country"};
+//template <> const unsigned int cAttribute_Basic<cLatitude>::num_of_interactive_columns = 3;
+//template <> const string cAttribute_Basic<cLatitude>::attrib_group = "Patent";
+
+template <> const string cAttribute_Basic<cLatitude_Data >::class_name = "Latitude_Data";
+
+template <> const string cAttribute_Basic<cLatitude >::class_name = "Latitude";
+template <> const string cAttribute_Basic<cLatitude >::interactive_column_names[] = {"Longitude", "Street", "Country"};
+template <> const unsigned int cAttribute_Basic<cLatitude >::num_of_interactive_columns = 3;
+template <> const string cAttribute_Basic<cLatitude >::attrib_group = "Patent";
+
+template <> const string cAttribute_Basic<cLongitude_Data >::class_name = "Longitude_Data";
+template <> const string cAttribute_Basic<cLongitude>::class_name = "Longitude";
+//template <> const string cAttribute_Basic<cLongitude >::class_name = "Longitude";
+template <> const string cAttribute_Basic<cLongitude >::interactive_column_names[] = {"Latitude"};
+template <> const unsigned int cAttribute_Basic<cLongitude >::num_of_interactive_columns = 1;
+template <> const string cAttribute_Basic<cLongitude >::attrib_group = "Patent";
 
 
-template <> const string cAttribute_Intermediary<cLongitude>::class_name = "Longitude";
-
-template <> const string cAttribute_Intermediary<cStreet>::class_name = "Street";
+template <> const string cAttribute_Basic<cStreet>::class_name = "Street";
 
 
-template <> const string cAttribute_Intermediary<cCountry>::class_name = "Country";
-//template <> const string cAttribute_Intermediary<cCountry>::attrib_group = "Patent";
+template <> const string cAttribute_Basic<cCountry>::class_name = "Country";
+//template <> const string cAttribute_Basic<cCountry>::attrib_group = "Patent";
 
-template <> const string cAttribute_Intermediary<cClass>::class_name = "Class";
-template <> const string cAttribute_Intermediary<cClass>::attrib_group = "Patent";
+template <> const string cAttribute_Basic<cClass>::class_name = "Class";
+template <> const string cAttribute_Basic<cClass>::attrib_group = "Patent";
 
-template <> const string cAttribute_Intermediary<cClass_M2>::class_name = "Class_Measure2";
-template <> const string cAttribute_Intermediary<cClass_M2>::attrib_group = "Patent";
+template <> const string cAttribute_Basic<cClass_M2>::class_name = "Class_Measure2";
+template <> const string cAttribute_Basic<cClass_M2>::attrib_group = "Patent";
 
 
-template <> const string cAttribute_Intermediary<cCoauthor>::class_name = "Coauthor";
-template <> const string cAttribute_Intermediary<cCoauthor>::attrib_group = "Patent";
+template <> const string cAttribute_Basic<cCoauthor>::class_name = "Coauthor";
+template <> const string cAttribute_Basic<cCoauthor>::attrib_group = "Patent";
 
-template <> const string cAttribute_Intermediary<cAssignee>::class_name = "Assignee";
-template <> const string cAttribute_Intermediary<cAssignee>::interactive_column_names[] = {"AsgNum"};
-template <> const unsigned int cAttribute_Intermediary<cAssignee>::num_of_interactive_columns = 1;
+template <> const string cAttribute_Basic<cAssignee_Data >::class_name = "Assignee_Data";
+template <> const string cAttribute_Basic<cAssignee>::class_name = "Assignee";
+template <> const string cAttribute_Basic<cAssignee>::interactive_column_names[] = {"AsgNum"};
+template <> const unsigned int cAttribute_Basic<cAssignee>::num_of_interactive_columns = 1;
 //const map<string, std::pair<string, unsigned int>  > * cAssignee::assignee_tree_pointer;
 map < const cAsgNum*, unsigned int > cAssignee:: asgnum2count_tree;
 bool cAssignee::is_ready = false;
-template <> const string cAttribute_Intermediary<cAssignee>::attrib_group = "Patent";
+template <> const string cAttribute_Basic<cAssignee>::attrib_group = "Patent";
 
-template <> const string cAttribute_Intermediary<cAsgNum>::class_name = "AsgNum";
+template <> const string cAttribute_Basic<cAsgNum>::class_name = "AsgNum";
 
-template <> const string cAttribute_Intermediary<cUnique_Record_ID>::class_name = "Unique_Record_ID";
+template <> const string cAttribute_Basic<cUnique_Record_ID>::class_name = "Unique_Record_ID";
 
-template <> const string cAttribute_Intermediary<cApplyYear>::class_name = "ApplyYear";
+template <> const string cAttribute_Basic<cApplyYear>::class_name = "ApplyYear";
 
-template <> const string cAttribute_Intermediary<cCity>::class_name = "City";
+template <> const string cAttribute_Basic<cCity>::class_name = "City";
 
-template <> const string cAttribute_Intermediary<cPatent>::class_name = "Patent";
+template <> const string cAttribute_Basic<cPatent>::class_name = "Patent";
 
 
 /*
@@ -224,45 +237,62 @@ unsigned int cLatitude::compare(const cAttribute & right_hand_side) const {
 
 		
 		//latitude interacts with		{"Longitude", "Street", "Country"}; the sequence is important.
-		//vector <const string* >::const_iterator p, q;
 
-		// Comparing country
-		if ( this == &rhs && this->is_informative())
-			return max_value;
 
 		unsigned int country_score = 0;
-		if ( this->get_interactive_vector().at(2) == rhs.get_interactive_vector().at(2) )
-			country_score = 1;
+		if ( this == &rhs && this->is_informative() ) {
+			res = max_value;
+		}
+		else {
+			// Comparing country
+			if ( this->get_interactive_vector().at(2) == rhs.get_interactive_vector().at(2) )
+				country_score = 1;
 
-		// Comparing street;
-		//unsigned int street_score = 0;
+			// Comparing street;
+			//unsigned int street_score = 0;
 
-		// Comparing Latitidue and longitude
-		unsigned int latlon_score = 0;
+			// Comparing Latitidue and longitude
 
-		latlon_score = latloncmp ( * this->get_data().at(0), * this->get_interactive_vector().at(0)->get_data().at(0),
-									* rhs.get_data().at(0), * rhs.get_interactive_vector().at(0)->get_data().at(0) );
+			unsigned int latlon_score = 0;
+			latlon_score = latloncmp ( * this->get_data().at(0), * this_longitude->get_data().at(0),
+										* rhs.get_data().at(0), * rhs_longitude->get_data().at(0) );
 
-		if ( country_score == 0 )
-			res = 0;
-		else
-			res = latlon_score;
+			if ( country_score == 0 )
+				res = 0;
+			else
+				res = latlon_score;
+		}
 
-		 #if 0
+		//correction for japanese
+		if ( country_score == 1 && *this->get_interactive_vector().at(2)->get_data().at(0) == "JP" ) {
+			const cAttribute* const & this_street = this->get_interactive_vector().at(1);
+			const cAttribute* const & rhs_street = rhs.get_interactive_vector().at(1);
+			if ( this_street == rhs_street && ( ! this_street->is_informative() ) )
+				res -= 1;
+		}
 
-		//obsolete now.
-		const string * p1 = this->get_data().front();
-		const string * q1 = this->get_interactive_vector().at(0)->get_data().front();
-		const string * p2 = rhs.get_data().front();
-		const string * q2 = rhs.get_interactive_vector().at(0)->get_data().front();
+		if ( res > max_value )
+			throw cException_Other("latitude error: score > max_value");
 
-		if ( ( ! p1->empty() && !p2->empty() && p1 != p2 ) || ( !q1->empty() && ! q2->empty() && q1 != q2 ) )
-			res = 0;
-		else if ( ( ! p1->empty() && !p2->empty() && p1 == p2 ) && ( !q1->empty() && ! q2->empty() && q1 == q2 ) )
-			res = 2;
-		else
+		return res;
+	}
+	catch ( const std::bad_cast & except ) {
+		std::cerr << except.what() << std::endl;
+		std::cerr << "Error: " << this->get_class_name() << " is compared to " << right_hand_side.get_class_name() << std::endl;
+		throw;
+	}
+}
+
+
+unsigned int cLongitude::compare(const cAttribute & right_hand_side) const {
+	if ( ! is_comparator_activated () )
+		throw cException_No_Comparision_Function(static_get_class_name().c_str());
+	check_if_reconfigured();
+	try {
+		unsigned int res = 0;
+		const bool exact_same = this->exact_compare(right_hand_side) == 1 ;
+		if ( exact_same && this->is_informative())
 			res = 1;
-		#endif
 
 		if ( res > max_value )
 			res = max_value;
