@@ -409,9 +409,7 @@ int main( int argc, char * argv[]) {
 		up.read_from_file(upper.c_str(), uid_dict);
 		low.read_from_file(lower.c_str(), uid_dict);
 		const cRatios ratiodb ( ratio.c_str());
-		const map < string, double > oocd ( out_of_cluster_density(up, low, ratiodb));
-		for ( map < string, double >::const_iterator ci = oocd.begin(); ci != oocd.end(); ++ci )
-			ofile << ci->first << "," << ci->second << std::endl;
+		out_of_cluster_density(up, low, ratiodb, ofile);
 		break;
 	}
 	default:

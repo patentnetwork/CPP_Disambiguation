@@ -508,7 +508,7 @@ string remove_headtail_space( const string & s ) {
 	return str_result;
 }
 
-map < string, double > out_of_cluster_density( const cCluster_Set & upper, const cCluster_Set & lower, const cRatios & ratio ) {
+void out_of_cluster_density( const cCluster_Set & upper, const cCluster_Set & lower, const cRatios & ratio, std::ofstream & ofile ) {
 	static const unsigned int uid_index = cRecord::get_index_by_name(cUnique_Record_ID::static_get_class_name());
 	const unsigned int base = 100000;
 	std:: cout << "Processing out-of-cluster density ... ..." << std::endl;
@@ -518,7 +518,6 @@ map < string, double > out_of_cluster_density( const cCluster_Set & upper, const
 		t->add_uid2uinv(upper_uid2uinv);
 
 	unsigned int cluster_count = 0;
-	map < string, double > output;
 	for ( list < cCluster >::const_iterator plower = lower.get_set().begin(); plower != lower.get_set().end(); ++plower ) {
 		++ cluster_count;
 		if ( cluster_count % base == 0 )
@@ -545,6 +544,11 @@ map < string, double > out_of_cluster_density( const cCluster_Set & upper, const
 		for (map < const cRecord *, int >::const_iterator q = small_cluster_counts.begin(); q != small_cluster_counts.end(); ++q ) {
 			prior += 1.0 * (q->second) * ( q->second - 1)/ member_size / ( member_size - 1);
 		}
+		if ( prior >= 1 )
+			throw cException_Other("Prior > 1");
+
+		if ( prior > 0.1 )
+			prior = 0.1;
 		if ( prior == 0 )
 			prior = 0.1;
 
@@ -574,11 +578,15 @@ map < string, double > out_of_cluster_density( const cCluster_Set & upper, const
 		else {
 			const string & key = * plower->get_cluster_head().m_delegate->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
 			const double value = sum_prob / cnt;
-			output.insert( std::pair < string , double >(key, value));
+			ofile << key <<" : " << value << ": ";
+			for ( map < const cRecord *, int >::const_iterator pc = small_cluster_counts.begin(); pc != small_cluster_counts.end(); ++pc ) {
+				const string & ms = * pc->first->get_attrib_pointer_by_index(uid_index)->get_data().at(0);
+				ofile << ms << " , ";
+			}
+			ofile << std::endl;
 		}
 	}
 	std::cout << "Totally, " << cluster_count << " clusters have been process for out-of-cluster density." << std::endl;
-	return output;
 }
 
 

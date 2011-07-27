@@ -565,7 +565,7 @@ void find_rare_names_v2(const vector < cGroup_Value * > &vec_pdest, const list< 
 				if ( chosen_words.find(*pm) != chosen_words.end() ) {
 					//vec_pdest[kkk]->insert(*p->second.begin());
 					vec_pdest[kkk]->push_back(*p->second.begin());
-					outfile << (*p->second.begin())->get_data_by_index(cindex).at(0) << " , ";
+					outfile << * (*p->second.begin())->get_data_by_index(cindex).at(0) << " , ";
 					++ num_chosen_words;
 					if ( num_chosen_words % base == 0 )
 						std::cout << "Number of chosen phrases: " << num_chosen_words << std::endl;

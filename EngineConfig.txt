@@ -2,7 +2,7 @@
 WORKING DIRECTORY = /media/data/edwardspace/workplace/testcpp/Disambiguation
 ORIGINAL CSV FILE = /media/data/edwardspace/workplace/testcpp/Disambiguation/invpat.txt
 NUMBER OF THREADS = 2
-GENERATE STABLE TRAINING SETS = false
+GENERATE STABLE TRAINING SETS = true
 USE AVAILABLE RATIOS DATABASE = false
 THRESHOLDS = 0.99, 0.95
 NECESSARY ATTRIBUTES = Firstname, Lastname, Unique_Record_ID, Middlename, Longitude, Class, Latitude, Coauthor, Assignee, AsgNum, Country, Street, ApplyYear, City, Patent
