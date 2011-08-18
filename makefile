@@ -4,7 +4,7 @@
 
 CXX=g++
 CC=gcc
-CFLAGS=-Os -g -Wall -I/usr/local/include -L/usr/local/lib
+CFLAGS=-O3 -g -Wall -I/usr/local/include -L/usr/local/lib
 OOQPINCLUDEDIR=/usr/local/include/ooqp
 ILOGINSTALLDIR=/home/ysun/ILOG/CPLEX_Studio_AcademicResearch122
 
@@ -15,8 +15,8 @@ CONCERTLIB=$(ILOGINSTALLDIR)/concert/lib/x86_sles10_4.1/static_pic
 
 all:exedisambig txt2sqlite3
 
-exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o Array.o QuadProg++.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
-	$(CXX) -o $@ $? $(CFLAGS) -lsqlite3 -looqpgensparse -looqpsparse -looqpgondzio -looqpbase -lblas -lMA27 -L$(CPLEXLIB) -lilocplex -lcplex -L$(CONCERTLIB) -lconcert -lm -lpthread -pg
+exedisambig: Disambigmain.o DisambigDefs.o DisambigRatios.o DisambigEngine.o DisambigFileOper.o strcmp95.o DisambigComp.o DisambigTraining.o Threading.o DisambigCluster.o DisambigRatioSmoothing.o DisambigNewCluster.o DisambigCustomizedDefs.o DisambigPostProcess.o DisambigUtilities.o
+	$(CXX) -o $@ $? $(CFLAGS) -L$(CPLEXLIB) -lilocplex -lcplex -L$(CONCERTLIB) -lconcert -lm -lpthread
 
 Disambigmain.o: Disambigmain.cpp
 	$(CXX) -c $? $(CFLAGS)
@@ -52,12 +52,6 @@ DisambigRatioSmoothing.o: DisambigRatioSmoothing.cpp
 	$(CXX) -c $? $(CFLAGS) -I$(OOQPINCLUDEDIR) -I$(CPLEXINCLUDE) -I$(CONCERTINCLUDE) -DIL_STD -DNDEBUG -w
 
 DisambigNewCluster.o: DisambigNewCluster.h DisambigNewCluster.cpp
-	$(CXX) -c $? $(CFLAGS)
-
-Array.o: Array.h Array.cpp
-	$(CXX) -c $? $(CFLAGS)
-
-QuadProg++.o: QuadProg++.h QuadProg++.cpp
 	$(CXX) -c $? $(CFLAGS)
 
 DisambigCustomizedDefs.o: DisambigCustomizedDefs.h DisambigCustomizedDefs.cpp

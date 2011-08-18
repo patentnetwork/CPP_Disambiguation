@@ -89,7 +89,7 @@ public:
 
 class cLatitude_Data : public cAttribute_Single_Mode<cLatitude_Data> {};
 
-class cLatitude : public cAttribute_SI_Mode <cLatitude, cLatitude_Data> {
+class cLatitude : public cAttribute_Interactive_Mode <cLatitude, cLatitude_Data> {
 private:
 	static const unsigned int max_value = 5;
 public:
@@ -104,7 +104,7 @@ public:
 
 class cLongitude_Data : public cAttribute_Single_Mode<cLongitude_Data> {};
 
-class cLongitude: public cAttribute_SI_Mode <cLongitude, cLongitude_Data > {
+class cLongitude: public cAttribute_Interactive_Mode <cLongitude, cLongitude_Data > {
 private:
 	static const unsigned int max_value = 1;
 public:
@@ -181,7 +181,7 @@ public:
 class cAsgNum;
 class cAssignee_Data : public cAttribute_Single_Mode < cAssignee_Data > {};
 
-class cAssignee : public cAttribute_SI_Mode <cAssignee, cAssignee_Data> {
+class cAssignee : public cAttribute_Interactive_Mode <cAssignee, cAssignee_Data> {
 public:
 	static const unsigned int max_value = 6;
 private:
@@ -260,8 +260,6 @@ template <> const string cAttribute_Basic<cAssignee>::attrib_group;
 template <> const string cAttribute_Basic<cClass>::attrib_group;
 template <> const string cAttribute_Basic<cCoauthor>::attrib_group;
 template <> const string cAttribute_Basic<cClass_M2>::attrib_group;
-//template <> const string cAttribute_Basic<cAttribute_Single_Mode<cLatitude> >::attrib_group;
-//template <> const string cAttribute_Basic<cAttribute_Single_Mode<cLongitude> >::attrib_group;
 
 template <typename Derived> const string cAttribute_Basic<Derived>::attrib_group = INERT_ATTRIB_GROUP_IDENTIFIER;
 

@@ -204,35 +204,39 @@ public:
 //=============
 
 /*
- * cAttribute
- * 	- template <> cAttribute_Intermediary
- * 		-- template <> cAttribute_Set_Intermediary
- * 			--- template <> cAttribute_Set_Mode
- * 				---- cClass
- * 				---- cCoauthor
- * 		-- template <> cAttribute_Vector_Intermediary
- * 			--- template <> cAttribute_Vector_Mode
- * 			--- template <> cAttribute_Single_Mode
- * 				---- cFirstname
- * 				---- cMiddlename
- * 				---- cLastname
- * 				---- template <> cAttribute_Single_Interactive_Mode
- * 					----- cLatitude
- * 				---- cLongitude
- * 				---- cCity
- * 				---- cCountry
- * 				---- cAssignee
- * 				---- cAsgNum
- * 				---- cUnique_Record_ID
- * 				---- cPatent
- * 				---- cApplyYear
- *				---- cStreet
+ * 0 .cAttribute
+ * 	1. template <> cAttribute_Basic
+ * 		2. template <> cAttribute_Intermediary
+ * 			3. template <> cAttribute_Set_Intermediary
+ * 				4. template <> cAttribute_Set_Mode
+ * 					5. cClass
+ * 					5. cCoauthor
+ * 		2. template <> cAttribute_Vector_Intermediary
+ * 			3. template <> cAttribute_Vector_Mode
+ * 			3. template <> cAttribute_Single_Mode
+ * 				4. cFirstname
+ * 				4. cMiddlename
+ * 				4. cLastname
+ * 				4. cLongitude
+ * 				4. cCity
+ * 				4. cCountry
+ * 				4. cAsgNum
+ * 				4. cUnique_Record_ID
+ * 				4. cPatent
+ * 				4. cApplyYear
+ *				4. cStreet
+ *				4. cLatitude_Data
+ *				4. cLongitude_Data
+ *				4. cAssignee_Data
+ *		2. template<> cAttribute_Interactive_Mode
+ *			3. cLatitude
+ *			3. cLongitude
+ *			3. cAssignee
  *
  *	This is the base abstract class of all concrete attributes. Interfaces are designed, but the implementations are generally left for child classes.
  *	Usually the pointer of cAttribute class is used, in order to achieve customized behaviors for each concrete classes ( Polymorphism ).
- *	The hierarchy of inheritance is shown above. Any newly introduced concrete class should at most inherit the second layer class ( cAttribute_Intermediary),
- *	or the third layers ( cAttribute_XXX_Intermediary ), or the fourth/fifth more detailed layer.
- *  Most concrete attributes fall into the 4 third layer template classes, so it is convenient to simply choose one of the mode and inherit it when a
+ *	The hierarchy of inheritance is shown above. Any newly introduced concrete class should choose one mode to inherit.
+ *  Most concrete attributes fall into the template classes, so it is convenient to simply choose one of the mode and inherit it when a
  *  concrete class is introduced.
  *	All the concrete classes are declared in the file "DisambigCustomizedDefs.h" and implemented in "DisambigCustomizedDefs.cpp".
  *
@@ -319,14 +323,14 @@ public:
 	virtual vector < string > get_interactive_class_names() const = 0;
 	virtual void activate_comparator() const = 0;
 	virtual void deactivate_comparator() const = 0;
-	virtual const cAttribute *  get_effective_pointer() const = 0;
+	virtual const cAttribute *  get_effective_pointer() const = 0;	//specifically useful in the interactive mode
 };
 
 
 
 /*
- * template <Concreate Class Name> cAttribute_Intermediary.
- * This is the first layer child class of cAttribute, implementing data pooling and other fundamental concrete class specific methods.
+ * template <Concreate Class Name> cAttribute_Intermediary and cAttribute_Basic.
+ * This is the first/second layer child class of cAttribute, implementing data pooling and other fundamental concrete class specific methods.
  * Data pooling is implemented using binary trees in STL, i.e., std::set and std::map, in order for fast search, insertion and deletion.
  * If any other second layer abstract or concrete attribute class is added in the future, it is supposed to inherit from this cAttribute_Intermediary class.
  * See examples below.
@@ -402,16 +406,7 @@ private:
 	static const string attrib_group;	//attribute group used for ratios purpose;
 public:
 
-	cAttribute_Basic (const char * source = NULL ): cAttribute(source) {
-#if 0
-		if (! bool_is_enabled ) {
-			if ( position_in_registry(class_name) == -1 )
-				throw cException_Attribute_Disabled(class_name.c_str());
-			else
-				bool_is_enabled = true;
-		}
-#endif
-	}
+	cAttribute_Basic (const char * source = NULL ): cAttribute(source) {}
     const string & get_class_name() const { return class_name;}
     static const string & static_get_class_name() {return class_name;}
    	//static void set_column_index_in_query(const unsigned int i ) {column_index_in_query = i;}
@@ -485,14 +480,10 @@ public:
 
 };
 
-template < typename ConcreteType, typename PooledDataType>
-class cAttribute_SI_Mode;
 
 template <typename Derived>
 class cAttribute_Intermediary : public cAttribute_Basic < Derived > {
 	friend bool fetch_records_from_txt(list <cRecord> & source, const char * txt_file, const vector<string> &requested_columns);
-
-
 private:
 	static set < string > data_pool;
 	static map < Derived, int > attrib_pool;
@@ -675,7 +666,7 @@ template < typename AttribType >
 class cAttribute_Vector_Intermediary: public cAttribute_Intermediary<AttribType> {
 	friend class cAttribute;
 	friend class cAttribute_Intermediary<AttribType> ;
-	template < typename T1, typename T2 > friend  class cAttribute_SI_Mode;
+	template < typename T1, typename T2 > friend  class cAttribute_Interactive_Mode;
 
 private:
 	vector < const string * > vector_string_pointers;
@@ -895,9 +886,9 @@ public:
 
 };
 
-
+#if 0
 /*
- *  template < Concrete Class Name > cAttribute_Single_Interactive_Mode:
+ *  template < Concrete Class Name > cAttribute_Single_Interactive_Mode (OBSOLETE NOW) :
  *  This type of class shares the same storage behaviors as the Singe_Mode, however, it stores additional information to allow its interaction with
  *  other classes. A typical example is the Latitude class, which also needs information about longitude, street, country, city, etc.
  *  The concrete child class is responsible for the configuration of the interactive elements, by calling the config_interactive function, during either
@@ -1008,80 +999,22 @@ public:
 
 	unsigned int compare(const cAttribute & rhs) const = 0;		//forcing child class to implement because it is unknown.
 };
-
-
-
-#if 0
-template <typename ConcreteType>
-class cAttribute_SI_Mode : public cAttribute_Single_Mode < cAttribute_SI_Mode< ConcreteType> > {
-private:
-	mutable vector<const cAttribute *> inter_vecs;
-	static std::auto_ptr < const cRecord_Reconfigurator > preconfig;
-	static list < ConcreteType > attrib_list;
-	static bool has_reconfiged;
-public:
-	const vector <const cAttribute *> & get_interactive_vector() const {
-		return inter_vecs;
-	}
-	const cAttribute* clone() const {
-		const cAttribute_SI_Mode< ConcreteType> & alias = dynamic_cast< const cAttribute_SI_Mode< ConcreteType> & > (*this);
-		static_add_attrib(alias, 1);
-		attrib_list.push_back(dynamic_cast<const ConcreteType &>(*this));
-		return & attrib_list.back();
-	}
-
-	void obtain_interactive_reconfigurator() const {
-		std::auto_ptr < const cRecord_Reconfigurator > tmp_ptr (generate_interactive_reconfigurator(this));
-		preconfig = tmp_ptr;
-	}
-	static bool check_if_reconfigured() {
-		if ( ! has_reconfiged )
-			throw cException_Other("Interactive class has not been reconfigured yet.");
-		return has_reconfiged;
-	}
-	void reconfigure_for_interactives( const cRecord * pRec) const {
-		if ( preconfig.get() == NULL )
-			obtain_interactive_reconfigurator();
-		reconfigure_interactives ( preconfig.get(), pRec);
-	}
-	const cAttribute* config_interactive (const vector <const cAttribute *> &inputvec ) const {
-		inter_vecs = inputvec;
-		has_reconfiged = true;
-		return this;
-	}
-	void print( std::ostream & os ) const {
-		cAttribute_Single_Mode < cAttribute_SI_Mode< ConcreteType> >::print(os);
-		os << "Interactive attributes are: ";
-		for ( vector<const cAttribute *>::const_iterator p = inter_vecs.begin(); p != inter_vecs.end(); ++p )
-			os << (*p)->get_class_name() << ", ";
-		os << std::endl;
-	}
-	int exact_compare( const cAttribute & right_hand_side ) const {
-		const ConcreteType & rhs = dynamic_cast< const ConcreteType & > (right_hand_side);
-		const vector < const string * > * v1 = & this->get_data();
-		const vector < const string * > * v2 = & rhs.get_data();
-		if ( v1 != v2 )
-			return 0;
-
-		const unsigned int n = this->get_interactive_vector().size();
-		if ( n != rhs.get_interactive_vector().size() )
-			throw cException_Other("Different data dimensions.");
-
-		for ( unsigned int i = 0; i < n; ++i ) {
-			v1 = & this->get_interactive_vector().at(i)->get_data();
-			v2 = & rhs.get_interactive_vector().at(i)->get_data();
-			if ( v1 != v2 )
-				return 0;
-		}
-
-		return 1;
-	}
-};
 #endif
 
+/*
+ * cAttribute_Interactive_Mode:
+ * This template class is used when a certain class has interaction with other class. To use the mode, a concrete non-interactive
+ * class should be defined first, followed by the inheritance of the interactive class from the template which includes the non-interactive
+ * data type.
+ * Two classes can be defined as interactive with each other.
+ * For example.
+ * To create a cLatitude class:
+ * 	1. cLatitude_Data : public cAttribute_Single_Mode<cLatitude_Data>;
+ * 	2. cLatitude : public cAttribute_Interactive_Mode <cLatitude, cLatitude_Data>;
+ */
 
 template <typename ConcreteType, typename PooledDataType>
-class cAttribute_SI_Mode : public cAttribute_Basic < ConcreteType > {
+class cAttribute_Interactive_Mode : public cAttribute_Basic < ConcreteType > {
 private:
 	mutable PooledDataType * pAttrib;
 	mutable vector<const cAttribute *> inter_vecs;
@@ -1111,7 +1044,7 @@ public:
 	}
 	int clean_attrib_pool() const { return 0; }
 
-	cAttribute_SI_Mode ( const char * data = NULL ): pAttrib (NULL) {}
+	cAttribute_Interactive_Mode ( const char * data = NULL ): pAttrib (NULL) {}
 	bool split_string(const char* recdata) {
 		if ( stat_pdata.get() == NULL )
 			stat_pdata = std::auto_ptr < PooledDataType > ( new PooledDataType );
@@ -1202,13 +1135,10 @@ public:
 
 
 //declaration of static member
-template <typename Derived>  map < vector<const cAttribute *> , unsigned int > cAttribute_Single_Interactive_Mode<Derived>::Interactive_Pool;
 template < typename AttribType> vector < const string * > cAttribute_Set_Intermediary<AttribType>::temporary_storage;
-template <typename Derived> bool cAttribute_Single_Interactive_Mode<Derived>::has_reconfiged = false;
-template <typename Derived> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_Single_Interactive_Mode<Derived>::preconfig;
-template <typename ConcreteType, typename PooledDataType> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_SI_Mode<ConcreteType, PooledDataType>::preconfig;
-template <typename ConcreteType, typename PooledDataType> list < ConcreteType > cAttribute_SI_Mode<ConcreteType, PooledDataType>::attrib_list;
-template <typename ConcreteType, typename PooledDataType> bool cAttribute_SI_Mode<ConcreteType, PooledDataType>::has_reconfiged = false;
-template <typename ConcreteType, typename PooledDataType> std::auto_ptr < PooledDataType > cAttribute_SI_Mode<ConcreteType, PooledDataType>::stat_pdata;
+template <typename ConcreteType, typename PooledDataType> std::auto_ptr < const cRecord_Reconfigurator > cAttribute_Interactive_Mode<ConcreteType, PooledDataType>::preconfig;
+template <typename ConcreteType, typename PooledDataType> list < ConcreteType > cAttribute_Interactive_Mode<ConcreteType, PooledDataType>::attrib_list;
+template <typename ConcreteType, typename PooledDataType> bool cAttribute_Interactive_Mode<ConcreteType, PooledDataType>::has_reconfiged = false;
+template <typename ConcreteType, typename PooledDataType> std::auto_ptr < PooledDataType > cAttribute_Interactive_Mode<ConcreteType, PooledDataType>::stat_pdata;
 
 #endif /* DISAMBIGLIB_HPP_ */

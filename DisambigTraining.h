@@ -5,12 +5,40 @@
  *      Author: ysun
  */
 
+
+/*
+ * Training:
+ *
+ * xset01: non-match set of record pairs to train personal information based on patent information
+ * xset03: non-match set of record pairs to train patent information based on personal information
+ * tset02: match set of record pairs to train patent information based on personal information
+ * tset05: match set of record pairs to train personal information based on patent information
+ *
+ * xset03 and tset02 are both from the rare name list. See find_rarename_v2 function for more information
+ * xset01 is directly from each patent. By building a patent tree, it is obtained easily.
+ * tset05 is the only part that depends on the blocking mechanism, therefore, the cBlocking part should
+ * be consistent with the cBlocking_Operation object used for blocking.
+ * Actually, one can rewrite the whole DisambigTraining.h/cpp code to abandon the cBlocking class, which is from legacy codes.
+ *
+ *
+ * Due to the limit of record pairs in each training set ( > 1 million and <10 million in our case ), in order
+ * to obtain an unbiased training set, two rounds of pair selections are involved. First, a certain quota, proportional
+ * to the size of each block ( actually the square of the size of the block ) is decided when pairs are chosen from the block.
+ * Then pairs are chosen from blocks until their quota are used up. This process starts from the first block and ends till the last
+ * block. Second, after that, if there is any residue quota for the whole database, the residue quota will be filled up by taking the rest
+ * possible pairs starting from the first block, until all the quota are used up.
+ *
+ */
+
+
 #ifndef DISAMBIGTRAINING_H_
 #define DISAMBIGTRAINING_H_
 
 #include "DisambigDefs.h"
 #include "DisambigEngine.h"
 #include "Threading.h"
+
+
 
 typedef std::pair< const cRecord *, const cRecord *> pointer_pairs;
 

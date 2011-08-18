@@ -2,8 +2,6 @@
  *  DisambigFileOper.h
  *  mydisambiguation
  *
- *  Created by Katelin on 10-12-27.
- *  Copyright 2010 Dartmouth College. All rights reserved.
  *
  */
 #ifndef _DISAMBIG_FILE_OPERATIONS_H_
